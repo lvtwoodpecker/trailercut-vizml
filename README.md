@@ -31,6 +31,10 @@ uv venv --python 3.12 && uv pip install -e .
 brew install ffmpeg   # needed for trailer decoding
 ```
 
+Shot detection and embeddings are the slow parts; [`hpc/`](hpc/README.md) runs them on a Slurm GPU
+cluster. `TRAILERCUT_DATA` moves raw data and caches (e.g. to scratch) and `TRAILERCUT_CLIP` picks the
+CLIP backbone (`b32` default, `l14`, `h14`).
+
 ## Pipeline
 
 `scripts/run_all.sh` runs everything in order; each step is resumable.
