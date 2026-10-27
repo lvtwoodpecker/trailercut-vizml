@@ -1,12 +1,17 @@
 """Readers for the MovieNet files we use: shots, keyframes, story alignment, subtitles, meta."""
 import ast
 import csv
+import io
 import json
+import os
 import re
+import zipfile
 from functools import lru_cache
 
 import numpy as np
 import pandas as pd
+
+from PIL import Image
 
 from .paths import FRAMES, IDS, MOVIENET
 
@@ -33,8 +38,41 @@ def shots(imdb_id):
     return df
 
 
+def keyframe_name(shot_idx, i):
+    return f"shot_{shot_idx:04d}_img_{i}.jpg"
+
+
 def keyframe_paths(imdb_id, shot_idx):
-    return [FRAMES / imdb_id / f"shot_{shot_idx:04d}_img_{i}.jpg" for i in range(3)]
+    """Keyframes live either in frames/{id}/ or, to save inodes on clusters, in frames/{id}.zip.
+    Zip members come back as "path/to/{id}.zip::member", which open_image understands."""
+    d = FRAMES / imdb_id
+    if d.is_dir():
+        return [d / keyframe_name(shot_idx, i) for i in range(3)]
+    return [f"{FRAMES / imdb_id}.zip::{keyframe_name(shot_idx, i)}" for i in range(3)]
+
+
+def keyframe_count(imdb_id):
+    d, z = FRAMES / imdb_id, FRAMES / f"{imdb_id}.zip"
+    if d.is_dir():
+        return len(list(d.glob("*.jpg")))
+    if z.exists():
+        with zipfile.ZipFile(z) as zf:
+            return len(zf.namelist())
+    return 0
+
+
+@lru_cache(None)
+def _zip(path, pid):
+    # one handle per process: DataLoader workers must not share a file offset
+    return zipfile.ZipFile(path)
+
+
+def open_image(ref):
+    ref = str(ref)
+    if "::" in ref:
+        path, member = ref.split("::")
+        return Image.open(io.BytesIO(_zip(path, os.getpid()).read(member)))
+    return Image.open(ref)
 
 
 def story(imdb_id):

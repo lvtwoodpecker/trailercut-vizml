@@ -7,13 +7,15 @@ subtitle1K.v1.zip, keyframes split into frames_part_aa..ai, trailer URL list).
 
 Usage
   pip install requests tqdm
-  python movienet_fetch.py small                     # annotation + meta + subtitles + json lists (~670 MB)
-  python movienet_fetch.py keyframes --ids core_films_293.csv --limit 20
-  python movienet_fetch.py trailers  --ids core_films_293.csv --limit 20   # needs yt-dlp
+  python movienet.py small                     # annotation + meta + subtitles + json lists (~670 MB)
+  python movienet.py keyframes --ids core_films_293.csv --limit 20
+  python movienet.py keyframes --ids core_films_293.csv --pack   # one zip per film (saves inodes)
 
 The keyframes command does NOT download the 172 GB archive. It reads the zip's
 central directory once with HTTP range requests (~565 MB, cached to disk),
 then pulls only the byte range for each requested film (~100-200 MB per film).
+With --pack, each film's keyframes go into frames/{imdb_id}.zip (stored, not recompressed)
+instead of ~4,500 loose JPEGs, which matters on clusters with inode quotas.
 """
 import argparse
 import csv
@@ -128,7 +130,7 @@ def load_index(cache):
     return idx
 
 
-def fetch_film(rf, entries, outdir):
+def fetch_film(rf, entries, outdir, pack=False):
     entries = sorted(entries, key=lambda e: e[1])
     lo = entries[0][1]
     hi = entries[-1][1] + entries[-1][2] + 30 + len(entries[-1][0]) + 1024
@@ -137,7 +139,12 @@ def fetch_film(rf, entries, outdir):
         raise RuntimeError("film entries are not contiguous; would need per-file reads")
     rf.seek(lo)
     blob = rf.read(min(hi, rf.size) - lo)
-    os.makedirs(outdir, exist_ok=True)
+    if pack:
+        os.makedirs(os.path.dirname(outdir), exist_ok=True)
+        tmp = outdir + ".zip.part"
+        zout = zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED)
+    else:
+        os.makedirs(outdir, exist_ok=True)
     for name, off, csize, method in entries:
         p = off - lo
         sig, = struct.unpack_from("<I", blob, p)
@@ -146,8 +153,14 @@ def fetch_film(rf, entries, outdir):
         data = blob[p + 30 + fl + el: p + 30 + fl + el + csize]
         if method == 8:
             data = zlib.decompressobj(-15).decompress(data)
-        with open(os.path.join(outdir, os.path.basename(name)), "wb") as f:
-            f.write(data)
+        if pack:
+            zout.writestr(os.path.basename(name), data)
+        else:
+            with open(os.path.join(outdir, os.path.basename(name)), "wb") as f:
+                f.write(data)
+    if pack:
+        zout.close()
+        os.replace(tmp, outdir + ".zip")
     return len(entries)
 
 
@@ -163,6 +176,7 @@ def main():
     ap.add_argument("--ids", default="core_films_293.csv")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", default="movienet")
+    ap.add_argument("--pack", action="store_true", help="write frames/{id}.zip instead of a folder of JPEGs")
     a = ap.parse_args()
 
     if a.cmd == "small":
@@ -177,10 +191,10 @@ def main():
             if mid not in idx:
                 print("no keyframes for", mid)
                 continue
-            if os.path.isdir(dst) and len(os.listdir(dst)) == len(idx[mid]):
+            if (os.path.isdir(dst) and len(os.listdir(dst)) == len(idx[mid])) or os.path.exists(dst + ".zip"):
                 print("have", mid)
                 continue
-            n = fetch_film(rf, idx[mid], dst)
+            n = fetch_film(rf, idx[mid], dst, a.pack)
             print(f"{mid}: {n} keyframes")
     elif a.cmd == "trailers":
         dst = os.path.join(a.out, "trailers")
