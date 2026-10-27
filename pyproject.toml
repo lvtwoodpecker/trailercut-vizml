@@ -1,0 +1,33 @@
+[project]
+name = "trailercut"
+version = "0.1.0"
+description = "What Makes The Cut? Interpretable shot selection and clustering of movie trailers (DS-GA 3001, Team 13)"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "numpy",
+  "pandas",
+  "pyarrow",
+  "requests",
+  "tqdm",
+  "pillow",
+  "opencv-python-headless",
+  "torch",
+  "open_clip_torch",
+  "transnetv2-pytorch",
+  "librosa",
+  "soundfile",
+  "scikit-learn>=1.3",
+  "umap-learn",
+  "matplotlib",
+  "yt-dlp",
+  "lightgbm",
+  "shap",
+  "vaderSentiment",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trailercut"]

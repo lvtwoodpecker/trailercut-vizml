@@ -1,0 +1,17 @@
+# Raw data stays local: MovieNet archives, keyframes, and trailer videos are never committed.
+# We commit IDs, scripts, extracted features (small), and labels.
+data/movienet/
+data/trailers/
+data/cache/
+data/features/*.npy
+*.mp4
+*.webm
+*.mkv
+*.part
+
+.venv/
+__pycache__/
+*.egg-info/
+.ipynb_checkpoints/
+.DS_Store
+labels/label_tool.html
