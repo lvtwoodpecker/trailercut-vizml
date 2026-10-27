@@ -5,10 +5,12 @@ Outputs
   data/cache/trailer_frames/{imdb_id}/shot_XXXX_img_{0,1,2}.jpg
   data/cache/trailer_audio/{imdb_id}.wav
 
-  python -m trailercut.trailer_prep [--limit N]
+  python -m trailercut.trailer_prep [--limit N] [--workers 4]
+On a CUDA machine TransNetV2 runs on the GPU in a single process (seconds per trailer).
 """
 import argparse
 import json
+import shutil
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
 
@@ -24,6 +26,11 @@ SHOTS_DIR = FEATURES / "trailer_shots"
 FRAMES_DIR = CACHE / "trailer_frames"
 AUDIO_DIR = CACHE / "trailer_audio"
 KEYFRAME_FRACS = (0.25, 0.5, 0.75)
+
+if shutil.which("ffmpeg") is None:
+    # clusters often lack ffmpeg; static-ffmpeg ships ffmpeg + ffprobe binaries
+    import static_ffmpeg
+    static_ffmpeg.add_paths()
 
 
 def probe(path):
@@ -42,7 +49,7 @@ def read_frames(path, w, h):
 
 
 def detect_shots(model, path):
-    frames = torch.from_numpy(read_frames(path, 48, 27).copy())
+    frames = torch.from_numpy(read_frames(path, 48, 27).copy()).to(model.device)
     single, _ = model.predict_frames(frames, quiet=True)
     scenes = TransNetV2.predictions_to_scenes(single.numpy())
     return scenes, len(frames)
@@ -106,6 +113,14 @@ def main():
     vids = sorted(p for p in TRAILERS.glob("tt*.mp4") if p.stem.isalnum())
     if a.limit:
         vids = vids[: a.limit]
+    if torch.cuda.is_available():
+        model = TransNetV2(device="cuda").eval()
+        for p in tqdm(vids):
+            try:
+                process(model, p)
+            except Exception as e:
+                print(p.stem, "failed:", e)
+        return
     with ProcessPoolExecutor(a.workers) as ex:
         for err in tqdm(ex.map(_worker, vids), total=len(vids)):
             if err:

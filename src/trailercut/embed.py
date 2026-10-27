@@ -1,10 +1,12 @@
-"""CLIP ViT-B/32 embeddings for film and trailer keyframes (3 per shot), plus concept-prompt text embeddings.
+"""CLIP embeddings for film and trailer keyframes (3 per shot), plus concept-prompt text embeddings.
+
+The backbone is picked with TRAILERCUT_CLIP (b32 default, l14, h14); each gets its own cache dir.
 
 Outputs (gitignored, regenerate with this script)
-  data/cache/clip/film/{imdb_id}.npy      float16 [n_shots, 3, 512], L2-normalized
-  data/cache/clip/trailer/{imdb_id}.npy   float16 [n_shots, 3, 512]
+  data/cache/clip/{tag}/film/{imdb_id}.npy      float16 [n_shots, 3, d], L2-normalized
+  data/cache/clip/{tag}/trailer/{imdb_id}.npy   float16 [n_shots, 3, d]
 
-  python -m trailercut.embed film|trailer [--limit N]
+  TRAILERCUT_CLIP=h14 python -m trailercut.embed film|trailer [--limit N] [--bs 256] [--workers 6]
 """
 import argparse
 
@@ -12,17 +14,20 @@ import numpy as np
 import open_clip
 import pandas as pd
 import torch
-from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from . import movienet_io as mn
-from .paths import CACHE, FEATURES, FRAMES
+from .paths import CACHE, CLIP, CLIP_TAG, FEATURES
 
-# B/32 over B/16: ~3.5x faster on MPS (257 vs 72 img/s) and plenty for near-duplicate matching
-MODEL, PRETRAINED = "ViT-B-32", "laion2b_s34b_b79k"
-DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
-OUT = CACHE / "clip"
+# b32 is what fits on a laptop (~257 img/s on M1 Max MPS); h14 matches Argaw et al. and needs a GPU
+MODELS = {
+    "b32": ("ViT-B-32", "laion2b_s34b_b79k"),
+    "l14": ("ViT-L-14", "laion2b_s32b_b82k"),
+    "h14": ("ViT-H-14", "laion2b_s32b_b79k"),
+}
+MODEL, PRETRAINED = MODELS[CLIP_TAG]
+DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 TRAILER_FRAMES = CACHE / "trailer_frames"
 
 
@@ -35,7 +40,7 @@ def bar_box(paths, thresh=20, min_keep=0.3):
     """Letterbox/pillarbox crop for one trailer. Trailers on YouTube are often boxed while MovieNet
     keyframes are not, and the bars pull CLIP similarity down. Bars are found from the per-pixel max
     over all of the trailer's frames: real bars stay black in every frame, dark scenes don't."""
-    g = np.max([np.asarray(Image.open(p).convert("L")) for p in paths], axis=0).astype(np.float32)
+    g = np.max([np.asarray(mn.open_image(p).convert("L")) for p in paths], axis=0).astype(np.float32)
     rows, cols = np.where(g.mean(1) > thresh)[0], np.where(g.mean(0) > thresh)[0]
     if len(rows) == 0 or len(cols) == 0:
         return None
@@ -51,18 +56,18 @@ class Frames(Dataset):
         return len(self.paths)
 
     def __getitem__(self, i):
-        im = Image.open(self.paths[i]).convert("RGB")
+        im = mn.open_image(self.paths[i]).convert("RGB")
         if self.boxes is not None and self.boxes[i] is not None:
             im = im.crop(self.boxes[i])
         return self.preprocess(im)
 
 
 @torch.no_grad()
-def encode_stream(model, preprocess, jobs, out, bs=256, crop=False):
+def encode_stream(model, preprocess, jobs, out, bs=256, workers=6, crop=False):
     """Run every job's frames through one DataLoader (worker startup is slow on macOS) and save per film."""
     paths = [p for _, ps, _ in jobs for p in ps]
     boxes = [b for _, ps, _ in jobs for b in [bar_box(ps)] * len(ps)] if crop else None
-    dl = DataLoader(Frames(paths, preprocess, boxes), batch_size=bs, num_workers=6)
+    dl = DataLoader(Frames(paths, preprocess, boxes), batch_size=bs, num_workers=workers)
     buf, j = [], 0
     for x in tqdm(dl, total=len(dl)):
         e = model.encode_image(x.to(DEVICE).half())
@@ -83,9 +88,8 @@ def encode_text(model, tokenizer, prompts):
 
 def film_jobs():
     for imdb_id in mn.core_ids():
-        d = FRAMES / imdb_id
         n = len(mn.shots(imdb_id))
-        if d.is_dir() and len(list(d.glob("*.jpg"))) == 3 * n:
+        if mn.keyframe_count(imdb_id) == 3 * n:
             yield imdb_id, [p for s in range(n) for p in mn.keyframe_paths(imdb_id, s)], n
 
 
@@ -100,14 +104,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("kind", choices=["film", "trailer"])
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--bs", type=int, default=256)
+    ap.add_argument("--workers", type=int, default=6)
     a = ap.parse_args()
-    out = OUT / a.kind
+    out = CLIP / a.kind
     out.mkdir(parents=True, exist_ok=True)
     model, preprocess, _ = load_model()
     jobs = [j for j in (film_jobs() if a.kind == "film" else trailer_jobs()) if not (out / f"{j[0]}.npy").exists()]
     if a.limit:
         jobs = jobs[: a.limit]
-    encode_stream(model, preprocess, jobs, out, crop=a.kind == "trailer")
+    print(f"{MODEL} on {DEVICE}: {len(jobs)} {a.kind}s to embed")
+    encode_stream(model, preprocess, jobs, out, a.bs, a.workers, crop=a.kind == "trailer")
 
 
 if __name__ == "__main__":

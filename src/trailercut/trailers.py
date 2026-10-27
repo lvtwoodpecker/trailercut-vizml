@@ -11,9 +11,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yt_dlp
 
-from .paths import DATA, IDS, TRAILERS
+from .paths import IDS, TRAILERS
 
-STATUS = DATA / "ids" / "trailer_status.csv"
+STATUS = IDS.parent / "trailer_status.csv"
 FIELDS = ["imdb_id", "youtube_id", "status", "duration", "title", "error"]
 
 

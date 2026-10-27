@@ -19,7 +19,7 @@ from tqdm import tqdm
 from . import concepts
 from . import movienet_io as mn
 from .film_features import VADER
-from .paths import CACHE, FEATURES
+from .paths import CACHE, CLIP, FEATURES
 
 AUDIO = CACHE / "trailer_audio"
 GRID = 100
@@ -96,7 +96,7 @@ def story_and_dialogue(imdb_id):
 
 
 def visual(imdb_id):
-    emb = np.load(CACHE / "clip" / "trailer" / f"{imdb_id}.npy")
+    emb = np.load(CLIP / "trailer" / f"{imdb_id}.npy")
     s = concepts.scores(emb)
     return {"scale_width_mean": s["scale_width"].mean(), **{f"{c}_mean": s[c].mean() for c in concepts.CONTENT}}
 

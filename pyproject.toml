@@ -25,6 +25,10 @@ dependencies = [
   "vaderSentiment",
 ]
 
+[project.optional-dependencies]
+# ffmpeg/ffprobe binaries for machines without a system ffmpeg (most clusters)
+hpc = ["static-ffmpeg"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

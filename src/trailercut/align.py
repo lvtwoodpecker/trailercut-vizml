@@ -28,16 +28,15 @@ import torch
 from tqdm import tqdm
 
 from . import movienet_io as mn
-from .paths import CACHE, FEATURES
+from .paths import CACHE, CLIP, CLIP_TAG, FEATURES
 
-CLIP = CACHE / "clip"
 OUT = FEATURES / "alignment"
 TOPK = 5
 # film shots within this many indices of the best are treated as the same moment when computing margin
 # (shot/reverse-shot and continuous coverage make neighbours look alike)
 NEIGHBOR = 3
 BLANK = 0.9
-BLANK_EMB = CACHE / "blank_emb.npy"
+BLANK_EMB = CACHE / f"blank_emb_{CLIP_TAG}.npy"
 
 
 def blank_embeddings():
@@ -125,7 +124,7 @@ def main():
     meta = dict(fpr=a.fpr, threshold=threshold, n_null=len(null),
                 null_quantiles={q: float(np.quantile(null, q)) for q in (0.5, 0.9, 0.99, 0.999)})
     (FEATURES / "alignment_threshold.json").write_text(json.dumps(meta, indent=2))
-    np.save(CACHE / "alignment_null.npy", null)
+    np.save(CACHE / f"alignment_null_{CLIP_TAG}.npy", null)
     print(meta)
 
     OUT.mkdir(parents=True, exist_ok=True)

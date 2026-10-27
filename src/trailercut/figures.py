@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import movienet_io as mn
-from .paths import CACHE, DATA, FEATURES, FIGURES, MOVIENET
+from .paths import CACHE, CLIP_TAG, FEATURES, FIGURES, ROOT
 
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False, "font.size": 9})
 
@@ -20,13 +20,13 @@ def alignments():
 
 
 def funnel():
-    status = list(csv.DictReader(open(DATA / "ids" / "trailer_status.csv")))
+    status = list(csv.DictReader(open(ROOT / "data" / "ids" / "trailer_status.csv")))
     steps = [
         ("MovieNet films w/ keyframes", len(mn.video_info())),
         ("+ synopsis-shot alignment", 297),
         ("+ trailer URL (core set)", len(mn.core_ids())),
         ("trailer still on YouTube", sum(r["status"] == "ok" for r in status)),
-        ("aligned so far", len(list((FEATURES / "alignment").glob("*.csv")))),
+        ("trailer aligned to film", len(list((FEATURES / "alignment").glob("*.csv")))),
     ]
     fig, ax = plt.subplots(figsize=(6, 2.4))
     ax.barh([s for s, _ in steps][::-1], [n for _, n in steps][::-1], color="#4c78a8")
@@ -41,7 +41,7 @@ def funnel():
 
 
 def scores(al):
-    null = np.load(CACHE / "alignment_null.npy")
+    null = np.load(CACHE / f"alignment_null_{CLIP_TAG}.npy")
     thr = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]
     fig, ax = plt.subplots(figsize=(5, 3))
     bins = np.linspace(0.3, 1, 71)

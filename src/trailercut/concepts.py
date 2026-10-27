@@ -4,13 +4,13 @@ These stand in for the raw embedding when explaining the trailerness model, so a
 "close-up" or "explosion" instead of "embedding dim 417". The raw embedding stays a separate,
 ablatable feature block.
 
-  python -m trailercut.concepts   # writes data/cache/concept_text.npy
+  python -m trailercut.concepts   # writes data/cache/concept_text_{tag}.npy
 """
 import numpy as np
 
-from .paths import CACHE
+from .paths import CACHE, CLIP_TAG
 
-TEXT_EMB = CACHE / "concept_text.npy"
+TEXT_EMB = CACHE / f"concept_text_{CLIP_TAG}.npy"
 
 # MovieNet's scale taxonomy (ECS/CS/MS/FS/LS); scale is read as a softmax over these five
 SHOT_SCALE = {

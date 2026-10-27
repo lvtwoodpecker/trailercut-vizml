@@ -20,7 +20,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from . import concepts
 from . import movienet_io as mn
-from .paths import CACHE, FEATURES
+from .paths import CLIP, FEATURES
 
 VADER = SentimentIntensityAnalyzer()
 
@@ -63,7 +63,7 @@ def film_table(imdb_id):
     cnt = labels(imdb_id, len(shots))
     if cnt is None:
         return None
-    emb = np.load(CACHE / "clip" / "film" / f"{imdb_id}.npy").astype(np.float32)
+    emb = np.load(CLIP / "film" / f"{imdb_id}.npy").astype(np.float32)
     df = shots[["shot_idx", "t_start", "t_end", "shot_len", "story_pos"]].copy()
     df.insert(0, "imdb_id", imdb_id)
     for k, v in {**story_features(shots, mn.story(imdb_id)),
