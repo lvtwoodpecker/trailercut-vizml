@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Makes the Cut</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --pos: #2a78d6; --neg: #e34948; --band: rgba(42,120,214,0.15);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --pos: #3987e5; --neg: #e66767; --band: rgba(57,135,229,0.2);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --pos: #3987e5; --neg: #e66767; --band: rgba(57,135,229,0.2);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; margin-bottom: 4px; }
+h1 { font-size: 20px; margin: 0; }
+nav a { color: var(--ink-2); font-size: 13px; }
+.lede { color: var(--ink-2); max-width: 900px; margin: 4px 0 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.card h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+.sub { color: var(--ink-2); font-size: 13px; margin: 0 0 8px; }
+.grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 1000px) { .grid { grid-template-columns: 1fr 1fr; } }
+svg { display: block; overflow: visible; }
+.axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.axis path, .axis line { stroke: var(--axis); }
+.gridline { stroke: var(--grid); }
+.ref { stroke: var(--muted); stroke-dasharray: 4 4; }
+.lbl { fill: var(--ink); font-size: 12px; }
+.lbl-2 { fill: var(--muted); font-size: 11px; }
+.ci { stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.hit { fill: transparent; cursor: default; }
+#tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; z-index: 10;
+  font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>What makes the cut?</h1>
+    <nav><a href="index.html">Explore one trailer →</a></nav>
+  </header>
+  <p class="lede" id="lede"></p>
+
+  <div class="card">
+    <h2>Can a model pick the trailer's shots?</h2>
+    <p class="sub">Per film, the model ranks every shot and keeps as many as the trailer used. Lift = how many more of its picks are right than random picks.</p>
+    <svg id="models"></svg>
+  </div>
+
+  <div class="card">
+    <h2>Where in the film do trailers take their shots from?</h2>
+    <p class="sub" id="story-sub"></p>
+    <svg id="story"></svg>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h2>Shot scale</h2><p class="sub" id="scale-sub"></p><svg id="scale"></svg></div>
+    <div class="card"><h2>Shot length, within its film</h2><p class="sub" id="length-sub"></p><svg id="length"></svg></div>
+    <div class="card"><h2>How unusual the shot looks for its film</h2><p class="sub" id="distinct-sub"></p><svg id="distinct"></svg></div>
+    <div class="card"><h2>Dialogue</h2><p class="sub" id="dialogue-sub"></p><svg id="dialogue"></svg></div>
+  </div>
+
+  <div class="card">
+    <h2>What's in the shot</h2>
+    <p class="sub" id="content-sub"></p>
+    <svg id="content"></svg>
+  </div>
+  <p class="note" id="foot"></p>
+</main>
+<div id="tip"></div>
+
+<script>
+const tip = d3.select("#tip");
+const fmtL = d3.format(".2f");
+const showTip = (ev, html) => {
+  tip.html(html).style("display", "block")
+    .style("left", Math.min(ev.clientX + 14, innerWidth - 240) + "px").style("top", (ev.clientY + 14) + "px");
+};
+const hideTip = () => tip.style("display", "none");
+const width = id => document.getElementById(id).parentNode.clientWidth - 32;
+// one lift scale for every dot plot, so effects compare across panels
+const LIFT = [0.5, 2];
+const TICKS = [0.5, 0.75, 1, 1.5, 2];
+// grey when the interval crosses 1x: no clear difference
+const color = (l, lo = l, hi = l) => lo > 1 ? "var(--pos)" : hi < 1 ? "var(--neg)" : "var(--muted)";
+const times = l => `${fmtL(l)}×`;
+
+function dotPlot(id, rows, labelW = 150) {
+  const w = width(id), rh = 26, m = { t: 6, b: 26 }, H = rows.length * rh + m.t + m.b;
+  const svg = d3.select("#" + id).attr("width", w).attr("height", H);
+  svg.selectAll("*").remove();
+  const x = d3.scaleLog(LIFT, [labelW, w - 50]).clamp(true);
+  TICKS.forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", x(t)).attr("x2", x(t)).attr("y1", m.t).attr("y2", H - m.b));
+  const g = svg.selectAll("g.row").data(rows).join("g").attr("transform", (_, i) => `translate(0,${m.t + i * rh + rh / 2})`);
+  g.append("text").attr("class", "lbl").attr("x", labelW - 10).attr("dy", "0.32em").attr("text-anchor", "end").text(r => r.level);
+  g.append("line").attr("class", "ci").attr("x1", r => x(r.lo)).attr("x2", r => x(r.hi));
+  g.append("circle").attr("cx", r => x(r.lift)).attr("r", 5.5).attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+  g.append("text").attr("class", "lbl-2").attr("x", r => Math.max(x(r.hi), x(r.lift) + 6) + 8).attr("dy", "0.32em").text(r => times(r.lift));
+  g.append("rect").attr("class", "hit").attr("x", 0).attr("y", -rh / 2).attr("width", w).attr("height", rh)
+    .on("mousemove", (ev, r) => showTip(ev, `<b>${r.level}</b><br>picked ${times(r.lift)} as often as the average shot<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}<br>${d3.format(",")(r.n)} shots`))
+    .on("mouseleave", hideTip);
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`)
+    .call(d3.axisBottom(x).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
+}
+
+// quote only clear effects: the strongest above 1x and the strongest below
+function sub(id, rows) {
+  const up = rows.filter(r => r.lo > 1), down = rows.filter(r => r.hi < 1);
+  const parts = [];
+  if (up.length) { const r = up.reduce((a, b) => b.lift > a.lift ? b : a); parts.push(`${cap(r.level)}: ${times(r.lift)}.`); }
+  if (down.length) { const r = down.reduce((a, b) => b.lift < a.lift ? b : a); parts.push(`${cap(r.level)}: ${times(r.lift)}.`); }
+  d3.select("#" + id).text(parts.length ? parts.join(" ") : "No clear difference: every interval crosses 1×.");
+}
+const cap = s => s[0].toUpperCase() + s.slice(1);
+
+function story(rows) {
+  const w = width("story"), H = 300, m = { l: 50, r: 16, t: 14, b: 36 };
+  const svg = d3.select("#story").attr("width", w).attr("height", H);
+  svg.selectAll("*").remove();
+  const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLog(LIFT, [H - m.b, m.t]);
+  TICKS.forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(t)).attr("y2", y(t)));
+  [0.25, 0.75].forEach(p => svg.append("line").attr("class", "gridline").attr("x1", x(p)).attr("x2", x(p)).attr("y1", m.t).attr("y2", H - m.b));
+  [[0, "setup"], [0.25, "middle"], [0.75, "ending"]].forEach(([p, t]) => svg.append("text").attr("class", "lbl-2").attr("x", x(p) + 4).attr("y", m.t + 10).text(t));
+  svg.append("path").attr("fill", "var(--band)")
+    .attr("d", d3.area().x(r => x(r.level)).y0(r => y(r.lo)).y1(r => y(r.hi)).curve(d3.curveMonotoneX)(rows));
+  svg.append("path").attr("fill", "none").attr("stroke", "var(--pos)").attr("stroke-width", 2)
+    .attr("d", d3.line().x(r => x(r.level)).y(r => y(r.lift)).curve(d3.curveMonotoneX)(rows));
+  svg.selectAll("circle").data(rows).join("circle").attr("cx", r => x(r.level)).attr("cy", r => y(r.lift)).attr("r", 4)
+    .attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+  svg.selectAll("rect.hit").data(rows).join("rect").attr("class", "hit").attr("x", r => x(r.level - 0.025)).attr("width", x(0.05) - x(0))
+    .attr("y", m.t).attr("height", H - m.t - m.b)
+    .on("mousemove", (ev, r) => showTip(ev, `<b>${Math.round(100 * (r.level - 0.025))} to ${Math.round(100 * (r.level + 0.025))}% into the film</b><br>picked ${times(r.lift)} as often as the average shot<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}`))
+    .on("mouseleave", hideTip);
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
+  svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text("position in the film");
+  const first = rows[0], late = rows.reduce((a, b) => b.lift < a.lift ? b : a);
+  d3.select("#story-sub").text(`Shots from the first 5% of a film are picked ${times(first.lift)} as often as the average shot; ` +
+    `around ${Math.round(100 * late.level)}% in, only ${times(late.lift)}. The band is a 95% interval from resampling films. ` +
+    `Studio logos and credits (the first and last 1%) are left out.`);
+}
+
+function models(rows, best) {
+  const all = rows.map(r => ({ level: label(r.name), lift: r.lift }));
+  if (best) all.push({ level: `tuned (${best.name})`, lift: best.lift });
+  const w = width("models"), rh = 26, lw = 260, m = { t: 6, b: 26 }, H = all.length * rh + m.t + m.b;
+  const svg = d3.select("#models").attr("width", w).attr("height", H);
+  svg.selectAll("*").remove();
+  const x = d3.scaleLinear([0, Math.max(4, d3.max(all, r => r.lift) * 1.1)], [lw, w - 60]);
+  x.ticks(5).forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", x(t)).attr("x2", x(t)).attr("y1", m.t).attr("y2", H - m.b));
+  const g = svg.selectAll("g.row").data(all).join("g").attr("transform", (_, i) => `translate(0,${m.t + i * rh + rh / 2})`);
+  g.append("text").attr("class", "lbl").attr("x", lw - 10).attr("dy", "0.32em").attr("text-anchor", "end").text(r => r.level);
+  g.append("rect").attr("x", x(0)).attr("y", -7).attr("height", 14).attr("rx", 2).attr("width", r => x(r.lift) - x(0)).attr("fill", "var(--pos)")
+    .attr("opacity", (_, i) => i === 0 ? 0.35 : 1);
+  g.append("text").attr("class", "lbl-2").attr("x", r => x(r.lift) + 6).attr("dy", "0.32em").text(r => times(r.lift));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`).call(d3.axisBottom(x).ticks(5).tickFormat(t => `${t}×`).tickSizeOuter(0));
+}
+const label = n => ({ random: "random picks", position_only: "story position only", length_only: "shot length only",
+  clip_only: "CLIP look only", readable: "named features (no CLIP)", full: "named features + CLIP" }[n] || n);
+
+d3.json("data/rq1.json").then(D => {
+  d3.select("#lede").text(`Across ${D.n_films} films and ${d3.format(",")(D.n_shots)} film shots, ${d3.format(".1%")(D.positive_rate)} end up in the trailer. ` +
+    `Each chart shows how much more (blue) or less (red) often a kind of shot is picked than the average shot; grey means the 95% interval includes 1×, so no clear difference.`);
+  const draw = () => {
+    if (D.models) models(D.models, D.best_model);
+    story(D.story);
+    for (const k of ["scale", "length", "distinct", "dialogue"]) { dotPlot(k, D[k]); sub(k + "-sub", D[k]); }
+    dotPlot("content", D.content, 120);
+    d3.select("#content-sub").text("Shots in the top 10% of their film for each concept (scored zero-shot by CLIP), compared with the average shot.");
+  };
+  draw();
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(draw, 150); });
+  d3.select("#foot").text("Intervals: 95%, from resampling films. Concepts and shot scale are CLIP zero-shot scores, so treat them as soft labels.");
+});
+</script>
+</body>
+</html>
