@@ -16,10 +16,12 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | committed | what |
 |---|---|
 | `data/ids/core_films_293.csv` | the 293 films with keyframes + synopsis-to-shot story alignment + a trailer URL |
-| `data/ids/trailer_status.csv` | which trailers still download (ok / unavailable / error) |
+| `data/ids/trailer_status.csv` | which trailers still download (ok / unavailable / error); `source` says whether the link is MovieNet's or a search replacement |
+| `data/ids/trailer_recovery.csv` | every search candidate tried for a dead link, with its match share and whether it was accepted |
 | `data/features/trailer_shots/*.csv` | TransNetV2 shots per trailer |
 | `data/features/alignment/*.csv` | per trailer shot: matched film shot, score, margin, top-5 candidates |
 | `data/features/film_shots.parquet` | RQ1 table: one row per film shot, readable features + `in_trailer` label (not committed, ~65 MB; `python -m trailercut.film_features` rebuilds it) |
+| `data/features/model_report.json` | RQ1 metrics per model (baselines, readable, full, ablations) and SHAP summaries; per-shot predictions and SHAP (`model_preds.parquet`, `model_shap.parquet`) are not committed |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
 | `labels/` | hand-labeling tool + gold labels for alignment |
@@ -43,12 +45,14 @@ CLIP backbone (`b32` default, `l14`, `h14`).
 |---|---|---|
 | MovieNet download | `src/trailercut/movienet.py` | ungated HF mirror; keyframes pulled per film with HTTP range requests (~125 MB/film instead of the 172 GB archive) |
 | trailers | `trailercut.trailers` | yt-dlp at 360p, logs availability |
+| dead links | `trailercut.recover` | YouTube search for replacements; accepted only if at least 25% of shots align to the film |
 | shots | `trailercut.trailer_prep` | TransNetV2 boundaries, 3 keyframes/shot (MovieNet style), mono audio |
 | embeddings | `trailercut.embed` | CLIP ViT-B/32 (LAION-2B), 3 keyframes per shot; trailer letterbox bars cropped per trailer |
 | alignment | `trailercut.align` | mean-of-max similarity over keyframes; blank shots masked; "no match" threshold from an impostor null |
 | label check | `trailercut.label_tool`, `label_eval` | hand-check top-5 candidates, then pick the threshold from precision/recall |
 | readable features | `trailercut.concepts` | zero-shot shot scale + 20 content concepts, so SHAP names things people can read |
 | RQ1 table | `trailercut.film_features` | position, dialogue (subtitles + VADER), scale, content, editing |
+| RQ1 model | `trailercut.model` | LightGBM, folds grouped by film, baselines + ablations, out-of-fold TreeSHAP |
 | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts |
 | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth |
