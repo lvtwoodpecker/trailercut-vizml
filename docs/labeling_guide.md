@@ -5,12 +5,13 @@ We hand-check the aligner on 10 trailers to pick the final match threshold and m
 
 ## Setup
 
-1. Make sure you have the film keyframes and trailer frames for the sampled films locally. The page
-   loads images by relative path from `data/movienet/frames/{id}/` (loose JPEGs, not the `--pack`
-   zips) and `data/cache/trailer_frames/{id}/`, so it ignores `TRAILERCUT_DATA`. Nothing is uploaded.
+1. Make sure you have the film keyframes (loose JPEGs or `--pack` zips) and trailer frames for the
+   sampled films locally, under `TRAILERCUT_DATA` if set. `label_tool` copies the images it needs into
+   `labels/img/` (gitignored); the page loads them from there. Nothing is uploaded.
 2. `python -m trailercut.label_tool --n 10 --seed 0` (already run; the 10 sampled IMDb IDs are in
-   `labels/label_sample.json`). Sampling is round-robin over decades. Same seed = same sample, so
-   everyone labels from the same page.
+   `labels/label_sample.json`). Sampling is round-robin over decades. Same seed and same set of
+   aligned trailers = same sample, so everyone labels from the same page (the 293-trailer set gives the
+   same 10 films as the earlier 244 set).
 3. Open `labels/label_tool.html` in a browser and type your name in the **Labeler** box at the top.
    It is only read at export time and becomes the file name.
 

@@ -18,7 +18,7 @@
 | `in_trailer` | label: at least one matched trailer shot points at this film shot |
 | readable features | features with names people understand (position, dialogue, scale, content, editing) |
 | CLIP block | the shot embedding (PCA'd) as one feature group; SHAP shown as one "other appearance" value |
-| AP / PR-AUC | average precision, area under the precision/recall curve; the main metric at 2.3% positives |
+| AP / PR-AUC | average precision, area under the precision/recall curve; the main metric at 2.5% positives |
 | precision at trailer length | per film, precision of the top-k shots where k is how many shots the trailer used (R-precision) |
 | length-adjusted AP | AP inside shot-length quintiles, averaged; removes the "long shots get sampled more" effect |
 | grouped CV | cross-validation where all shots of a film are in the same fold |
@@ -30,4 +30,5 @@
 | order correlation | rank correlation between trailer order and film order of matched shots |
 | match share | fraction of a trailer's non-blank shots that are matched; used to verify recovered trailers |
 | source | where a trailer link came from: `movienet` or `search` |
+| movie barcode | the film drawn as a strip of its shots, each filled with the average color of its middle keyframe and as wide as its share of runtime (Trailer View) |
 | backbone tag | which CLIP model made the embeddings: `b32`, `l14`, `h14` |

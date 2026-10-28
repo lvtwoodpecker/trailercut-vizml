@@ -1,7 +1,7 @@
 # Design choices
 
 Why the pipeline is built the way it is. Each entry: what we do, why, and what we gave up.
-Code paths are under `src/trailercut/`. Numbers are from the 244-trailer run with CLIP ViT-B/32.
+Code paths are under `src/trailercut/`. Numbers are from the 293-trailer run with CLIP ViT-B/32 unless an entry says otherwise.
 
 ## Data
 
@@ -63,7 +63,7 @@ footage that isn't in the film (title cards, alternate takes, VFX shots, other f
 forcing every shot onto a film shot would create false labels.
 
 **Threshold from an impostor null.** Score each trailer shot against 3 *other* films; the 95th
-percentile of those best scores is the threshold (0.741), i.e. ~5% of non-source shots would pass.
+percentile of those best scores is the threshold (0.740), i.e. ~5% of non-source shots would pass.
 This gives a false-match rate without labels. 1% (0.786 to 0.81) was tried first, but contact sheets
 showed matches between 0.72 and 0.79 were almost all correct, so 1% threw away real matches.
 
@@ -77,7 +77,15 @@ the margin to the best shot outside ±3 neighbors is saved as a confidence signa
 
 **Hand labels pick the final threshold** (`label_tool.py`, `label_eval.py`). 10 trailers sampled across
 decades, each shot labeled against its top-5 candidates, with 2 trailers labeled by both of us for
-Cohen's kappa. The final cutoff comes from that precision/recall curve, not the null.
+Cohen's kappa. The final cutoff comes from that precision/recall curve, not the null, and is
+applied with `align --threshold T`. The null is still computed and its false-match rate at `T` is
+saved, so the report can say what the hand-picked cutoff costs in false matches.
+
+**Label tool copies its own images** (`label_tool.copy_images`). The page used to load images by
+relative path from `data/`, which broke with per-film keyframe zips (`--pack`) and with
+`TRAILERCUT_DATA` pointing elsewhere. It now copies the trailer keyframes and re-saves the film
+candidates into gitignored `labels/img/`, so the page works from any data layout and the folder can be
+handed to a labeler as is.
 
 ## Readable features
 
@@ -97,15 +105,15 @@ position carries the finer story signal.
 
 ## RQ1 model (`model.py`)
 
-**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 2.3% positive.
+**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 2.5% positive.
 
 **LightGBM.** Handles mixed-scale features, missing values (no subtitles, no synopsis paragraph) and
-390K rows quickly, and TreeSHAP is exact and fast for it.
+466K rows quickly, and TreeSHAP is exact and fast for it.
 
 **Folds grouped by film.** Shots from the same film share look, cast and score; a random split would
 let the model memorize films and inflate every metric.
 
-**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the 2.3% positive
+**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the 2.5% positive
 rate. Pooled AP, mean per-film AP, and precision at trailer length (per film, top-k where k is the
 number of shots the trailer used), which is the question a trailer editor actually faces.
 
@@ -135,9 +143,40 @@ HDBSCAN as a check on whether density-based structure exists at all.
 **Genre/era with a baseline:** NMI with primary genre and decade, compared against the 95th percentile
 of NMI with shuffled labels. Without the null, any NMI looks like agreement.
 
-**Current read:** clusters are stable (ARI 0.78 to 0.93) but weakly separated (silhouette 0.11 to
-0.30). Genre NMI is near the null; pacing clusters follow decade. Next step: regress out genre and
+**Current read:** clusters are stable (ARI 0.76 to 0.94) but weakly separated (silhouette 0.11 to
+0.31). Genre NMI beats the null only for all features and visual, and stays small; pacing clusters
+follow decade. Next step: regress out genre and
 decade and re-cluster the residuals; if structure stays weak, report continuous axes instead of types.
+
+## Trailer View (`viz/index.html`, `viewer_export.py`)
+
+**One JSON per trailer.** The page loads only the trailer it shows plus a small index for the picker.
+Named-feature detail (value + SHAP per feature) is only exported for in-trailer shots and the top 60 by
+model score, the shots someone will actually hover; the rest get grouped SHAP only, which keeps files
+small.
+
+**Movie barcode from average color.** The film is drawn as a strip of its shots, each filled with the
+average color of its middle keyframe and as wide as its share of runtime. It gives the film axis a
+recognizable look (night scenes, color grading, act changes) without showing any frames, so it works
+in the committed page too. Average color is cheap (JPEG decoded at reduced size, ~1 ms per keyframe)
+and cached per film in `cache/shot_colors/`. We give up any notion of shot content; the hover frames
+cover that.
+
+**Links plus an order scatter.** Curves from each trailer shot down to its film position show where
+footage comes from, but with 70+ shots they cross into a tangle that's hard to read for order. The
+scatter (trailer position vs film position, diagonal = film order) answers "does the trailer follow the
+film?" at a glance, so both are shown.
+
+**Hover previews, click locks.** Hover shows a tooltip and highlights the shot and its match, but it
+disappears as soon as the mouse moves. Judging a match means looking at both frames for a while, so a
+click locks the shot: the highlight stays and the trailer frame and matched film frame show side by
+side, large enough to compare. Arrow keys step through matched shots and Esc unlocks, so you can walk a whole trailer from the keyboard.
+
+**Thumbnails are local only.** Frame images load from the viewer's own `data/movienet/frames/` and
+`data/cache/trailer_frames/`. Frames are copyrighted, so they are never committed, exported into
+`viz/data/` or hosted; on a machine without the data the page still works, just without pictures.
+The paths are fixed to `data/` and loose JPEGs, so they ignore `TRAILERCUT_DATA` and `--pack` zips
+(unlike the label tool, which copies its images).
 
 ## Dropped from the proposal
 

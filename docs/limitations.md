@@ -4,9 +4,11 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 ## Data
 
-- **Survivor sample.** 244 of 293 trailers are still on YouTube. Dead links skew toward newer films:
-  45 of the 49 are from the 1990s on (about 20% of those decades lost), vs 4 of 65 older films. Search replacements may be re-release or anniversary cuts, not the
-  original theatrical trailer (tracked in `source`).
+- **Replaced trailers.** 49 of the 293 MovieNet trailer links were dead and were replaced by YouTube
+  search hits that align to the film. 45 of the 49 are from the 1990s on, so newer films lean more on
+  replacements. A replacement may be a re-release, anniversary or international cut, not the original
+  theatrical trailer (tracked in `source`); the lowest accepted match shares (*Basic* 31%, *Dogma* 33%,
+  *Serenity* 34%) haven't been checked by eye.
 - **One trailer per film.** Films often have a teaser, several trailers and TV spots. We see one,
   usually whichever MovieNet's authors found, so "what the trailer used" means "what this trailer used".
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
@@ -20,8 +22,9 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   in the model's training data; wrong matches become false positives. Hand labels measure this on 10
   trailers only.
 - **Right scene, wrong shot.** The error we expect most (not measured until the hand labels are in)
-  lands on a neighboring film shot. For
-  story position this barely matters; for shot-level features (scale, content) it can.
+  lands on a neighboring film shot. For story position this barely matters; for shot-level features
+  (scale, content) it can. The model is also scored at shot level, so the true source shot then counts
+  as a negative and the neighbor as a positive; exact-shot metrics understate the model.
 - **Shot length.** Longer film shots give a trailer more footage to sample, so they are more likely to
   be labeled in-trailer regardless of content. Controlled with a length-only baseline and
   length-adjusted AP, not removed.
@@ -37,7 +40,11 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 ## Analysis
 
-- **Clusters are weakly separated** (silhouette 0.11 to 0.30). We report them as reproducible splits,
+- **The RQ1 signal is weak.** The full model's AP is 0.050 against 0.024 for random, and at trailer
+  length about 9 in 100 top-ranked shots are in the trailer. It ranks better than chance, not well
+  enough to say which shots an editor will pick. Readable features carry most of what the model finds
+  (AP 0.045 vs 0.050 with CLIP).
+- **Clusters are weakly separated** (silhouette 0.11 to 0.31). We report them as reproducible splits,
   not as distinct trailer types.
 - **Decade confounds style.** Pacing follows decade, and decade correlates with almost everything.
   Residual clustering is planned.
