@@ -179,13 +179,11 @@ footage comes from, but with 70+ shots they cross into a tangle that's hard to r
 scatter (trailer position vs film position, diagonal = film order) answers "does the trailer follow the
 film?" at a glance, so both are shown.
 
-**Picks panel instead of trailerness bars.** We first drew the model's score as a bar per film shot.
-With ~700 thin bars per film it was hard to read and didn't answer the real question: would the model
-have picked the shots the editor picked? The panel "Would the model have picked the same shots?" shows
-the model's top k film shots as thumbnails (k = shots the trailer used, capped at 12, a check mark when
-the trailer used it) and each used shot with its model rank out of all film shots, plus a summary line:
-hits in the top k vs what random picks would get, and the median rank of used shots. Clicking a
-thumbnail locks that film shot and fills the SHAP panel. We give up the full score profile along the film.
+**No trailerness chart.** We first drew the model's score as a bar per film shot, then replaced it
+with a "Would the model have picked the same shots?" panel (top-k thumbnails, rank of each used shot,
+hits vs random). Neither told a clear story (~700 thin bars per film were hard to read), so both were dropped. The model score now shows in the
+film-shot tooltip and in the "Why this shot?" SHAP panel, filled by hovering or clicking a film shot on
+the barcode. We give up a view of the score profile along the film.
 
 **Hover previews, click locks.** Hover shows a tooltip and highlights the shot and its match, but it
 disappears as soon as the mouse moves. Judging a match means looking at both frames for a while, so a

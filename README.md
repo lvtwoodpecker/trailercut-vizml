@@ -76,9 +76,9 @@ Export and save as `labels/gold_<name>.json`, then run `python -m trailercut.lab
 D3 page for one trailer at a time: the trailer's cuts on top, the film as a movie barcode (average
 color per shot) below, and a curve from each matched trailer shot to where it sits in the film. Hover
 to preview, click to lock a shot and see trailer and film frames side by side, arrow keys step
-through matched shots. Below that, an order scatter (trailer position vs film position), a panel comparing the model's top
-picks with the shots the trailer used (rank of each used shot, hits vs random), and the
-grouped SHAP for the selected film shot (click a group to see its features), when the model has been run.
+through matched shots. Below that, an order scatter (trailer position vs film position) and, when the
+model has been run, the grouped SHAP for the hovered or clicked film shot (click a group to see its
+features). Per-shot model scores show in the film-shot tooltip and the SHAP panel, not as their own chart.
 
 ```bash
 python -m trailercut.viewer_export   # writes viz/data/
