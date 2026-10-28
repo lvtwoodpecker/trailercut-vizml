@@ -10,18 +10,24 @@
 | synopsis position | which paragraph of the MovieNet synopsis covers the shot, scaled 0 to 1 |
 | alignment | matching each trailer shot to the film shot it was cut from |
 | match / no match | a trailer shot is matched if its best score clears the threshold and it isn't blank |
-| impostor null | best scores of trailer shots against *other* films; its 95th percentile is the threshold |
-| FPR | false positive rate: share of shots from a different film that would still pass the threshold |
+| best-F1 threshold | the match cutoff with the highest F1 (precision vs recall against the hand labels); 0.535, the one `align` uses now |
+| impostor null | best scores of trailer shots against *other* films; its 95th percentile was the threshold before hand labels (0.74) |
+| smoothing | matching a whole trailer as a sequence (Viterbi) so consecutive shots prefer nearby film shots; tried, not used |
+| FPR | false positive rate: share of impostor scores (best match in a different film) at or above the threshold |
 | blank shot | a shot that looks like a solid black, white or grey frame (fades, black frames) |
 | margin | best score minus the best score outside ±3 neighboring film shots; low margin = ambiguous |
 | trailerness | the RQ1 model's predicted probability that a film shot appears in the trailer |
 | `in_trailer` | label: at least one matched trailer shot points at this film shot |
 | readable features | features with names people understand (position, dialogue, scale, content, editing) |
 | CLIP block | the shot embedding (PCA'd) as one feature group; SHAP shown as one "other appearance" value |
-| AP / PR-AUC | average precision, area under the precision/recall curve; the main metric at 2.5% positives |
+| AP / PR-AUC | average precision, area under the precision/recall curve; used because only 3.8% of shots are positive |
 | precision at trailer length | per film, precision of the top-k shots where k is how many shots the trailer used (R-precision) |
 | tolerance (±k shots) | in `model_eval`, a top-ranked film shot counts as a hit if a used shot is within k film shots of it; random gets the same tolerance |
-| lift | precision at trailer length divided by the base rate (what random would score), at the same tolerance |
+| lift | a rate over the rate you'd get by chance. Model: precision at trailer length over the base rate, at the same tolerance. RQ1 page: pick rate of a kind of shot over the average shot's pick rate (1x = no difference) |
+| edge shots | film shots in the first and last 1% of a film (studio logos, credits); left out of the RQ1 model and page |
+| context features | `distinct` (unlike the film's average shot), `novelty` (unlike the 2 shots on each side), `recurrence` (the look comes back more than 10 shots away); from CLIP |
+| relative features | `rel_*`: a feature's percentile rank within its own film |
+| film bootstrap | resampling whole films with replacement to get an interval, so one film can't carry a result |
 | length-adjusted AP | AP inside shot-length quintiles, averaged; removes the "long shots get sampled more" effect |
 | grouped CV | cross-validation where all shots of a film are in the same fold |
 | ablation | refitting the model without one feature group to see how much it mattered |

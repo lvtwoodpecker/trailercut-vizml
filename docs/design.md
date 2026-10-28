@@ -23,7 +23,9 @@ trailer", drop fan edits, reviews, clips and anything outside 45 to 300 s, then 
 only if at least 25% of its shots match that film's keyframes. Title filtering alone isn't enough:
 the 2nd search hit for *The Godfather Part II* is the *Godfather* anniversary trailer. Real trailers
 have a median match share of ~58% and a wrong film should sit near the 5% false-match rate, so 25%
-separates them with room on both sides. Every replaced row has `source=search`, since searched
+separates them with room on both sides. This needs the 5% impostor cutoff, not the label-picked one
+(at 0.535, 77% of shots from a wrong film still match something), so `align` always saves
+`impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
 
 **Keyframes as one zip per film** (`movienet.py --pack`). ~880 files instead of ~1.3M JPEGs, which
@@ -62,10 +64,11 @@ finds its best match among the film shot's 3 frames; averaging makes one lucky f
 footage that isn't in the film (title cards, alternate takes, VFX shots, other films' logos), so
 forcing every shot onto a film shot would create false labels.
 
-**Threshold from an impostor null.** Score each trailer shot against 3 *other* films; the 95th
-percentile of those best scores is the threshold (0.740), i.e. ~5% of non-source shots would pass.
-This gives a false-match rate without labels. 1% (0.786 to 0.81) was tried first, but contact sheets
-showed matches between 0.72 and 0.79 were almost all correct, so 1% threw away real matches.
+**Impostor null (no longer sets the threshold).** Score each trailer shot against 3 *other* films;
+the 95th percentile of those best scores (0.740) was the threshold before hand labels existed, i.e.
+~5% of non-source shots would pass. 1% (0.786 to 0.81) was tried first, but contact sheets showed
+matches between 0.72 and 0.79 were almost all correct, so 1% threw away real matches. `align` without
+`--threshold` still uses the 5% rule.
 
 **Blank masking.** Black frames and fades match blank frames in *any* film and pushed the 1%
 threshold to 0.9975. Shots that look like a solid black/white/grey frame (CLIP similarity > 0.9) are
@@ -75,11 +78,23 @@ flagged on both sides: blank trailer shots are never matched and blank film shot
 (shot/reverse-shot, coverage of the same moment). Top-5 candidates feed the hand-labeling tool, and
 the margin to the best shot outside ±3 neighbors is saved as a confidence signal.
 
-**Hand labels pick the final threshold** (`label_tool.py`, `label_eval.py`). 10 trailers sampled across
-decades, each shot labeled against its top-5 candidates, with 2 trailers labeled by both of us for
-Cohen's kappa. The final cutoff comes from that precision/recall curve, not the null, and is
-applied with `align --threshold T`. The null is still computed and its false-match rate at `T` is
-saved, so the report can say what the hand-picked cutoff costs in false matches.
+**Hand labels pick the threshold: best F1, 0.535** (`label_tool.py`, `label_eval.py`). 10 trailers
+sampled across decades, each shot labeled against its top-5 candidates (710 usable shots, one labeler
+so far; 2 trailers are meant to be labeled by both of us for Cohen's kappa). The 0.74 impostor cutoff
+had precision 0.90 but recall 0.60: it threw away 40% of real matches, which become false negatives in
+the RQ1 labels. The best-F1 cutoff, 0.535, gives precision 0.85 and recall 0.91. `run_all.sh` re-runs
+`align --threshold` with `best_f1.threshold` from `alignment_eval.json` once labels exist. What we
+give up: 77% of impostor scores clear 0.535, so the null no longer limits matches against the wrong
+film, and the labels show most "same scene" and many "not in film" shots get matched too (see
+`limitations.md`). The null's pass rate at `T` is still saved as `fpr`.
+
+**Sequence smoothing tried and dropped** (`align.smooth`, `align_tune.py`). Idea: shots cut from the
+same scene should land on nearby film shots, so match the whole trailer with Viterbi. A first version
+penalized jumps between distant film shots and dropped real matches (32 to 23 on *The Shining*),
+since trailers cut between scenes all the time. The kept version only rewards consecutive matches
+that land within `tau` film shots and never penalizes a jump. Against the hand labels its best F1
+(0.846) is still below raw best-match (0.879), so `align` doesn't use it. The function stays for
+reference.
 
 **Label tool copies its own images** (`label_tool.copy_images`). The page used to load images by
 relative path from `data/`, which broke with per-film keyframe zips (`--pack`) and with
@@ -105,15 +120,23 @@ position carries the finer story signal.
 
 ## RQ1 model (`model.py`)
 
-**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 2.5% positive.
+**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 3.8% positive
+at threshold 0.535 (2.5% at 0.74).
+
+**Logo and credit shots are dropped** (`model.EDGE`). Film shots in the first and last 1% of each film
+are left out of training and scoring. The film's first shot counted as "used" in 23.5% of films vs a
+2.5% base rate (measured in-session), because studio logos in the film match the same logos in the
+trailer. Left in, they teach the model "the start of the film gets picked". The RQ1 page uses the same
+filter. We give up any real picks from the first and last 1%. The Trailer View shows no score for
+these shots (`viewer_export` joins model scores by shot).
 
 **LightGBM.** Handles mixed-scale features, missing values (no subtitles, no synopsis paragraph) and
-466K rows quickly, and TreeSHAP is exact and fast for it.
+464K rows quickly, and TreeSHAP is exact and fast for it.
 
 **Folds grouped by film.** Shots from the same film share look, cast and score; a random split would
 let the model memorize films and inflate every metric.
 
-**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the 2.5% positive
+**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the 3.8% positive
 rate. Pooled AP, mean per-film AP, and precision at trailer length (per film, top-k where k is the
 number of shots the trailer used), which is the question a trailer editor actually faces.
 
@@ -130,11 +153,19 @@ readable-only vs readable+CLIP gap shows how much of trailerness our named featu
 
 **Ablations drop one group at a time from the full model** and report the metric drop.
 
+**Context and relative features exist but aren't in the default model.** `context` = how a shot looks
+next to its film (`distinct`: distance from the film's mean embedding; `novelty`: distance from the 2
+shots on each side; `recurrence`: best match more than 10 shots away). `relative` = within-film
+percentile ranks of the editing, dialogue, scale, context and content features, since a "long" shot
+means different things in different films. `model_tune.py` tried them, plus a lambdarank ranker and two
+LightGBM settings, on the same folds: all within 0.003 precision at trailer length of the plain full
+model, so `model.py` keeps the original groups. The RQ1 page still uses the relative ranks to bin shots.
+
 **Tolerance eval (`model_eval.py`).** The aligner can land one or two shots off the true source
 (shot/reverse-shot, continuous coverage), which at shot level is a full miss. `model_eval` rescores the
 saved out-of-fold predictions counting a pick as a hit if a used shot is within ±k film shots, to see
 whether these near misses hide a better model. Random gets the same tolerance, because a wider window
-also makes random hits more likely (at ±3, 13% of shots are near a used shot vs 2.5% exact); lift over
+also makes random hits more likely (at ±3, 19% of shots are near a used shot vs 3.8% exact); lift over
 that base rate is the fair comparison. Result: lift drops as k grows, so near misses are not the story.
 
 **Headline metric: per-film precision at trailer length, reported as lift over random.** Pooled AP
@@ -155,9 +186,9 @@ HDBSCAN as a check on whether density-based structure exists at all.
 **Genre/era with a baseline:** NMI with primary genre and decade, compared against the 95th percentile
 of NMI with shuffled labels. Without the null, any NMI looks like agreement.
 
-**Current read:** clusters are stable (ARI 0.76 to 0.94) but weakly separated (silhouette 0.11 to
-0.31). Genre NMI beats the null only for all features and visual, and stays small; pacing clusters
-follow decade. Next step: regress out genre and
+**Current read** (threshold 0.535): clusters are stable (ARI 0.89 to 0.94) but weakly separated
+(silhouette 0.11 to 0.31). Genre NMI beats the null for all, story, dialogue and visual, and stays
+small (largest 0.105, dialogue); pacing clusters follow decade. Next step: regress out genre and
 decade and re-cluster the residuals; if structure stays weak, report continuous axes instead of types.
 
 ## Trailer View (`viz/index.html`, `viewer_export.py`)
@@ -195,6 +226,32 @@ side, large enough to compare. Arrow keys step through matched shots and Esc unl
 `viz/data/` or hosted; on a machine without the data the page still works, just without pictures.
 The paths are fixed to `data/` and loose JPEGs, so they ignore `TRAILERCUT_DATA` and `--pack` zips
 (unlike the label tool, which copies its images).
+
+## RQ1 page (`viz/rq1.html`, `rq1_export.py`)
+
+**One page across all films**, linked from the Trailer View header. The Trailer View answers "what did
+this trailer take"; this page answers "what kind of shot gets picked" over the whole corpus.
+
+**Everything is a lift**: pick rate of a kind of shot over the pick rate of the average shot. One
+unit for story position, shot scale, within-film shot length, distinctiveness, dialogue and 20
+content concepts, so panels compare directly. Shot length and distinctiveness are binned by
+within-film percentile (`rel_*`), and a concept counts as present in the film's top 10% for it, since
+raw CLIP scores and shot lengths shift from film to film.
+
+**Shared log scale, 0.5x to 2x** (clamped). Log so 0.5x and 2x sit the same distance from 1x; shared
+so a long bar in one panel means the same as in another.
+
+**95% intervals from resampling films, not shots.** Shots within a film aren't independent; resampling
+films keeps one film from carrying a result.
+
+**Grey when the interval crosses 1x**, blue above, red below. Color then only marks effects that hold up.
+
+**Subtitles are written from the data.** Each panel's line quotes only the strongest effect above and
+below 1x whose interval excludes 1x, or says there is no clear difference. Text can't drift from the
+numbers after a rerun.
+
+**Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
+get together, next to the single-feature lifts.
 
 ## Dropped from the proposal
 
