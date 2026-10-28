@@ -17,7 +17,9 @@ Outputs
   data/features/alignment/{imdb_id}.csv   one row per trailer shot
   data/features/alignment_threshold.json  impostor threshold + null stats
 
-  python -m trailercut.align [--fpr 0.05]
+  python -m trailercut.align [--fpr 0.05] [--threshold T]
+--threshold overrides the impostor cutoff (e.g. the one picked from hand labels); the null is still
+computed and saved so the report shows its false-match rate.
 """
 import argparse
 import json
@@ -116,12 +118,14 @@ def align_one(imdb_id, threshold):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fpr", type=float, default=0.05)
+    ap.add_argument("--threshold", type=float, default=None)
     a = ap.parse_args()
     ids = available()
     print(len(ids), "films with both trailer and film embeddings")
     null = impostor_null(ids, np.random.default_rng(0))
-    threshold = float(np.quantile(null, 1 - a.fpr))
-    meta = dict(fpr=a.fpr, threshold=threshold, n_null=len(null),
+    threshold = float(np.quantile(null, 1 - a.fpr)) if a.threshold is None else a.threshold
+    meta = dict(fpr=a.fpr if a.threshold is None else float((null >= threshold).mean()), threshold=threshold,
+                source="impostor_null" if a.threshold is None else "manual", n_null=len(null),
                 null_quantiles={q: float(np.quantile(null, q)) for q in (0.5, 0.9, 0.99, 0.999)})
     (FEATURES / "alignment_threshold.json").write_text(json.dumps(meta, indent=2))
     np.save(CACHE / f"alignment_null_{CLIP_TAG}.npy", null)
