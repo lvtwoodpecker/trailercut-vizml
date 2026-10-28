@@ -3,6 +3,8 @@
 One file per trailer so the page loads only what it shows, plus an index for the picker.
 Model predictions and SHAP are included when model.py has been run; the view works without them.
 They are joined by shot, so logo/credit shots at the film's edges (skipped by the model) have no score.
+Trailer speech segments come with their film position when dialogue_align matched them to a subtitle
+(text included: viz/data is local and gitignored).
 Each film and trailer shot also gets the average color of its middle keyframe, so the view can draw
 the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe).
 
@@ -109,7 +111,18 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
         film["detail_features"] = feats
         film["detail"] = {int(i): [[r(f[c].values[i]), r(raw[c].values[i])] for c in feats] for i in sorted(pick)}
     out["film"] = film
+    out["speech"] = speech(imdb_id, runtime)
     return out
+
+
+def speech(imdb_id, runtime):
+    """[t_start, t_end, matched, film position of the matched line (0 to 1) or null, text] per segment."""
+    csv, asr = FEATURES / "dialogue_alignment" / f"{imdb_id}.csv", CACHE / "trailer_asr" / f"{imdb_id}.json"
+    if not csv.exists() or not asr.exists():
+        return []
+    segs = json.loads(asr.read_text())["segments"]
+    return [[r(d.t_start, 2), r(d.t_end, 2), int(d.matched), r(d.film_t_start / runtime, 4) if d.matched else None,
+             segs[d.seg_idx]["text"]] for d in pd.read_csv(csv).itertuples()]
 
 
 def main():
