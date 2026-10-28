@@ -51,6 +51,6 @@ Working plan for the current block. Check items off as they land; anything that 
 ## D. Housekeeping
 
 - [ ] Doc-keeper pass after each of A, B, C; small commits; push.
-- [ ] Estee labels the first 2 sample trailers so we can report agreement (kappa).
+- [ ] A second labeler labels the first 2 sample trailers so we can report agreement (kappa).
 - [ ] Refresh the numbers in the project update draft (293 trailers, label-picked cutoff) before it
   is submitted.
