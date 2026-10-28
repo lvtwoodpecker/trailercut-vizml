@@ -93,7 +93,7 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
     runtime = f.t_end.max()
     colors = shot_colors(imdb_id, len(f), len(al))
     out["shot_colors"] = colors["trailer"]
-    film = dict(n=len(f), story_pos=[r(x) for x in f.story_pos], shot_len=[r(x, 2) for x in f.shot_len],
+    film = dict(n=len(f), runtime=r(runtime, 1), story_pos=[r(x) for x in f.story_pos], shot_len=[r(x, 2) for x in f.shot_len],
                 # shot extent as a fraction of runtime, for the barcode
                 start=[r(x / runtime, 5) for x in f.t_start], end=[r(x / runtime, 5) for x in f.t_end],
                 color=colors["film"], in_trailer=f.in_trailer.astype(int).tolist())
