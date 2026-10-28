@@ -13,14 +13,14 @@
     "shot_len_median": 1.2095
   },
   "story_depth": {
-    "pooled_final_quarter": 0.164572454308094,
-    "pooled_first_quarter": 0.337467362924282,
-    "median_trailer_final_act_share": 0.1501610305958132
+    "pooled_final_quarter": 0.18016528925619835,
+    "pooled_first_quarter": 0.3313298271975958,
+    "median_trailer_final_act_share": 0.16666666666666666
   },
   "alignment": {
     "trailer_shots": 22031,
     "blank": 0.018428577912940856,
-    "matched": 0.556307021923653,
-    "match_rate_per_trailer_median": 0.5853658536585366
+    "matched": 0.906223049339567,
+    "match_rate_per_trailer_median": 0.9146341463414634
   }
 }
