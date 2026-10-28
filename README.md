@@ -24,7 +24,8 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | `data/features/model_report.json` | RQ1 metrics per model (baselines, readable, full, ablations) and SHAP summaries; per-shot predictions and SHAP (`model_preds.parquet`, `model_shap.parquet`) are not committed |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
-| `labels/` | hand-labeling tool + gold labels for alignment |
+| `labels/` | hand-labeling sample + gold labels for alignment (the generated page and `labels/img/` are not committed) |
+| `viz/index.html` | the D3 Trailer View; its data (`viz/data/`) is generated and not committed |
 
 ## Setup
 
@@ -39,7 +40,8 @@ CLIP backbone (`b32` default, `l14`, `h14`).
 
 ## Pipeline
 
-`scripts/run_all.sh` runs everything in order; each step is resumable.
+`scripts/run_all.sh` runs everything in order. Download, shot and embedding steps skip
+finished films and trailers; from `align` on, each step recomputes everything.
 
 | step | module | notes |
 |---|---|---|
@@ -56,6 +58,7 @@ CLIP backbone (`b32` default, `l14`, `h14`).
 | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts |
 | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth |
+| Trailer View data | `trailercut.viewer_export` | one JSON per trailer in `viz/data/` (gitignored) plus average shot colors for the movie barcode |
 
 ## Hand-labeling alignments
 
@@ -65,3 +68,20 @@ open labels/label_tool.html
 ```
 Keys: `1`-`5` pick a candidate, `s` same scene but other shot, `n` not in film, `u` unsure, `j`/`k` next/prev.
 Export and save as `labels/gold_<name>.json`, then run `python -m trailercut.label_eval`.
+
+## Trailer View
+
+D3 page for one trailer at a time: the trailer's cuts on top, the film as a movie barcode (average
+color per shot) below, and a curve from each matched trailer shot to where it sits in the film. Hover
+to preview, click to lock a shot and see trailer and film frames side by side, arrow keys step
+through matched shots. Below that, an order scatter (trailer position vs film position) and the
+grouped SHAP for the selected film shot (click a group to see its features), when the model has been run.
+
+```bash
+python -m trailercut.viewer_export   # writes viz/data/
+```
+Then serve the repo root with any static server, e.g. `python -m http.server [port]`, and open
+`/viz/` (add `?id=<imdb_id>` for a film).
+Frame thumbnails load from your local `data/movienet/frames/` (loose JPEGs) and
+`data/cache/trailer_frames/`, so they only show on a machine that has the data. Nothing copyrighted is
+committed or hosted.
