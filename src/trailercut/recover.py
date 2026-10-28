@@ -18,6 +18,7 @@ import csv
 import json
 import re
 import shutil
+from pathlib import Path
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -59,13 +60,29 @@ def candidates(imdb_id, n=10):
     return out
 
 
+def trailer_files(imdb_id):
+    return [*TRAILERS.glob(f"{imdb_id}.*"), FEATURES / "trailer_shots" / f"{imdb_id}.csv",
+            CACHE / "trailer_audio" / f"{imdb_id}.wav", CLIP / "trailer" / f"{imdb_id}.npy",
+            CACHE / "trailer_asr" / f"{imdb_id}.json", CACHE / "trailer_frames" / imdb_id]
+
+
 def clear(imdb_id):
-    for f in TRAILERS.glob(f"{imdb_id}.*"):
-        f.unlink()
-    for f in [FEATURES / "trailer_shots" / f"{imdb_id}.csv", CACHE / "trailer_audio" / f"{imdb_id}.wav",
-              CLIP / "trailer" / f"{imdb_id}.npy"]:
-        f.unlink(missing_ok=True)
-    shutil.rmtree(CACHE / "trailer_frames" / imdb_id, ignore_errors=True)
+    for f in trailer_files(imdb_id):
+        shutil.rmtree(f) if f.is_dir() else f.unlink(missing_ok=True)
+
+
+def backup(imdb_id, restore=False):
+    """Move a working trailer's files aside before replacing it (--ids), or put them back."""
+    keep = CACHE / "replaced" / imdb_id
+    if restore:
+        for item in json.loads((keep / "_paths.json").read_text()):
+            shutil.move(str(keep / Path(item).name), item)
+        return
+    keep.mkdir(parents=True, exist_ok=True)
+    moved = [str(f) for f in trailer_files(imdb_id) if f.exists()]
+    for f in moved:
+        shutil.move(f, keep / Path(f).name)
+    (keep / "_paths.json").write_text(json.dumps(moved))
 
 
 def run(*mod):
@@ -77,10 +94,11 @@ def main():
     ap.add_argument("--tries", type=int, default=3)
     ap.add_argument("--min-match", type=float, default=0.25)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--ids", nargs="*", default=[], help="replace these films' working trailers too")
     a = ap.parse_args()
 
     status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
-    todo = [i for i, r in status.items() if r["status"] != "ok"]
+    todo = a.ids or [i for i, r in status.items() if r["status"] != "ok"]
     if a.limit:
         todo = todo[: a.limit]
     # the impostor cutoff, not the label-picked one: this check has to reject trailers of other films,
@@ -90,6 +108,9 @@ def main():
 
     with ThreadPoolExecutor(4) as ex:
         cands = dict(zip(todo, ex.map(candidates, todo)))
+    for i in a.ids:  # never re-pick the link being replaced; keep its files until a candidate passes
+        cands[i] = [c for c in cands[i] if c["youtube_id"] != status[i]["youtube_id"]]
+        backup(i)
     print(f"{len(todo)} films, {sum(bool(c) for c in cands.values())} with search candidates")
 
     from .align import BLANK, align_one
@@ -123,6 +144,10 @@ def main():
                 clear(i)
         print(f"round {rank + 1}: {sum(r['accepted'] for r in log)} recovered so far")
 
+    for i in a.ids:
+        if i in cands:  # no candidate passed: put the old trailer back
+            clear(i)
+            backup(i, restore=True)
     with open(STATUS, "w", newline="") as f:
         w = csv.DictWriter(f, FIELDS, restval="movienet")
         w.writeheader()
