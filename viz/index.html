@@ -10,7 +10,7 @@
   color-scheme: light;
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
-  --matched: #2a78d6; --used: #eb6834; --unmatched: #d6d5ce; --audio: #52514e;
+  --matched: #2a78d6; --used: #eb6834; --unmatched: #d6d5ce; --audio: #52514e; --speech: #6250d6;
   --pos: #2a78d6; --neg: #e34948;
 }
 @media (prefers-color-scheme: dark) {
@@ -18,7 +18,7 @@
     color-scheme: dark;
     --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --matched: #3987e5; --used: #d95926; --unmatched: #383835; --audio: #c3c2b7;
+    --matched: #3987e5; --used: #d95926; --unmatched: #383835; --audio: #c3c2b7; --speech: #9085e9;
     --pos: #3987e5; --neg: #e66767;
   }
 }
@@ -26,7 +26,7 @@
   color-scheme: dark;
   --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-  --matched: #3987e5; --used: #d95926; --unmatched: #383835; --audio: #c3c2b7;
+  --matched: #3987e5; --used: #d95926; --unmatched: #383835; --audio: #c3c2b7; --speech: #9085e9;
   --pos: #3987e5; --neg: #e66767;
 }
 * { box-sizing: border-box; }
@@ -46,6 +46,15 @@ svg { display: block; overflow: visible; }
 .act { stroke: var(--grid); stroke-dasharray: 3 3; }
 .act-label { fill: var(--muted); font-size: 11px; }
 .link { stroke: var(--matched); stroke-opacity: 0.35; stroke-width: 1.2; fill: none; }
+.slink { stroke: var(--speech); stroke-opacity: 0.5; stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+.slink.hi { stroke-opacity: 1; stroke-width: 2.5; }
+#playhead { stroke: var(--ink); stroke-width: 2; }
+#player { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin: 8px 0 4px; }
+#player video { width: 480px; max-width: 100%; border-radius: 6px; background: #000; }
+#now { flex: 1; min-width: 260px; font-size: 13px; }
+#now img { width: 320px; max-width: 100%; border-radius: 4px; display: block; margin: 4px 0; }
+#now .line { font-size: 15px; margin-top: 8px; }
+#now .muted { color: var(--muted); font-size: 12px; }
 .link.hi { stroke-opacity: 1; stroke-width: 2.5; }
 .dim { opacity: 0.2; }
 .hit { cursor: pointer; }
@@ -94,9 +103,12 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
       <span><i style="background:var(--unmatched)"></i>no match (title card, new footage, unsure)</span>
       <span><i style="background:var(--audio);height:2px"></i>trailer audio energy</span>
       <span><i style="background:var(--used)"></i>film shot used by this trailer</span>
+      <span><i style="background:var(--speech)"></i>trailer line found in the film's dialogue (dashed links)</span>
     </div>
     <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.
-      Hover to preview, click to lock a shot, <kbd>←</kbd> <kbd>→</kbd> to step through matched shots, <kbd>Esc</kbd> to unlock.</p>
+      Hover to preview, click to lock a shot, <kbd>←</kbd> <kbd>→</kbd> to step through matched shots, <kbd>Esc</kbd> to unlock.
+      <kbd>Space</kbd> plays the trailer; the timeline follows it, and pausing locks the current shot.</p>
+    <div id="player"><video id="vid" controls preload="metadata"></video><div id="now"></div></div>
     <div id="main-wrap"><svg id="main"></svg></div>
     <p class="note" id="film-note"></p>
     <div id="lock"></div>
@@ -124,6 +136,8 @@ const GROUP_LABEL = { position: "story position", dialogue: "dialogue", scale: "
 const tip = d3.select("#tip");
 // D: current trailer. lock: {trailer, film} or {film} while a shot is locked; hover never changes it.
 let D = null, lock = null, expanded = null, W = 1200, Y = null, tx = null, fx = null;
+const vid = document.getElementById("vid");
+let playing = false, curShot = -1, curLine = -1;
 
 function showTip(ev, html) {
   tip.html(html).style("display", "block");
@@ -155,11 +169,44 @@ async function load(id) {
   d3.select("#meta").text(`${(D.genres || []).slice(0, 3).join(", ")} · ${D.shots.length} trailer shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed} of ${D.film.n} film shots used`);
   drawMain(); drawOrder(); drawShap(null); show(null); drawLock();
+  playing = false; curShot = -1; curLine = -1;
+  vid.src = `../data/trailers/${id}.mp4`;
+  d3.select("#now").html(`<span class="muted">Press play (or Space). The timeline follows the trailer and shows which film shot is on screen.</span>`);
+}
+
+// ---- playback: the video's clock drives the same highlight as hover ----
+vid.addEventListener("error", () => d3.select("#now").html(`<span class="muted">Trailer video isn't available on this machine (videos stay local, see the README).</span>`));
+vid.addEventListener("play", () => { playing = true; lock = null; drawLock(); requestAnimationFrame(tick); });
+vid.addEventListener("pause", () => {
+  playing = false;
+  if (curShot >= 0) { lock = { trailer: curShot, film: D.shots[curShot][3] }; show(lock); drawLock(); }
+});
+vid.addEventListener("seeked", () => { if (!playing) follow(vid.currentTime); });
+function tick() { follow(vid.currentTime); if (playing) requestAnimationFrame(tick); }
+const shotAt = t => Math.max(0, d3.bisectRight(D.shots.map(s => s[0]), t) - 1);
+function follow(t) {
+  d3.select("#playhead").style("display", null).attr("x1", tx(t)).attr("x2", tx(t));
+  const i = shotAt(t), k = (D.speech || []).findIndex(s => s[0] <= t && t < s[1]);
+  if (i !== curShot || k !== curLine) {
+    curShot = i; curLine = k;
+    if (!lock) show({ trailer: i, film: D.shots[i][3] });
+    d3.select("#main .slinks").selectAll("path").classed("hi", d => d[1] === k);
+    nowPanel(i, k);
+  }
+}
+function nowPanel(i, k) {
+  const s = D.shots[i], f = D.film, line = k >= 0 ? D.speech[k] : null;
+  d3.select("#now").html(`<div>Trailer ${fmtT(s[0])} · shot ${i}</div>` +
+    (s[2] ? `${img(fImg(s[3]))}<div class="muted">from film shot ${s[3]}, ${Math.round(100 * f.story_pos[s[3]])}% into the film</div>`
+          : `<div class="muted" style="margin:8px 0">no film shot matched (title card, new footage or unsure)</div>`) +
+    (line ? `<div class="line">“${line[4]}”</div><div class="muted">${line[2] ? `line found in the film's dialogue, ${Math.round(100 * line[3])}% in` +
+      (s[2] ? (Math.abs(line[3] - f.story_pos[s[3]]) < 0.01 ? " (same moment as the picture)" : " (picture comes from elsewhere)") : "")
+      : "not found in the film's dialogue (narration, music or no unique match)"}</div>` : ""));
 }
 
 // ---- interaction: hover previews, click locks ----
-function hover(h) { if (!lock) show(h); }
-function unhover() { hideTip(); if (!lock) show(null); }
+function hover(h) { if (!lock && !playing) show(h); }
+function unhover() { hideTip(); if (!lock && !playing) show(null); }
 function toggleLock(h) {
   const same = lock && ((h.trailer !== undefined && lock.trailer === h.trailer) ||
                         (h.trailer === undefined && lock.trailer === undefined && lock.film === h.film));
@@ -176,6 +223,7 @@ function step(dir) {
 }
 addEventListener("keydown", ev => {
   if (ev.target.tagName === "INPUT") return;
+  if (ev.key === " ") { ev.preventDefault(); vid.paused ? vid.play() : vid.pause(); }
   if (ev.key === "Escape") { lock = null; show(null); drawLock(); }
   if (ev.key === "ArrowRight") { ev.preventDefault(); step(1); }
   if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
@@ -233,7 +281,7 @@ function drawLock() {
 function drawMain() {
   W = Math.max(600, document.getElementById("main-wrap").clientWidth);
   const f = D.film, has = !!f.trailerness, barsH = 24;
-  Y = { audio: [8, 68], tcolor: [78, 150], tmatch: [153, 161], tAxis: 165,
+  Y = { audio: [8, 68], tcolor: [78, 150], tmatch: [153, 161], speech: [166, 178], tAxis: 182,
         link: [192, 420], used: [422, 434], barcode: [436, 516] };
   Y.bars = [Y.barcode[1] + 8, Y.barcode[1] + 8 + barsH];
   Y.fAxis = Y.bars[1] + 4;
@@ -259,6 +307,16 @@ function drawMain() {
     .attr("x", s => tx(s[0]) + 0.5).attr("width", s => Math.max(1, tx(s[1]) - tx(s[0]) - 1))
     .attr("y", Y.tmatch[0]).attr("height", Y.tmatch[1] - Y.tmatch[0])
     .attr("fill", s => s[2] ? "var(--matched)" : "var(--unmatched)");
+  // speech: one bar per Whisper segment, violet when the line was found in the film's dialogue
+  label(Y.speech[1], "speech");
+  svg.append("g").selectAll("rect").data(D.speech || []).join("rect")
+    .attr("x", d => tx(d[0])).attr("width", d => Math.max(1, tx(d[1]) - tx(d[0]) - 1))
+    .attr("y", Y.speech[0]).attr("height", Y.speech[1] - Y.speech[0]).attr("rx", 2)
+    .attr("fill", d => d[2] ? "var(--speech)" : "var(--unmatched)")
+    .on("mousemove", (ev, d) => showTip(ev, `<div>“${d[4]}”</div><div class="v">${fmtT(d[0])} to ${fmtT(d[1])}</div>` +
+      `<div>${d[2] ? `found in the film's dialogue, ${Math.round(100 * d[3])}% in` : "not found in the film's dialogue"}</div>`))
+    .on("mouseleave", hideTip)
+    .on("click", (ev, d) => { vid.currentTime = d[0] + 0.01; });
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.tAxis})`)
     .call(d3.axisBottom(tx).ticks(Math.round(W / 110)).tickFormat(fmtT).tickSizeOuter(0));
 
@@ -268,6 +326,14 @@ function drawMain() {
     .join("path").attr("class", "link")
     .attr("d", ([s]) => {
       const a = tx((s[0] + s[1]) / 2), b = fx(f.story_pos[s[3]]), m = (ty0 + Y.link[1]) / 2;
+      return `M${a},${ty0} C${a},${m} ${b},${m} ${b},${Y.link[1]}`;
+    });
+
+  // speech links: trailer line -> the film moment its subtitle sits at
+  svg.append("g").attr("class", "slinks").selectAll("path")
+    .data((D.speech || []).map((d, k) => [d, k]).filter(d => d[0][2])).join("path").attr("class", "slink")
+    .attr("d", ([d]) => {
+      const a = tx((d[0] + d[1]) / 2), b = fx(d[3]), m = (ty0 + Y.link[1]) / 2;
       return `M${a},${ty0} C${a},${m} ${b},${m} ${b},${Y.link[1]}`;
     });
 
@@ -288,6 +354,8 @@ function drawMain() {
     .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("text").attr("class", "act-label").attr("x", W - PAD.r).attr("y", H - 4).attr("text-anchor", "end").text("film story position");
 
+  svg.append("line").attr("id", "playhead").attr("y1", Y.audio[0]).attr("y2", Y.speech[1]).style("display", "none");
+
   // outlines (moved by show), then hit targets on top
   svg.append("rect").attr("id", "trailer-hi").attr("class", "outline").attr("rx", 1)
     .attr("y", Y.tcolor[0] - 3).attr("height", Y.tmatch[1] - Y.tcolor[0] + 6).style("display", "none");
@@ -306,7 +374,11 @@ function drawMain() {
         (s[2] ? `<div>left: trailer · right: film shot ${s[3]} (story ${Math.round(100 * f.story_pos[s[3]])}%)</div>` : `<div>no match</div>`));
     })
     .on("mouseleave", unhover)
-    .on("click", (ev, s) => { const i = D.shots.indexOf(s); toggleLock({ trailer: i, film: s[3] }); });
+    .on("click", (ev, s) => {
+      const i = D.shots.indexOf(s);
+      vid.currentTime = s[0] + 0.01;  // jump the video there too
+      if (!playing) toggleLock({ trailer: i, film: s[3] });
+    });
   svg.append("g").selectAll("rect").data(shots).join("rect").attr("class", "hit")
     .attr("x", i => Math.min(fx(f.start[i]), fx(f.story_pos[i]) - 3))
     .attr("width", i => Math.max(6, fx(f.end[i]) - fx(f.start[i])))
