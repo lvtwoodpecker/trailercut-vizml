@@ -11,7 +11,7 @@ Feature groups (dropped one at a time in the ablation):
 Label: in_trailer = some trailer shot matched to this film shot above the impostor threshold.
 
   python -m trailercut.film_features
-Writes data/features/film_shots.parquet (committed).
+Writes data/features/film_shots.parquet (gitignored, ~65 MB).
 """
 import numpy as np
 import pandas as pd
