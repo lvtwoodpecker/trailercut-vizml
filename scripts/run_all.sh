@@ -29,3 +29,6 @@ $PY -m trailercut.model                      # RQ1: grouped CV, baselines, ablat
 $PY -m trailercut.trailer_features
 $PY -m trailercut.cluster
 $PY -m trailercut.figures
+
+# 5. data for the D3 views in viz/
+$PY -m trailercut.viewer_export
