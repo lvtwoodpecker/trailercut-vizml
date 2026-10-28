@@ -73,6 +73,15 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
 @media (min-width: 1000px) { .grid2 { grid-template-columns: 1fr 1fr; } }
 .dot { fill: var(--matched); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
 .diag { stroke: var(--axis); stroke-dasharray: 4 4; }
+#picks .lbl { font-size: 12px; color: var(--ink-2); margin: 8px 0 4px; }
+#picks .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+#picks .pick { position: relative; flex: 0 0 auto; width: 150px; cursor: pointer; border-radius: 4px; outline: 2px solid transparent; }
+#picks .pick.on { outline-color: var(--ink); }
+#picks .pick img { width: 150px; height: 84px; object-fit: cover; border-radius: 4px; display: block; background: var(--unmatched); }
+#picks .pick .cap { font-size: 11px; color: var(--ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+#picks .badge { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+#picks .badge.hit { background: var(--used); color: #fff; border-color: transparent; }
 </style>
 </head>
 <body>
@@ -93,13 +102,19 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
       <span><i style="background:var(--unmatched)"></i>no match (title card, new footage, unsure)</span>
       <span><i style="background:var(--audio);height:2px"></i>trailer audio energy</span>
       <span><i style="background:var(--used)"></i>film shot used by this trailer</span>
-      <span id="lg-score"><i style="background:var(--matched);opacity:.55"></i>trailerness (model score)</span>
     </div>
     <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.
       Hover to preview, click to lock a shot, <kbd>←</kbd> <kbd>→</kbd> to step through matched shots, <kbd>Esc</kbd> to unlock.</p>
     <div id="main-wrap"><svg id="main"></svg></div>
     <p class="note" id="film-note"></p>
     <div id="lock"></div>
+  </div>
+
+  <div class="card" id="picks-card">
+    <h2>Would the model have picked the same shots?</h2>
+    <p class="note" id="picks-summary"></p>
+    <div id="picks"></div>
+    <p class="note">The model never saw this film during training. Click a shot to lock it above and see why the model scored it that way.</p>
   </div>
 
   <div class="grid2">
@@ -154,7 +169,7 @@ async function load(id) {
   d3.select("#title").text(D.title);
   d3.select("#meta").text(`${(D.genres || []).slice(0, 3).join(", ")} · ${D.shots.length} trailer shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed} of ${D.film.n} film shots used`);
-  drawMain(); drawOrder(); drawShap(null); show(null); drawLock();
+  drawMain(); drawOrder(); drawPicks(); drawShap(null); show(null); drawLock();
 }
 
 // ---- interaction: hover previews, click locks ----
@@ -164,7 +179,7 @@ function toggleLock(h) {
   const same = lock && ((h.trailer !== undefined && lock.trailer === h.trailer) ||
                         (h.trailer === undefined && lock.trailer === undefined && lock.film === h.film));
   lock = same ? null : h;
-  show(lock); drawLock();
+  show(lock); drawLock(); markPicks();
 }
 function step(dir) {
   const matched = D.shots.map((s, i) => [s, i]).filter(d => d[0][2]).map(d => d[1]);
@@ -172,11 +187,11 @@ function step(dir) {
   const cur = lock && lock.trailer !== undefined ? matched.indexOf(lock.trailer) : -1;
   const next = matched[(cur + dir + matched.length) % matched.length];
   lock = { trailer: next, film: D.shots[next][3] };
-  show(lock); drawLock();
+  show(lock); drawLock(); markPicks();
 }
 addEventListener("keydown", ev => {
   if (ev.target.tagName === "INPUT") return;
-  if (ev.key === "Escape") { lock = null; show(null); drawLock(); }
+  if (ev.key === "Escape") { lock = null; show(null); drawLock(); markPicks(); }
   if (ev.key === "ArrowRight") { ev.preventDefault(); step(1); }
   if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
 });
@@ -232,7 +247,7 @@ function drawLock() {
 // ---- main chart: trailer on top, film barcode below, shared full width ----
 function drawMain() {
   W = Math.max(600, document.getElementById("main-wrap").clientWidth);
-  const f = D.film, has = !!f.trailerness, barsH = has ? 160 : 24;
+  const f = D.film, has = !!f.trailerness, barsH = 24;
   Y = { audio: [8, 68], tcolor: [78, 150], tmatch: [153, 161], tAxis: 165,
         link: [192, 420], used: [422, 434], barcode: [436, 516] };
   Y.bars = [Y.barcode[1] + 8, Y.barcode[1] + 8 + barsH];
@@ -283,16 +298,7 @@ function drawMain() {
   label(Y.barcode[0] + 44, "film");
   const acts = [[0, "setup"], [0.25, "middle"], [0.75, "ending"]];
   acts.forEach(([p]) => { if (p) svg.append("line").attr("class", "act").attr("x1", fx(p)).attr("x2", fx(p)).attr("y1", Y.barcode[1]).attr("y2", Y.bars[1]); });
-  if (has) {
-    const y = d3.scaleLinear([0, Math.max(0.05, d3.max(f.trailerness))], [Y.bars[1], Y.bars[0]]).nice();
-    svg.append("g").selectAll("rect").data(shots).join("rect")
-      .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(1, fx(f.end[i]) - fx(f.start[i])))
-      .attr("y", i => y(f.trailerness[i])).attr("height", i => Y.bars[1] - y(f.trailerness[i]))
-      .attr("fill", i => f.in_trailer[i] ? "var(--used)" : "var(--matched)").attr("opacity", i => f.in_trailer[i] ? 1 : 0.55);
-    svg.append("g").attr("class", "axis").attr("transform", `translate(${PAD.l},0)`)
-      .call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(".0%")).tickSizeOuter(0));
-  }
-  acts.forEach(([p, t]) => svg.append("text").attr("class", "act-label").attr("x", fx(p) + 4).attr("y", Y.bars[0] + 12).text(t));
+  acts.forEach(([p, t]) => svg.append("text").attr("class", "act-label").attr("x", fx(p) + 4).attr("y", Y.bars[0] + 14).text(t));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.fAxis})`)
     .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("text").attr("class", "act-label").attr("x", W - PAD.r).attr("y", H - 4).attr("text-anchor", "end").text("film story position");
@@ -329,8 +335,35 @@ function drawMain() {
     .on("mouseleave", unhover)
     .on("click", (ev, i) => toggleLock({ film: i }));
 
-  d3.select("#lg-score").style("display", has ? null : "none");
-  d3.select("#film-note").text(has ? "" : "Model scores not exported yet: run trailercut.model, then trailercut.viewer_export.");
+  d3.select("#film-note").text("");
+}
+
+// the model's top-k shots next to the shots the trailer used (k = shots used, capped)
+function drawPicks() {
+  const f = D.film, box = d3.select("#picks");
+  if (!f.trailerness) {
+    d3.select("#picks-summary").text("Needs model outputs: run trailercut.model, then trailercut.viewer_export.");
+    box.html(""); return;
+  }
+  const order = d3.range(f.n).sort((a, b) => f.trailerness[b] - f.trailerness[a]);
+  const rank = new Array(f.n); order.forEach((i, r) => rank[i] = r + 1);
+  const used = d3.range(f.n).filter(i => f.in_trailer[i]);
+  const k = Math.min(12, used.length), top = order.slice(0, k);
+  const hits = top.filter(i => f.in_trailer[i]).length, expect = k * used.length / f.n;
+  d3.select("#picks-summary").text(`${hits} of the model's top ${k} shots were used in the trailer (random picks would get about ${expect.toFixed(1)}). ` +
+    `The trailer used ${used.length} of ${f.n} film shots; the median one is ranked #${d3.median(used.map(i => rank[i])).toFixed(0)} by the model.`);
+  const card = (i, badge, hit) => `<div class="pick" data-i="${i}">${img(fImg(i))}<span class="badge${hit ? " hit" : ""}">${badge}</span>` +
+    `<div class="cap">shot ${i} · story ${Math.round(100 * f.story_pos[i])}%</div></div>`;
+  const usedShown = used.slice().sort((a, b) => rank[a] - rank[b]);
+  box.html(`<div class="lbl">Model's top ${k} picks (✓ = the trailer used it)</div>` +
+    `<div class="strip">${top.map(i => card(i, f.in_trailer[i] ? "✓ used" : `#${rank[i]}`, f.in_trailer[i])).join("")}</div>` +
+    `<div class="lbl">Shots the trailer used, with the model's rank out of ${f.n} (best ranked first)</div>` +
+    `<div class="strip">${usedShown.map(i => card(i, `#${rank[i]}`, rank[i] <= k)).join("")}</div>`);
+  box.selectAll(".pick").on("click", function () { toggleLock({ film: +this.dataset.i }); });
+  markPicks();
+}
+function markPicks() {
+  d3.select("#picks").selectAll(".pick").classed("on", function () { return !!lock && lock.film === +this.dataset.i; });
 }
 
 function drawOrder() {
