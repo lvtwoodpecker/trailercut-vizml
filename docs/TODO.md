@@ -8,7 +8,8 @@ Owner in brackets. Move items to **Done** with the date when finished.
 - [ ] **[Cedric]** Check the 15 trailers with under 15% of shots matched (Scarface tt0086250 is at 0%): wrong video, teaser, or re-release cut? Replace through `recover` if wrong
 - [ ] **[Cedric]** RQ1 model: read the first CV results, write them into `docs/results.md`
 - [ ] **[Cedric]** PR curve and ablation figures for the model
-- [ ] **[Both]** Hand-label the 10 sampled trailers in `labels/label_tool.html` (2 shared for kappa), save as `labels/gold_<name>.json`
+- [ ] **[Both]** Hand-label the 10 sampled trailers in `labels/label_tool.html` (both label the first 2 for kappa; separate browsers, since progress is one shared `localStorage` slot), save as `labels/gold_<name>.json`
+- [ ] **[Cedric]** Add a way to pass a fixed threshold to `align` (it only takes `--fpr` now)
 - [ ] **[Cedric]** Run `label_eval`, pick the final match threshold, rerun everything downstream with it
 - [ ] **[Estee]** Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks
 - [ ] **[Estee]** Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
@@ -37,7 +38,7 @@ Owner in brackets. Move items to **Done** with the date when finished.
 
 ## Done
 
-- 2026-10-28: full pipeline on all 244 available trailers
+- 2026-10-28: full pipeline on all 244 available trailers (except `model`)
 - 2026-10-28: RQ1 model module with grouped CV, baselines, ablations, out-of-fold SHAP
 - 2026-10-28: dead-link recovery module
 - 2026-10-27: Slurm setup for the cluster (`hpc/`)
