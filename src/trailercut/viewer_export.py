@@ -144,7 +144,18 @@ def vtt(imdb_id):
     if not asr.exists():
         return
     ts = lambda t: f"{int(t // 3600):02d}:{int(t % 3600 // 60):02d}:{t % 60:06.3f}"
-    cues = [f"{ts(s['start'])} --> {ts(s['end'])}\n{s['text']}" for s in json.loads(asr.read_text())["segments"]]
+    cues = []
+    for seg in json.loads(asr.read_text())["segments"]:
+        words = seg["words"] or [dict(start=seg["start"], end=seg["end"], word=seg["text"])]
+        chunk = []
+        for w in words:  # Whisper can merge ~30 s into one segment; cap cues at ~6 s or 12 words and break at pauses
+            if chunk and (w["end"] - chunk[0]["start"] > 6 or len(chunk) >= 12 or w["start"] - chunk[-1]["end"] > 1.5):
+                cues.append(chunk)
+                chunk = []
+            chunk.append(w)
+        if chunk:
+            cues.append(chunk)
+    cues = [f"{ts(c[0]['start'])} --> {ts(c[-1]['end'])}\n{' '.join(w['word'] for w in c)}" for c in cues]
     (OUT / f"{imdb_id}.vtt").write_text("WEBVTT\n\n" + "\n\n".join(cues) + "\n")
 
 
