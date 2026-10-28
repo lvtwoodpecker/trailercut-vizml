@@ -4,23 +4,23 @@
     "+ synopsis-shot alignment": 297,
     "+ trailer URL (core set)": 293,
     "trailer still on YouTube": 244,
-    "aligned so far": 35
+    "trailer aligned to film": 244
   },
   "corpus": {
-    "trailers": 39,
-    "trailer_len_median": 134.4677,
-    "shots_per_trailer_median": 47.0,
-    "shot_len_median": 1.68
+    "trailers": 244,
+    "trailer_len_median": 132.392,
+    "shots_per_trailer_median": 74.5,
+    "shot_len_median": 1.213075
   },
   "story_depth": {
-    "pooled_final_quarter": 0.19962859795728877,
-    "pooled_first_quarter": 0.2999071494893222,
-    "median_trailer_final_act_share": 0.15384615384615385
+    "pooled_final_quarter": 0.16444444444444445,
+    "pooled_first_quarter": 0.3380878552971576,
+    "median_trailer_final_act_share": 0.14285714285714285
   },
   "alignment": {
-    "trailer_shots": 1921,
-    "blank": 0.02654867256637168,
-    "matched": 0.5606454971369078,
-    "match_rate_per_trailer_median": 0.5357142857142857
+    "trailer_shots": 17929,
+    "blank": 0.018238607842043616,
+    "matched": 0.5396285347760611,
+    "match_rate_per_trailer_median": 0.5783625730994152
   }
 }
