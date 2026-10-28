@@ -6,7 +6,6 @@ current block lives in `plan.md`.
 ## Now
 
 **Audio alignment** (`plan.md` section A)
-- [ ] Finish transcription: rerun `python -m trailercut.trailer_asr` (skips done ones; stopped at 165/293), then `dialogue_align` and `viewer_export`
 - [ ] Check dialogue anchors against the hand labels
 - [ ] Sound/picture sync rate per trailer: RQ2 features + one figure
 - [ ] Trailer dialogue features from the transcripts (speech share, words per minute, share of lines found in the film) to replace the subtitle proxy
@@ -57,6 +56,7 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-28: all 293 trailers transcribed; dialogue alignment: 2,368 of 8,273 speech segments (29%) found in the film, 187 trailers with at least one
 - 2026-10-28: Trailer View: playable trailer with timeline following it, one sound track (loudness, film dialogue in violet, one sound link at a time), sound vs picture panel, captions on the video (`.vtt`), terse labels, no act labels
 - 2026-10-28: `trailer_asr` (Whisper) and `dialogue_align` (trailer lines to film subtitles)
 - 2026-10-28: SSCD copy-detection re-ranking and gate evaluated against the labels (`rerank.py`): worse than or equal to CLIP, not used
