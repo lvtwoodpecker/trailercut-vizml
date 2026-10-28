@@ -1,20 +1,23 @@
 """Build a static page for hand-checking trailer-to-film matches.
 
 Samples trailers stratified by decade and lists every shot with its top-5 film candidates.
-Open labels/label_tool.html locally (images load from data/, which stays on your machine),
+Copies the images it needs into labels/img/ (gitignored), so it works with keyframe folders or
+per-film zips and any TRAILERCUT_DATA. Open labels/label_tool.html locally,
 label with the keyboard, and hit Export: save the JSON as labels/gold_<name>.json.
 
   python -m trailercut.label_tool [--n 10] [--seed 0]
 """
 import argparse
 import json
+import shutil
 
 import pandas as pd
 
 from . import movienet_io as mn
-from .paths import FEATURES, LABELS
+from .paths import CACHE, FEATURES, LABELS
 
 PAGE = LABELS / "label_tool.html"
+IMG = LABELS / "img"
 
 
 def sample(n, seed):
@@ -39,8 +42,8 @@ def items(imdb_id):
         scores = list(map(float, r.top5_scores.split()))
         yield dict(
             key=f"{imdb_id}:{r.shot_idx}", imdb_id=imdb_id, title=title, shot=r.shot_idx,
-            trailer=[f"../data/cache/trailer_frames/{imdb_id}/shot_{r.shot_idx:04d}_img_{i}.jpg" for i in range(3)],
-            cands=[dict(shot=c, score=s, img=f"../data/movienet/frames/{imdb_id}/shot_{c:04d}_img_1.jpg")
+            trailer=[f"img/{imdb_id}/t_{mn.keyframe_name(r.shot_idx, i)}" for i in range(3)],
+            cands=[dict(shot=c, score=s, img=f"img/{imdb_id}/f_{mn.keyframe_name(c, 1)}")
                    for c, s in zip(cands, scores)],
             score=r.score, matched=bool(r.matched), blank=bool(r.blank),
         )
@@ -97,6 +100,20 @@ draw();
 </script></body></html>"""
 
 
+def copy_images(its):
+    for it in its:
+        d = IMG / it["imdb_id"]
+        d.mkdir(parents=True, exist_ok=True)
+        for i in range(3):
+            src = CACHE / "trailer_frames" / it["imdb_id"] / mn.keyframe_name(it["shot"], i)
+            if src.exists() and not (d / f"t_{src.name}").exists():
+                shutil.copyfile(src, d / f"t_{src.name}")
+        for c in it["cands"]:
+            out = LABELS / c["img"]
+            if not out.exists():
+                mn.open_image(mn.keyframe_paths(it["imdb_id"], c["shot"])[1]).convert("RGB").save(out, quality=85)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=10)
@@ -104,6 +121,7 @@ def main():
     a = ap.parse_args()
     ids = sample(a.n, a.seed)
     its = [x for i in ids for x in items(i)]
+    copy_images(its)
     PAGE.write_text(HTML.replace("__ITEMS__", json.dumps(its)))
     (LABELS / "label_sample.json").write_text(json.dumps(ids))
     print(f"{len(its)} trailer shots from {len(ids)} trailers -> {PAGE}")
