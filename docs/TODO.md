@@ -5,7 +5,6 @@ Owner in brackets. Move items to **Done** with the date when finished.
 ## Now (Nov 3 to 17)
 
 - [ ] **[Cedric]** Check the 15 trailers with under 15% of shots matched (still 15 on 293, all original MovieNet links; Scarface tt0086250 is at 0%): wrong video, teaser, or re-release cut? Replace through `recover` if wrong
-- [ ] **[Cedric]** Model eval with a ±k shot tolerance (count a top-ranked shot as a hit if a used shot is within k film shots), since neighbor-shot alignment errors count as negatives now
 - [ ] **[Cedric]** Eyeball the recovered trailers with the lowest match share: *Basic* (31%), *Dogma* (33%), *Serenity* (34%)
 - [ ] **[Cedric]** PR curve and ablation figures for the model
 - [ ] **[Both]** Hand-label the 10 sampled trailers in `labels/label_tool.html` (both label the first 2 for kappa; separate browsers, since progress is one shared `localStorage` slot), save as `labels/gold_<name>.json`
@@ -35,6 +34,7 @@ Owner in brackets. Move items to **Done** with the date when finished.
 
 ## Done
 
+- 2026-10-28: model eval with a ±k shot tolerance (`model_eval.py`, `model_eval.json`); neighbor-shot errors don't explain the weak RQ1 score
 - 2026-10-28: dead-link recovery finished: all 49 replaced, 293/293 trailers
 - 2026-10-28: full rerun on 293 trailers (align, features, model, cluster, figures)
 - 2026-10-28: RQ1 model first full run, results written into `results.md`

@@ -24,7 +24,9 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 - **Right scene, wrong shot.** The error we expect most (not measured until the hand labels are in)
   lands on a neighboring film shot. For story position this barely matters; for shot-level features
   (scale, content) it can. The model is also scored at shot level, so the true source shot then counts
-  as a negative and the neighbor as a positive; exact-shot metrics understate the model.
+  as a negative and the neighbor as a positive. The ±k tolerance eval shows this costs little: lift
+  over random falls as the tolerance widens (full 3.6x exact, 1.9x at ±3), so most misses are
+  different moments, not neighboring shots.
 - **Shot length.** Longer film shots give a trailer more footage to sample, so they are more likely to
   be labeled in-trailer regardless of content. Controlled with a length-only baseline and
   length-adjusted AP, not removed.
@@ -43,7 +45,8 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 - **The RQ1 signal is weak.** The full model's AP is 0.050 against 0.024 for random, and at trailer
   length about 9 in 100 top-ranked shots are in the trailer. It ranks better than chance, not well
   enough to say which shots an editor will pick. Readable features carry most of what the model finds
-  (AP 0.045 vs 0.050 with CLIP).
+  (AP 0.045 vs 0.050 with CLIP). Allowing ±k shots of slack doesn't rescue it (lift 1.9x at ±3), so the
+  weakness is in the features or the task, not neighbor-shot label noise.
 - **Clusters are weakly separated** (silhouette 0.11 to 0.31). We report them as reproducible splits,
   not as distinct trailer types.
 - **Decade confounds style.** Pacing follows decade, and decade correlates with almost everything.

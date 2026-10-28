@@ -130,6 +130,18 @@ readable-only vs readable+CLIP gap shows how much of trailerness our named featu
 
 **Ablations drop one group at a time from the full model** and report the metric drop.
 
+**Tolerance eval (`model_eval.py`).** The aligner can land one or two shots off the true source
+(shot/reverse-shot, continuous coverage), which at shot level is a full miss. `model_eval` rescores the
+saved out-of-fold predictions counting a pick as a hit if a used shot is within ±k film shots, to see
+whether these near misses hide a better model. Random gets the same tolerance, because a wider window
+also makes random hits more likely (at ±3, 13% of shots are near a used shot vs 2.5% exact); lift over
+that base rate is the fair comparison. Result: lift drops as k grows, so near misses are not the story.
+
+**Headline metric: per-film precision at trailer length, reported as lift over random.** Pooled AP
+mixes films with different base rates (trailer length vs film shot count), so films with many used
+shots dominate it. Per-film precision at trailer length asks each film the editor's question, and lift
+makes it comparable across tolerances. Pooled AP stays in the tables as a secondary number.
+
 ## RQ2 clustering (`cluster.py`)
 
 **Features per trailer in 5 groups:** pacing, audio, story sampling, dialogue, visual. Clustered on

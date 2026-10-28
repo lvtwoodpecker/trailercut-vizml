@@ -20,6 +20,8 @@
 | CLIP block | the shot embedding (PCA'd) as one feature group; SHAP shown as one "other appearance" value |
 | AP / PR-AUC | average precision, area under the precision/recall curve; the main metric at 2.5% positives |
 | precision at trailer length | per film, precision of the top-k shots where k is how many shots the trailer used (R-precision) |
+| tolerance (±k shots) | in `model_eval`, a top-ranked film shot counts as a hit if a used shot is within k film shots of it; random gets the same tolerance |
+| lift | precision at trailer length divided by the base rate (what random would score), at the same tolerance |
 | length-adjusted AP | AP inside shot-length quintiles, averaged; removes the "long shots get sampled more" effect |
 | grouped CV | cross-validation where all shots of a film are in the same fold |
 | ablation | refitting the model without one feature group to see how much it mattered |
