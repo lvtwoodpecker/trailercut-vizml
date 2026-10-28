@@ -29,7 +29,10 @@ GROUP_ORDER = ["position", "dialogue", "scale", "content", "editing", "clip"]
 
 
 def r(x, n=3):
-    return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), n)
+    if x is None:
+        return None
+    x = float(x)  # numpy float32 NaN is not a Python float, so convert before checking
+    return None if np.isnan(x) else round(x, n)
 
 
 def avg_color(ref):
@@ -121,7 +124,7 @@ def main():
     index = []
     for i in tqdm(sorted(films.imdb_id.unique())):
         d = trailer_json(i, curves, films, preds, shap, a.detail)
-        (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":")))
+        (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":"), allow_nan=False))
         matched = [s[2] for s in d["shots"]]
         index.append(dict(id=i, title=d["title"], year=d["year"], genre=(d["genres"] or [""])[0],
                           shots=len(matched), match_rate=r(np.mean(matched))))
