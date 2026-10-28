@@ -2,6 +2,8 @@
 
 One file per trailer so the page loads only what it shows, plus an index for the picker.
 Model predictions and SHAP are included when model.py has been run; the view works without them.
+Each film and trailer shot also gets the average color of its middle keyframe, so the view can draw
+the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe).
 
 Outputs (gitignored, rebuilt in seconds)
   viz/data/index.json        one entry per trailer: id, title, year, genre, shots, match rate
@@ -19,14 +21,39 @@ from tqdm import tqdm
 
 from . import movienet_io as mn
 from .model import GROUPS
-from .paths import FEATURES, ROOT
+from .paths import CACHE, FEATURES, ROOT
 
 OUT = ROOT / "viz" / "data"
+COLORS = CACHE / "shot_colors"
 GROUP_ORDER = ["position", "dialogue", "scale", "content", "editing", "clip"]
 
 
 def r(x, n=3):
     return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), n)
+
+
+def avg_color(ref):
+    try:
+        im = mn.open_image(ref)
+        im.draft("RGB", (40, 24))  # JPEG decode at reduced size; plenty for a mean color
+        rgb = np.asarray(im.convert("RGB").resize((8, 5))).reshape(-1, 3).mean(0)
+        return "#%02x%02x%02x" % tuple(int(v) for v in rgb)
+    except (OSError, KeyError):
+        return None
+
+
+def shot_colors(imdb_id, n_film, n_trailer):
+    path = COLORS / f"{imdb_id}.json"
+    if path.exists():
+        c = json.loads(path.read_text())
+        if len(c["film"]) == n_film and len(c["trailer"]) == n_trailer:
+            return c
+    frames = CACHE / "trailer_frames" / imdb_id
+    c = dict(film=[avg_color(mn.keyframe_paths(imdb_id, s)[1]) for s in range(n_film)],
+             trailer=[avg_color(frames / mn.keyframe_name(s, 1)) for s in range(n_trailer)])
+    COLORS.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(c))
+    return c
 
 
 def load_model_outputs():
@@ -57,8 +84,13 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
                 r(s.score), int(s.blank)] for s in al.itertuples()],
     )
     f = films[films.imdb_id == imdb_id]
+    runtime = f.t_end.max()
+    colors = shot_colors(imdb_id, len(f), len(al))
+    out["shot_colors"] = colors["trailer"]
     film = dict(n=len(f), story_pos=[r(x) for x in f.story_pos], shot_len=[r(x, 2) for x in f.shot_len],
-                in_trailer=f.in_trailer.astype(int).tolist())
+                # shot extent as a fraction of runtime, for the barcode
+                start=[r(x / runtime, 5) for x in f.t_start], end=[r(x / runtime, 5) for x in f.t_end],
+                color=colors["film"], in_trailer=f.in_trailer.astype(int).tolist())
     if preds is not None:
         rows = preds.imdb_id.values == imdb_id
         p = preds[rows]
