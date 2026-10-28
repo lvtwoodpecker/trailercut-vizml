@@ -46,10 +46,13 @@ svg { display: block; overflow: visible; }
 .act { stroke: var(--grid); stroke-dasharray: 3 3; }
 .act-label { fill: var(--muted); font-size: 11px; }
 .link { stroke: var(--matched); stroke-opacity: 0.35; stroke-width: 1.2; fill: none; }
-.link.placed { stroke-dasharray: 4 3; }
 .link.dim { opacity: 1; stroke-opacity: 0.15; }
+.slink { stroke: var(--speech); stroke-width: 2.5; stroke-dasharray: 5 3; fill: none; }
+.sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
+.cc { font: 12px system-ui, sans-serif; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 8px; cursor: pointer; }
+.cc[aria-pressed="false"] { opacity: .5; }
 #playhead { stroke: var(--ink); stroke-width: 2; }
-#player { margin: 8px 0 4px; }
+#player { margin: 8px 0 4px; position: relative; }
 #player video { display: block; width: 100%; max-height: 50vh; border-radius: 6px; background: #000; }
 #caption { min-height: 2.6em; margin: 8px auto 0; max-width: 1000px; text-align: center; font-size: 20px; line-height: 1.3; color: var(--ink-2); }
 #caption .w.said { color: var(--ink); }
@@ -103,13 +106,14 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
       <span><i style="background:var(--unmatched)"></i>no match (title card, new footage, unsure)</span>
       <span><i style="background:var(--audio);height:2px"></i>trailer audio energy</span>
       <span><i style="background:var(--used)"></i>film shot used by this trailer</span>
-      <span><i style="background:var(--matched);opacity:.6"></i>speech: line found in the film's dialogue</span>
-      <span>dashed link = shot placed by its spoken line (picture not matched)</span>
+      <span><i style="background:var(--speech)"></i>spoken line found in the film's dialogue (hover or play to see where)</span>
     </div>
     <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.
       Hover to preview, click to lock a shot, <kbd>←</kbd> <kbd>→</kbd> to step through matched shots, <kbd>Esc</kbd> to unlock.
       <kbd>Space</kbd> plays the trailer; the timeline follows it, and pausing locks the current shot.</p>
-    <div id="player"><video id="vid" controls preload="metadata"></video><div id="caption"></div></div>
+    <div id="player"><video id="vid" controls preload="metadata"></video>
+      <div style="text-align:right;margin-top:4px"><button class="cc" id="cc" aria-pressed="true" title="Show the spoken words under the video">CC</button></div>
+      <div id="caption"></div></div>
     <div id="main-wrap"><svg id="main"></svg></div>
     <p class="note" id="film-note"></p>
     <div id="lock"></div>
@@ -122,6 +126,11 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
       <p class="note">One dot per matched trailer shot. Dots on the dashed line = same order as the film; above it = later in the film than the trailer's pace; below = earlier.</p>
     </div>
     <div class="card">
+      <h2>Does the sound come from the same moment as the picture?</h2>
+      <svg id="sync"></svg>
+      <p class="note" id="sync-note"></p>
+    </div>
+    <div class="card" style="grid-column: 1 / -1">
       <h2 id="shap-title">Why this shot?</h2>
       <svg id="shap"></svg>
       <p class="note" id="shap-note">Hover or click a film shot.</p>
@@ -163,16 +172,13 @@ async function init() {
 
 async function load(id) {
   D = await d3.json(`data/${id}.json`);
-  // one mapping: a shot the picture matcher missed takes the film shot its spoken line points to
-  // (s[3] = film shot or -1 from here on; s[7] = placed by dialogue)
-  D.shots.forEach(s => { s[7] = !s[2] && s[6] >= 0; if (s[7]) s[3] = s[6]; });
   lock = null; expanded = null;
   history.replaceState(null, "", `?id=${id}`);
-  const nUsed = d3.sum(D.film.in_trailer), nMatched = d3.sum(D.shots, s => s[2]), nPlaced = d3.sum(D.shots, s => s[7]);
+  const nUsed = d3.sum(D.film.in_trailer), nMatched = d3.sum(D.shots, s => s[2]);
   d3.select("#title").text(D.title);
   d3.select("#meta").text(`${(D.genres || []).slice(0, 3).join(", ")} · ${D.shots.length} trailer shots, ` +
-    `${Math.round(100 * nMatched / D.shots.length)}% matched by picture${nPlaced ? `, ${nPlaced} more by dialogue` : ""} · ${nUsed} of ${D.film.n} film shots used`);
-  drawMain(); drawOrder(); drawShap(null); show(null); drawLock();
+    `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed} of ${D.film.n} film shots used`);
+  drawMain(); drawOrder(); drawSync(); drawShap(null); show(null); drawLock();
   playing = false; curShot = -1; curLine = -1;
   vid.src = `../data/trailers/${id}.mp4`;
   d3.select("#caption").html("");
@@ -192,13 +198,25 @@ function follow(t) {
   d3.select("#playhead").style("display", null).attr("x1", tx(t)).attr("x2", tx(t));
   const i = shotAt(t), k = (D.speech || []).findIndex(s => s[0] <= t && t < s[1] + 0.3);
   if (i !== curShot) { curShot = i; if (!lock) show({ trailer: i, film: D.shots[i][3] }); }
-  if (k !== curLine) { curLine = k; drawCaption(k); }
+  if (k !== curLine) { curLine = k; drawCaption(k); soundLink(k); }
   if (k >= 0) d3.select("#caption").selectAll(".w").classed("said", d => d[1] <= t).classed("cur", d => d[0] <= t && t < d[1]);
 }
+// one sound link at a time: from the spoken line to where it is in the film
+function soundLink(k) {
+  const path = d3.select("#slink"), line = k >= 0 ? D.speech[k] : null;
+  if (!line || !line[2]) { path.style("display", "none"); return; }
+  const a = tx((line[0] + line[1]) / 2), b = fx(line[3]), y0 = Y.speech[1] + 2, m = (y0 + Y.link[1]) / 2;
+  path.style("display", null).attr("d", `M${a},${y0} C${a},${m} ${b},${m} ${b},${Y.barcode[1]}`);
+}
+let captions = true;
+d3.select("#cc").on("click", function () {
+  captions = !captions; this.setAttribute("aria-pressed", captions);
+  drawCaption(curLine);
+});
 // the spoken line under the video, word by word, and where it's from in the film
 function drawCaption(k) {
   const box = d3.select("#caption").html("");
-  if (k < 0) return;
+  if (k < 0 || !captions) return;
   const line = D.speech[k], words = line[5] && line[5].length ? line[5] : [[line[0], line[1], line[4]]];
   box.selectAll("span.w").data(words).join("span").attr("class", "w").text(d => d[2] + " ");
   box.append("span").attr("class", "src").text(line[2] ? `line from the film, ${Math.round(100 * line[3])}% in` : "not in the film's dialogue (narration, song, or no unique match)");
@@ -229,7 +247,7 @@ addEventListener("keydown", ev => {
   if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
 });
 let resizeT;
-addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (D) { drawMain(); drawOrder(); show(lock); } }, 150); });
+addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (D) { drawMain(); drawOrder(); drawSync(); show(lock); } }, 150); });
 
 // highlight links, trailer cells, dots and outlines for h = {trailer?, film?} or null
 function show(h) {
@@ -263,7 +281,7 @@ function drawLock() {
     const s = D.shots[lock.trailer], i = lock.trailer;
     html = `<div class="frames"><figure><figcaption>Trailer shot ${i} · ${fmtT(s[0])} to ${fmtT(s[1])}</figcaption>
       <div class="row">${[0, 1, 2].map(k => img(tImg(i, k))).join("")}</div></figure>` +
-      (s[3] >= 0 ? `<figure><figcaption>Film shot ${s[3]} · story ${Math.round(100 * f.story_pos[s[3]])}% · ${f.shot_len[s[3]]} s${s[7] ? " · placed by its spoken line" : ""}</figcaption>
+      (s[3] >= 0 ? `<figure><figcaption>Film shot ${s[3]} · story ${Math.round(100 * f.story_pos[s[3]])}% · ${f.shot_len[s[3]]} s</figcaption>
       <div class="row">${[0, 1, 2].map(k => img(fImg(s[3], k))).join("")}</div></figure>` : "") + `</div>
       <div class="info">picture match score ${s[4]}${s[2] ? "" : " · below threshold"}${s[5] ? " · blank shot" : ""}</div>`;
   } else {
@@ -312,10 +330,10 @@ function drawMain() {
   svg.append("g").selectAll("rect").data(D.speech || []).join("rect")
     .attr("x", d => tx(d[0])).attr("width", d => Math.max(1, tx(d[1]) - tx(d[0]) - 1))
     .attr("y", Y.speech[0]).attr("height", Y.speech[1] - Y.speech[0]).attr("rx", 2)
-    .attr("fill", d => d[2] ? "var(--matched)" : "var(--unmatched)").attr("opacity", d => d[2] ? 0.6 : 1)
-    .on("mousemove", (ev, d) => showTip(ev, `<div>“${d[4]}”</div><div class="v">${fmtT(d[0])} to ${fmtT(d[1])}</div>` +
+    .attr("fill", d => d[2] ? "var(--speech)" : "var(--unmatched)")
+    .on("mousemove", (ev, d) => soundLink(D.speech.indexOf(d)) || showTip(ev, `<div>“${d[4]}”</div><div class="v">${fmtT(d[0])} to ${fmtT(d[1])}</div>` +
       `<div>${d[2] ? `found in the film's dialogue, ${Math.round(100 * d[3])}% in` : "not found in the film's dialogue"}</div>`))
-    .on("mouseleave", hideTip)
+    .on("mouseleave", () => { hideTip(); soundLink(playing ? curLine : -1); })
     .on("click", (ev, d) => { vid.currentTime = d[0] + 0.01; });
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.tAxis})`)
     .call(d3.axisBottom(tx).ticks(Math.round(W / 110)).tickFormat(fmtT).tickSizeOuter(0));
@@ -323,7 +341,7 @@ function drawMain() {
   // links: trailer shot midpoint -> film position
   const ty0 = Y.tAxis + 20;
   svg.append("g").attr("class", "links").selectAll("path").data(D.shots.map((s, i) => [s, i]).filter(d => d[0][3] >= 0))
-    .join("path").attr("class", d => d[0][7] ? "link placed" : "link")
+    .join("path").attr("class", "link")
     .attr("d", ([s]) => {
       const a = tx((s[0] + s[1]) / 2), b = fx(f.story_pos[s[3]]), m = (ty0 + Y.link[1]) / 2;
       return `M${a},${ty0} C${a},${m} ${b},${m} ${b},${Y.link[1]}`;
@@ -346,6 +364,7 @@ function drawMain() {
     .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("text").attr("class", "act-label").attr("x", W - PAD.r).attr("y", H - 4).attr("text-anchor", "end").text("film story position");
 
+  svg.append("path").attr("id", "slink").attr("class", "slink").style("display", "none");
   svg.append("line").attr("id", "playhead").attr("y1", Y.audio[0]).attr("y2", Y.speech[1]).style("display", "none");
 
   // outlines (moved by show), then hit targets on top
@@ -363,7 +382,7 @@ function drawMain() {
       showTip(ev, `<div class="pair">${img(tImg(i))}${s[3] >= 0 ? img(fImg(s[3])) : ""}</div>` +
         `<div>Trailer shot ${i} · ${fmtT(s[0])} to ${fmtT(s[1])}</div>` +
         `<div class="v">match score ${s[4]}${s[5] ? " · blank" : ""}</div>` +
-        (s[3] >= 0 ? `<div>left: trailer · right: film shot ${s[3]} (story ${Math.round(100 * f.story_pos[s[3]])}%)${s[7] ? ", placed by its spoken line" : ""}</div>` : `<div>no match</div>`));
+        (s[3] >= 0 ? `<div>left: trailer · right: film shot ${s[3]} (story ${Math.round(100 * f.story_pos[s[3]])}%)</div>` : `<div>no match</div>`));
     })
     .on("mouseleave", unhover)
     .on("click", (ev, s) => {
@@ -407,6 +426,41 @@ function drawOrder() {
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("text").attr("class", "act-label").attr("x", w - m.r).attr("y", H - 6).attr("text-anchor", "end").text("trailer time");
   svg.append("text").attr("class", "act-label").attr("x", m.l).attr("y", 12).attr("text-anchor", "middle").text("film position");
+}
+
+// per matched line: where its sound is in the film vs where the picture on screen is from
+function drawSync() {
+  const w = document.getElementById("sync").parentNode.clientWidth - 32, H = 380, m = { l: 44, r: 12, t: 24, b: 40 };
+  const svg = d3.select("#sync").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
+  svg.selectAll("*").remove();
+  const f = D.film, rt = f.runtime || 1;
+  const lines = (D.speech || []).map((d, k) => [d, k]).filter(([d]) => d[2]);
+  const pts = [], noPic = [];
+  for (const [d, k] of lines) {
+    const i = shotAt((d[0] + d[1]) / 2), s = D.shots[i];
+    if (s[2]) pts.push({ k, i, x: f.story_pos[s[3]], y: d[3], sync: Math.abs(f.story_pos[s[3]] - d[3]) * rt <= 30 });
+    else noPic.push(k);
+  }
+  const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
+  svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(1)).attr("y2", y(1));
+  svg.append("text").attr("class", "act-label").attr("x", x(1) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("same moment");
+  svg.append("g").selectAll("circle").data(pts).join("circle").attr("class", "sdot").attr("r", 5)
+    .attr("cx", p => x(p.x)).attr("cy", p => y(p.y))
+    .on("mousemove", (ev, p) => {
+      hover({ trailer: p.i, film: D.shots[p.i][3] }); soundLink(p.k);
+      showTip(ev, `<div>“${D.speech[p.k][4]}”</div><div>picture from ${Math.round(100 * p.x)}% of the film, sound from ${Math.round(100 * p.y)}%</div>` +
+        `<div>${p.sync ? "same moment" : "sound laid over footage from elsewhere"}</div>`);
+    })
+    .on("mouseleave", () => { unhover(); soundLink(playing ? curLine : -1); })
+    .on("click", (ev, p) => { vid.currentTime = D.speech[p.k][0] + 0.01; });
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+  svg.append("text").attr("class", "act-label").attr("x", w - m.r).attr("y", H - 6).attr("text-anchor", "end").text("where the picture is from");
+  svg.append("text").attr("class", "act-label").attr("x", m.l).attr("y", 12).attr("text-anchor", "middle").text("where the line is from");
+  const nSync = pts.filter(p => p.sync).length;
+  d3.select("#sync-note").text(!lines.length ? "No spoken line of this trailer was found in the film's dialogue."
+    : `${lines.length} lines found in the film: ${nSync} play over their own scene (within 30 s), ${pts.length - nSync} over footage from elsewhere` +
+      (noPic.length ? `, ${noPic.length} over shots with no picture match (title cards, new footage).` : "."));
 }
 
 function drawShap(i) {
