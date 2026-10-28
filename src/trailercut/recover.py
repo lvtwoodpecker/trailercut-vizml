@@ -83,7 +83,10 @@ def main():
     todo = [i for i, r in status.items() if r["status"] != "ok"]
     if a.limit:
         todo = todo[: a.limit]
-    threshold = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]
+    # the impostor cutoff, not the label-picked one: this check has to reject trailers of other films,
+    # and the label-picked cutoff lets most shots from a wrong film match something
+    meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
+    threshold = meta.get("impostor_threshold", meta["threshold"])
 
     with ThreadPoolExecutor(4) as ex:
         cands = dict(zip(todo, ex.map(candidates, todo)))

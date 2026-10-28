@@ -1,10 +1,11 @@
 """Match each trailer shot to its most similar film shot, with an explicit "no match" option.
 
 Similarity between trailer shot m and film shot n: for each of m's 3 keyframes take the best
-cosine over n's 3 keyframes, then average. A shot is only matched if its best score beats the
-impostor threshold: the 95th percentile of best scores when the same trailer shot is matched
-against a *different* film (so ~5% of non-source shots would pass). A 1% cutoff rejects many
-correct matches in the 0.72-0.79 range.
+cosine over n's 3 keyframes, then average. A shot is only matched if its best score clears the
+threshold. Without --threshold that is the impostor cutoff: the 95th percentile of best scores when
+the same trailer shot is matched against a *different* film (so ~5% of non-source shots would pass).
+A 1% cutoff rejects many correct matches in the 0.72-0.79 range. run_all.sh then re-runs with the
+best-F1 cutoff from the hand labels (0.535 now).
 
 Blank shots (fades, black frames) match blank shots in any film and inflate the null tail.
 Shots whose keyframes look like a solid black/white/grey frame are flagged on both sides:
@@ -12,6 +13,8 @@ blank trailer shots are never matched, blank film shots are never candidates.
 
 The impostor null can't measure the main real error (right film, wrong shot), so the final cutoff
 is picked from hand labels in labels/ (see trailercut.label_eval); raw scores are kept for that.
+smooth() (sequence matching) is not used by align: it scored lower F1 than raw against the labels
+(trailercut.align_tune).
 
 Outputs
   data/features/alignment/{imdb_id}.csv   one row per trailer shot
@@ -154,6 +157,8 @@ def main():
     threshold = float(np.quantile(null, 1 - a.fpr)) if a.threshold is None else a.threshold
     meta = dict(fpr=a.fpr if a.threshold is None else float((null >= threshold).mean()), threshold=threshold,
                 source="impostor_null" if a.threshold is None else "manual", n_null=len(null),
+                # kept even when a manual cutoff is used: recover needs a cutoff that rejects other films
+                impostor_threshold=float(np.quantile(null, 1 - a.fpr)),
                 null_quantiles={q: float(np.quantile(null, q)) for q in (0.5, 0.9, 0.99, 0.999)})
     (FEATURES / "alignment_threshold.json").write_text(json.dumps(meta, indent=2))
     np.save(CACHE / f"alignment_null_{CLIP_TAG}.npy", null)
