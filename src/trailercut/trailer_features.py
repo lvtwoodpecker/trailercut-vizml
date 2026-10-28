@@ -33,6 +33,8 @@ GROUPS = {
               "first_act_share", "final_act_share", "order_corr"],
     "dialogue": ["dlg_words_per_shot", "dlg_sentiment_mean", "dlg_sentiment_std", "dlg_neg_share"],
     "visual": ["scale_width_mean"] + [f"{c}_mean" for c in concepts.CONTENT],
+    # from the transcript (av_sync.py): how much the trailer talks and whether lines play over their own scene
+    "speech": ["speech_share", "words_per_min", "lines_found", "sync_rate"],
 }
 
 
@@ -116,6 +118,11 @@ def main():
                          **p, **a, **story_and_dialogue(imdb_id), **visual(imdb_id)))
     df = pd.DataFrame(rows)
     df["decade"] = (df.year // 10 * 10).astype("Int64")
+    av = FEATURES / "av_sync.csv"
+    if av.exists():
+        df = df.merge(pd.read_csv(av)[["imdb_id", *GROUPS["speech"]]], on="imdb_id", how="left")
+    else:
+        del GROUPS["speech"]
     df.to_parquet(FEATURES / "trailers.parquet", index=False)
     (FEATURES / "trailer_curves.json").write_text(json.dumps(curves))
     print(df.shape)
