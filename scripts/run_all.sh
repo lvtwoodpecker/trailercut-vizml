@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Full pipeline, in order. Every step is resumable: rerunning skips finished films/trailers.
+# Full pipeline, in order. Download, shot and embedding steps skip finished films/trailers;
+# align onward recomputes everything (each takes a minute or so, except the model).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python

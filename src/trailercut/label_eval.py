@@ -4,8 +4,8 @@ Reads labels/gold_*.json (from label_tool). For a threshold t, a trailer shot is
 if score >= t. Then
   precision = predicted-matched shots whose top-1 is the labeled film shot
   recall    = shots with a labeled source shot that are predicted matched with the right top-1
-"same scene, other shot" counts as a miss for precision but is reported separately, since for
-story position it is close to correct. With two labelers, Cohen's kappa on the overlap.
+"same scene, other shot" counts as a miss for precision and never toward recall; its count shows up
+in label_mix, since for story position it is close to correct. With two labelers, Cohen's kappa on the overlap.
 
   python -m trailercut.label_eval
 Writes figures/alignment_pr.png and data/features/alignment_eval.json
