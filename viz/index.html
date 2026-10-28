@@ -31,36 +31,47 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+main { padding: 16px; }
 header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; margin-bottom: 12px; }
 h1 { font-size: 18px; margin: 0; }
 .meta { color: var(--ink-2); }
 select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
 .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--ink-2); }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
-svg { display: block; width: 100%; overflow: visible; }
+svg { display: block; overflow: visible; }
 .axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .axis path, .axis line { stroke: var(--axis); }
 .act { stroke: var(--grid); stroke-dasharray: 3 3; }
 .act-label { fill: var(--muted); font-size: 11px; }
 .link { stroke: var(--matched); stroke-opacity: 0.35; stroke-width: 1.2; fill: none; }
-.link.hi { stroke-opacity: 0.9; stroke-width: 2; }
-.dim { opacity: 0.25; }
+.link.hi { stroke-opacity: 1; stroke-width: 2.5; }
+.dim { opacity: 0.2; }
+.hit { cursor: pointer; }
+.outline { fill: none; stroke: var(--ink); stroke-width: 2; }
+.outline.locked { stroke-width: 3; }
 #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; max-width: 380px; z-index: 10; }
 #tip img { display: block; width: 240px; border-radius: 4px; margin-bottom: 4px; }
 #tip .pair { display: flex; gap: 4px; }
 #tip .pair img { width: 180px; }
 #tip .v { font-variant-numeric: tabular-nums; }
+#lock { display: none; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; }
+#lock .frames { display: flex; flex-wrap: wrap; gap: 16px; }
+#lock figure { margin: 0; }
+#lock figcaption { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+#lock .row { display: flex; gap: 4px; }
+#lock img { width: 240px; border-radius: 4px; display: block; }
+#lock .info { font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .shap-row { cursor: pointer; }
 .shap-row text { fill: var(--ink); font-size: 12px; }
 .shap-row .val { fill: var(--ink-2); font-variant-numeric: tabular-nums; }
 .note { color: var(--muted); font-size: 12px; margin: 4px 0; }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; }
 .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
-.dot { fill: var(--matched); stroke: var(--surface); stroke-width: 1.5; }
+@media (min-width: 1000px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.dot { fill: var(--matched); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
 .diag { stroke: var(--axis); stroke-dasharray: 4 4; }
 </style>
 </head>
@@ -84,10 +95,13 @@ svg { display: block; width: 100%; overflow: visible; }
       <span><i style="background:var(--used)"></i>film shot used by this trailer</span>
       <span id="lg-score"><i style="background:var(--matched);opacity:.55"></i>trailerness (model score)</span>
     </div>
-    <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.</p>
-    <svg id="main"></svg>
+    <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.
+      Hover to preview, click to lock a shot, <kbd>←</kbd> <kbd>→</kbd> to step through matched shots, <kbd>Esc</kbd> to unlock.</p>
+    <div id="main-wrap"><svg id="main"></svg></div>
     <p class="note" id="film-note"></p>
+    <div id="lock"></div>
   </div>
+
   <div class="grid2">
     <div class="card">
       <h2>Does the trailer follow the film's order?</h2>
@@ -104,20 +118,24 @@ svg { display: block; width: 100%; overflow: visible; }
 <div id="tip"></div>
 
 <script>
-const W = 1168, PAD = { l: 40, r: 12 };
+const PAD = { l: 56, r: 16 };
 const GROUP_LABEL = { position: "story position", dialogue: "dialogue", scale: "shot scale",
   content: "content", editing: "editing", clip: "other appearance (CLIP)" };
 const tip = d3.select("#tip");
-let D = null, pinned = null, expanded = null;
+// D: current trailer. lock: {trailer, film} or {film} while a shot is locked; hover never changes it.
+let D = null, lock = null, expanded = null, W = 1200, Y = null, tx = null, fx = null;
 
 function showTip(ev, html) {
   tip.html(html).style("display", "block");
-  const x = Math.min(ev.clientX + 14, innerWidth - 400), y = Math.min(ev.clientY + 14, innerHeight - 220);
+  const x = Math.min(ev.clientX + 14, innerWidth - 400), y = Math.min(ev.clientY + 14, innerHeight - 240);
   tip.style("left", x + "px").style("top", y + "px");
 }
 const hideTip = () => tip.style("display", "none");
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const pad4 = i => String(i).padStart(4, "0");
+const tImg = (i, k = 1) => `../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
+const fImg = (i, k = 1) => `../data/movienet/frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
+const img = src => `<img src="${src}" onerror="this.remove()">`;
 
 async function init() {
   const index = await d3.json("data/index.json");
@@ -125,157 +143,199 @@ async function init() {
   d3.select("#films").selectAll("option").data(index).join("option").attr("value", d => d.title);
   const byTitle = new Map(index.map(d => [d.title, d.id]));
   d3.select("#search").on("change", function () { const id = byTitle.get(this.value); if (id) load(id); });
-  const start = new URLSearchParams(location.search).get("id") || index[0].id;
-  load(start);
+  load(new URLSearchParams(location.search).get("id") || index[0].id);
 }
 
 async function load(id) {
   D = await d3.json(`data/${id}.json`);
-  pinned = null; expanded = null;
+  lock = null; expanded = null;
   history.replaceState(null, "", `?id=${id}`);
   const nUsed = d3.sum(D.film.in_trailer), nMatched = d3.sum(D.shots, s => s[2]);
   d3.select("#title").text(D.title);
   d3.select("#meta").text(`${(D.genres || []).slice(0, 3).join(", ")} · ${D.shots.length} trailer shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed} of ${D.film.n} film shots used`);
-  drawMain(); drawOrder(); drawShap(null);
+  drawMain(); drawOrder(); drawShap(null); show(null); drawLock();
 }
 
-// one canvas, shared x range: trailer time on top, story position on the bottom
-let Y;
+// ---- interaction: hover previews, click locks ----
+function hover(h) { if (!lock) show(h); }
+function unhover() { hideTip(); if (!lock) show(null); }
+function toggleLock(h) {
+  const same = lock && ((h.trailer !== undefined && lock.trailer === h.trailer) ||
+                        (h.trailer === undefined && lock.trailer === undefined && lock.film === h.film));
+  lock = same ? null : h;
+  show(lock); drawLock();
+}
+function step(dir) {
+  const matched = D.shots.map((s, i) => [s, i]).filter(d => d[0][2]).map(d => d[1]);
+  if (!matched.length) return;
+  const cur = lock && lock.trailer !== undefined ? matched.indexOf(lock.trailer) : -1;
+  const next = matched[(cur + dir + matched.length) % matched.length];
+  lock = { trailer: next, film: D.shots[next][3] };
+  show(lock); drawLock();
+}
+addEventListener("keydown", ev => {
+  if (ev.target.tagName === "INPUT") return;
+  if (ev.key === "Escape") { lock = null; show(null); drawLock(); }
+  if (ev.key === "ArrowRight") { ev.preventDefault(); step(1); }
+  if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
+});
+let resizeT;
+addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (D) { drawMain(); drawOrder(); show(lock); } }, 150); });
 
+// highlight links, trailer cells, dots and outlines for h = {trailer?, film?} or null
+function show(h) {
+  const links = d3.select("#main .links").selectAll("path");
+  const cells = d3.select("#main .tcells").selectAll("rect");
+  const dots = d3.select("#order").selectAll("circle");
+  const t = h && h.trailer !== undefined ? h.trailer : null, f = h && h.film >= 0 ? h.film : null;
+  const onLink = d => t !== null ? d[1] === t : d[0][3] === f;
+  if (!h) { links.classed("hi", false).classed("dim", false); cells.classed("dim", false); dots.classed("dim", false); }
+  else {
+    links.classed("hi", onLink).classed("dim", d => !onLink(d));
+    cells.classed("dim", (s, i) => t !== null ? i !== t : s[3] !== f);
+    dots.classed("dim", d => !onLink(d));
+  }
+  const locked = !!lock;
+  const th = d3.select("#trailer-hi"), fh = d3.select("#film-hi");
+  if (t === null) th.style("display", "none");
+  else { const s = D.shots[t]; th.style("display", null).classed("locked", locked).attr("x", tx(s[0]) - 2).attr("width", Math.max(5, tx(s[1]) - tx(s[0]) + 4)); }
+  if (f === null) fh.style("display", "none");
+  else { const a = fx(D.film.start[f]), b = fx(D.film.end[f]); fh.style("display", null).classed("locked", locked).attr("x", a - 2).attr("width", Math.max(5, b - a + 4)); }
+  if (f !== null && D.film.shap) drawShap(f); else if (!lock) drawShap(null);
+}
+
+// the locked shot, with frames large enough to compare
+function drawLock() {
+  const box = d3.select("#lock");
+  if (!lock) { box.style("display", "none").html(""); return; }
+  const f = D.film;
+  let html;
+  if (lock.trailer !== undefined) {
+    const s = D.shots[lock.trailer], i = lock.trailer;
+    html = `<div class="frames"><figure><figcaption>Trailer shot ${i} · ${fmtT(s[0])} to ${fmtT(s[1])}</figcaption>
+      <div class="row">${[0, 1, 2].map(k => img(tImg(i, k))).join("")}</div></figure>` +
+      (s[2] ? `<figure><figcaption>Film shot ${s[3]} · story ${Math.round(100 * f.story_pos[s[3]])}% · ${f.shot_len[s[3]]} s</figcaption>
+      <div class="row">${[0, 1, 2].map(k => img(fImg(s[3], k))).join("")}</div></figure>` : "") + `</div>
+      <div class="info">match score ${s[4]}${s[2] ? "" : " · below threshold, no match"}${s[5] ? " · blank shot" : ""}</div>`;
+  } else {
+    const j = lock.film, users = D.shots.map((s, i) => [s, i]).filter(d => d[0][2] && d[0][3] === j);
+    html = `<div class="frames"><figure><figcaption>Film shot ${j} · story ${Math.round(100 * f.story_pos[j])}% · ${f.shot_len[j]} s</figcaption>
+      <div class="row">${[0, 1, 2].map(k => img(fImg(j, k))).join("")}</div></figure>` +
+      (users.length ? `<figure><figcaption>Used by trailer shot${users.length > 1 ? "s" : ""} ${users.map(d => d[1]).join(", ")}</figcaption>
+      <div class="row">${users.slice(0, 3).map(d => img(tImg(d[1]))).join("")}</div></figure>` : "") + `</div>
+      <div class="info">${users.length ? "" : "not used in this trailer"}${f.trailerness ? ` · trailerness ${(100 * f.trailerness[j]).toFixed(1)}%` : ""}</div>`;
+  }
+  box.style("display", "block").html(html + `<p class="note">Locked. Click the shot again or press Esc to unlock.</p>`);
+}
+
+// ---- main chart: trailer on top, film barcode below, shared full width ----
 function drawMain() {
-  const f0 = D.film, barsH = f0.trailerness ? 154 : 24;
-  Y = { audio: [10, 62], tcolor: [72, 108], shots: [110, 116], tAxis: 120, link: [144, 200], used: [202, 210],
-        barcode: [212, 252], bars: [258, 258 + barsH] };
+  W = Math.max(600, document.getElementById("main-wrap").clientWidth);
+  const f = D.film, has = !!f.trailerness, barsH = has ? 160 : 24;
+  Y = { audio: [8, 68], tcolor: [78, 150], tmatch: [153, 161], tAxis: 165,
+        link: [192, 420], used: [422, 434], barcode: [436, 516] };
+  Y.bars = [Y.barcode[1] + 8, Y.barcode[1] + 8 + barsH];
   Y.fAxis = Y.bars[1] + 4;
-  const H = Y.fAxis + 36, svg = d3.select("#main").attr("viewBox", `0 0 ${W} ${H}`);
+  const H = Y.fAxis + 36;
+  const svg = d3.select("#main").attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
   svg.selectAll("*").remove();
-  const tx = d3.scaleLinear([0, D.duration], [PAD.l, W - PAD.r]);
-  const fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
-  const f = D.film, has = !!f.trailerness;
+  tx = d3.scaleLinear([0, D.duration], [PAD.l, W - PAD.r]);
+  fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
+  const label = (y, t) => svg.append("text").attr("class", "act-label").attr("x", PAD.l - 8).attr("y", y).attr("text-anchor", "end").text(t);
 
-  // trailer: audio energy on a 100-bin grid, then one cell per shot
+  // trailer: audio energy (100-bin grid), frame colors, matched bar
   if (D.curves) {
     const db = D.curves.rms_db, y = d3.scaleLinear(d3.extent(db), [Y.audio[1], Y.audio[0]]);
     svg.append("path").attr("fill", "none").attr("stroke", "var(--audio)").attr("stroke-width", 2)
       .attr("d", d3.line().x((_, i) => tx((i + 0.5) / db.length * D.duration)).y(y).curve(d3.curveMonotoneX)(db));
   }
-  svg.append("text").attr("class", "act-label").attr("x", PAD.l - 6).attr("y", Y.audio[0] + 30).attr("text-anchor", "end").text("audio");
-  svg.append("text").attr("class", "act-label").attr("x", PAD.l - 6).attr("y", Y.tcolor[0] + 22).attr("text-anchor", "end").text("trailer");
+  label(Y.audio[0] + 34, "audio"); label(Y.tcolor[0] + 40, "trailer");
   const tcol = D.shot_colors || [];
-  // frame colors, then a thin bar saying whether the shot was matched
   svg.append("g").selectAll("rect").data(D.shots).join("rect")
     .attr("x", s => tx(s[0])).attr("width", s => Math.max(0.5, tx(s[1]) - tx(s[0])))
     .attr("y", Y.tcolor[0]).attr("height", Y.tcolor[1] - Y.tcolor[0]).attr("fill", (_, i) => tcol[i] || "var(--unmatched)");
-  svg.append("g").attr("class", "shots").selectAll("rect").data(D.shots).join("rect")
+  svg.append("g").attr("class", "tcells").selectAll("rect").data(D.shots).join("rect")
     .attr("x", s => tx(s[0]) + 0.5).attr("width", s => Math.max(1, tx(s[1]) - tx(s[0]) - 1))
-    .attr("y", Y.shots[0]).attr("height", Y.shots[1] - Y.shots[0])
+    .attr("y", Y.tmatch[0]).attr("height", Y.tmatch[1] - Y.tmatch[0])
     .attr("fill", s => s[2] ? "var(--matched)" : "var(--unmatched)");
-  // hover target covers both trailer strips
-  svg.append("g").selectAll("rect").data(D.shots).join("rect")
-    .attr("x", s => tx(s[0])).attr("width", s => Math.max(2, tx(s[1]) - tx(s[0])))
-    .attr("y", Y.tcolor[0]).attr("height", Y.shots[1] - Y.tcolor[0]).attr("fill", "transparent")
-    .on("mousemove", (ev, s) => {
-      const i = D.shots.indexOf(s);
-      highlight({ trailer: i, film: s[3] });
-      showTip(ev, `<div class="pair"><img src="../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_1.jpg" onerror="this.remove()">` +
-        (s[2] ? `<img src="../data/movienet/frames/${D.id}/shot_${pad4(s[3])}_img_1.jpg" onerror="this.remove()">` : "") + `</div>` +
-        `<div>Trailer shot ${i} · ${fmtT(s[0])} to ${fmtT(s[1])}</div>` +
-        `<div class="v">match score ${s[4]}${s[5] ? " · blank" : ""}</div>` +
-        (s[2] ? `<div>left: trailer · right: film shot ${s[3]} (story ${Math.round(100 * f.story_pos[s[3]])}%)</div>` : `<div>no match</div>`));
-    })
-    .on("mouseleave", () => { highlight(null); hideTip(); });
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.tAxis})`)
-    .call(d3.axisBottom(tx).ticks(8).tickFormat(fmtT).tickSizeOuter(0));
+    .call(d3.axisBottom(tx).ticks(Math.round(W / 110)).tickFormat(fmtT).tickSizeOuter(0));
 
-  // links: trailer shot midpoint -> film story position
+  // links: trailer shot midpoint -> film position
+  const ty0 = Y.tAxis + 20;
   svg.append("g").attr("class", "links").selectAll("path").data(D.shots.map((s, i) => [s, i]).filter(d => d[0][2]))
     .join("path").attr("class", "link")
     .attr("d", ([s]) => {
-      const a = tx((s[0] + s[1]) / 2), b = fx(f.story_pos[s[3]]), m = (Y.link[0] + Y.link[1]) / 2;
-      return `M${a},${Y.link[0]} C${a},${m} ${b},${m} ${b},${Y.link[1]}`;
+      const a = tx((s[0] + s[1]) / 2), b = fx(f.story_pos[s[3]]), m = (ty0 + Y.link[1]) / 2;
+      return `M${a},${ty0} C${a},${m} ${b},${m} ${b},${Y.link[1]}`;
     });
 
-  // film: acts, used shots, trailerness bars
-  [[0, "setup"], [0.25, "middle"], [0.75, "ending"]].forEach(([p, t]) => {
-    if (p) svg.append("line").attr("class", "act").attr("x1", fx(p)).attr("x2", fx(p)).attr("y1", Y.used[0]).attr("y2", Y.bars[1]);
-    svg.append("text").attr("class", "act-label").attr("x", fx(p) + 4).attr("y", Y.bars[1] - 4).text(t);
-  });
-  const shots = d3.range(f.n), bw = Math.max(1, (W - PAD.l - PAD.r) / f.n * 0.8);
-  svg.append("g").attr("class", "used").selectAll("rect").data(shots.filter(i => f.in_trailer[i])).join("rect")
+  // film: used ticks, barcode, acts, trailerness bars
+  const shots = d3.range(f.n);
+  svg.append("g").selectAll("rect").data(shots.filter(i => f.in_trailer[i])).join("rect")
     .attr("x", i => fx(f.story_pos[i]) - 1).attr("width", 2).attr("y", Y.used[0]).attr("height", Y.used[1] - Y.used[0]).attr("fill", "var(--used)");
   if (f.color) {
     svg.append("g").selectAll("rect").data(shots).join("rect")
       .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(0.5, fx(f.end[i]) - fx(f.start[i])))
       .attr("y", Y.barcode[0]).attr("height", Y.barcode[1] - Y.barcode[0]).attr("fill", i => f.color[i] || "var(--unmatched)");
-    svg.append("text").attr("class", "act-label").attr("x", PAD.l - 6).attr("y", Y.barcode[0] + 24).attr("text-anchor", "end").text("film");
   }
-  // outline that follows the hovered shot on both rows
-  svg.append("rect").attr("id", "film-hi").attr("fill", "none").attr("stroke", "var(--ink)").attr("stroke-width", 2)
-    .attr("rx", 1).attr("y", Y.used[0] - 2).attr("height", Y.barcode[1] - Y.used[0] + 4).style("display", "none");
-  svg.append("rect").attr("id", "trailer-hi").attr("fill", "none").attr("stroke", "var(--ink)").attr("stroke-width", 2)
-    .attr("rx", 1).attr("y", Y.tcolor[0] - 2).attr("height", Y.shots[1] - Y.tcolor[0] + 4).style("display", "none");
+  label(Y.barcode[0] + 44, "film");
+  const acts = [[0, "setup"], [0.25, "middle"], [0.75, "ending"]];
+  acts.forEach(([p]) => { if (p) svg.append("line").attr("class", "act").attr("x1", fx(p)).attr("x2", fx(p)).attr("y1", Y.barcode[1]).attr("y2", Y.bars[1]); });
   if (has) {
     const y = d3.scaleLinear([0, Math.max(0.05, d3.max(f.trailerness))], [Y.bars[1], Y.bars[0]]).nice();
-    svg.append("g").attr("class", "bars").selectAll("rect").data(shots).join("rect")
-      .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(bw, fx(f.end[i]) - fx(f.start[i])))
+    svg.append("g").selectAll("rect").data(shots).join("rect")
+      .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(1, fx(f.end[i]) - fx(f.start[i])))
       .attr("y", i => y(f.trailerness[i])).attr("height", i => Y.bars[1] - y(f.trailerness[i]))
       .attr("fill", i => f.in_trailer[i] ? "var(--used)" : "var(--matched)").attr("opacity", i => f.in_trailer[i] ? 1 : 0.55);
     svg.append("g").attr("class", "axis").attr("transform", `translate(${PAD.l},0)`)
       .call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   }
-  // hit targets wider than the bars
-  svg.append("g").selectAll("rect").data(shots).join("rect")
+  acts.forEach(([p, t]) => svg.append("text").attr("class", "act-label").attr("x", fx(p) + 4).attr("y", Y.bars[0] + 12).text(t));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.fAxis})`)
+    .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+  svg.append("text").attr("class", "act-label").attr("x", W - PAD.r).attr("y", H - 4).attr("text-anchor", "end").text("film story position");
+
+  // outlines (moved by show), then hit targets on top
+  svg.append("rect").attr("id", "trailer-hi").attr("class", "outline").attr("rx", 1)
+    .attr("y", Y.tcolor[0] - 3).attr("height", Y.tmatch[1] - Y.tcolor[0] + 6).style("display", "none");
+  svg.append("rect").attr("id", "film-hi").attr("class", "outline").attr("rx", 1)
+    .attr("y", Y.used[0] - 3).attr("height", Y.barcode[1] - Y.used[0] + 6).style("display", "none");
+
+  svg.append("g").selectAll("rect").data(D.shots).join("rect").attr("class", "hit")
+    .attr("x", s => tx(s[0])).attr("width", s => Math.max(2, tx(s[1]) - tx(s[0])))
+    .attr("y", Y.tcolor[0]).attr("height", Y.tmatch[1] - Y.tcolor[0]).attr("fill", "transparent")
+    .on("mousemove", (ev, s) => {
+      const i = D.shots.indexOf(s);
+      hover({ trailer: i, film: s[3] });
+      showTip(ev, `<div class="pair">${img(tImg(i))}${s[2] ? img(fImg(s[3])) : ""}</div>` +
+        `<div>Trailer shot ${i} · ${fmtT(s[0])} to ${fmtT(s[1])}</div>` +
+        `<div class="v">match score ${s[4]}${s[5] ? " · blank" : ""}</div>` +
+        (s[2] ? `<div>left: trailer · right: film shot ${s[3]} (story ${Math.round(100 * f.story_pos[s[3]])}%)</div>` : `<div>no match</div>`));
+    })
+    .on("mouseleave", unhover)
+    .on("click", (ev, s) => { const i = D.shots.indexOf(s); toggleLock({ trailer: i, film: s[3] }); });
+  svg.append("g").selectAll("rect").data(shots).join("rect").attr("class", "hit")
     .attr("x", i => Math.min(fx(f.start[i]), fx(f.story_pos[i]) - 3))
     .attr("width", i => Math.max(6, fx(f.end[i]) - fx(f.start[i])))
     .attr("y", Y.used[0]).attr("height", Y.bars[1] - Y.used[0]).attr("fill", "transparent")
     .on("mousemove", (ev, i) => {
-      highlight({ film: i });
-      if (pinned === null) drawShap(i);
-      showTip(ev, `<img src="../data/movienet/frames/${D.id}/shot_${pad4(i)}_img_1.jpg" onerror="this.remove()">` +
-        `<div>Film shot ${i} · story ${Math.round(100 * f.story_pos[i])}% · ${f.shot_len[i]} s</div>` +
+      hover({ film: i });
+      showTip(ev, img(fImg(i)) + `<div>Film shot ${i} · story ${Math.round(100 * f.story_pos[i])}% · ${f.shot_len[i]} s</div>` +
         (has ? `<div class="v">trailerness ${(100 * f.trailerness[i]).toFixed(1)}%</div>` : "") +
         `<div>${f.in_trailer[i] ? "used in this trailer" : "not used"}</div>`);
     })
-    .on("mouseleave", () => { highlight(null); hideTip(); if (pinned === null) drawShap(null); })
-    .on("click", (ev, i) => { pinned = pinned === i ? null : i; expanded = null; drawShap(pinned); });
-  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.fAxis})`)
-    .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
-  svg.append("text").attr("class", "act-label").attr("x", W - PAD.r).attr("y", H - 2).attr("text-anchor", "end").text("film story position");
+    .on("mouseleave", unhover)
+    .on("click", (ev, i) => toggleLock({ film: i }));
+
   d3.select("#lg-score").style("display", has ? null : "none");
   d3.select("#film-note").text(has ? "" : "Model scores not exported yet: run trailercut.model, then trailercut.viewer_export.");
 }
 
-function highlight(h) {
-  const links = d3.select("#main .links").selectAll("path");
-  const cells = d3.select("#main .shots").selectAll("rect");
-  const dots = d3.select("#order").selectAll("circle");
-  outline(h);
-  if (!h) { links.classed("hi", false).classed("dim", false); cells.classed("dim", false); dots.classed("dim", false); return; }
-  if (h.trailer !== undefined) {
-    links.classed("hi", ([, i]) => i === h.trailer).classed("dim", ([, i]) => i !== h.trailer);
-    cells.classed("dim", (_, i) => i !== h.trailer);
-    dots.classed("dim", ([, i]) => i !== h.trailer);
-  } else {
-    links.classed("hi", ([s]) => s[3] === h.film).classed("dim", ([s]) => s[3] !== h.film);
-    cells.classed("dim", s => s[3] !== h.film);
-    dots.classed("dim", ([s]) => s[3] !== h.film);
-  }
-}
-
-function outline(h) {
-  const tx = d3.scaleLinear([0, D.duration], [PAD.l, W - PAD.r]), fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
-  const fh = d3.select("#film-hi"), th = d3.select("#trailer-hi"), f = D.film;
-  const fi = h ? (h.film !== undefined && h.film >= 0 ? h.film : null) : null;
-  if (fi === null) fh.style("display", "none");
-  else { const a = fx(f.start[fi]), b = fx(f.end[fi]); fh.style("display", null).attr("x", a - 2).attr("width", Math.max(4, b - a + 4)); }
-  if (!h || h.trailer === undefined) th.style("display", "none");
-  else { const s = D.shots[h.trailer]; th.style("display", null).attr("x", tx(s[0]) - 2).attr("width", Math.max(4, tx(s[1]) - tx(s[0]) + 4)); }
-}
-
 function drawOrder() {
-  const w = 560, H = 350, m = { l: 44, r: 12, t: 24, b: 40 };
-  const svg = d3.select("#order").attr("viewBox", `0 0 ${w} ${H}`);
+  const w = document.getElementById("order").parentNode.clientWidth - 32, H = 380, m = { l: 44, r: 12, t: 24, b: 40 };
+  const svg = d3.select("#order").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
   svg.selectAll("*").remove();
   const x = d3.scaleLinear([0, D.duration], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
   svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(D.duration)).attr("y2", y(1));
@@ -284,11 +344,11 @@ function drawOrder() {
   svg.append("g").selectAll("circle").data(pts).join("circle").attr("class", "dot").attr("r", 4.5)
     .attr("cx", ([s]) => x((s[0] + s[1]) / 2)).attr("cy", ([s]) => y(D.film.story_pos[s[3]]))
     .on("mousemove", (ev, [s, i]) => {
-      highlight({ trailer: i, film: s[3] });
-      showTip(ev, `<img src="../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_1.jpg" onerror="this.remove()">` +
-        `<div>Trailer ${fmtT(s[0])} · film ${Math.round(100 * D.film.story_pos[s[3]])}%</div>`);
+      hover({ trailer: i, film: s[3] });
+      showTip(ev, `<div class="pair">${img(tImg(i))}${img(fImg(s[3]))}</div><div>Trailer ${fmtT(s[0])} · film ${Math.round(100 * D.film.story_pos[s[3]])}%</div>`);
     })
-    .on("mouseleave", () => { highlight(null); hideTip(); });
+    .on("mouseleave", unhover)
+    .on("click", (ev, [s, i]) => toggleLock({ trailer: i, film: s[3] }));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(fmtT).tickSizeOuter(0));
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("text").attr("class", "act-label").attr("x", w - m.r).attr("y", H - 6).attr("text-anchor", "end").text("trailer time");
@@ -296,12 +356,12 @@ function drawOrder() {
 }
 
 function drawShap(i) {
-  const svg = d3.select("#shap"), f = D.film;
+  const svg = d3.select("#shap"), f = D.film, w = document.getElementById("shap").parentNode.clientWidth - 32;
   svg.selectAll("*").remove();
   if (i === null || !f.shap) {
-    svg.attr("viewBox", "0 0 380 10");
+    svg.attr("width", w).attr("height", 10).attr("viewBox", `0 0 ${w} 10`);
     d3.select("#shap-title").text("Why this shot?");
-    d3.select("#shap-note").text(f.shap ? "Hover a film shot; click to pin it." : "Needs model outputs.");
+    d3.select("#shap-note").text(f.shap ? "Hover a film shot; click to lock it." : "Needs model outputs.");
     return;
   }
   d3.select("#shap-title").text(`Why film shot ${i}? (trailerness ${(100 * f.trailerness[i]).toFixed(1)}%)`);
@@ -315,10 +375,10 @@ function drawShap(i) {
       .map(d => ({ key: d.n, label: `  ${d.n} = ${d.val}`, v: d.v, group: false }));
     rows.splice(at + 1, 0, ...feats);
   }
-  const rh = 24, H = rows.length * rh + 24, w = 380;
-  svg.attr("viewBox", `0 0 ${w} ${H}`);
+  const rh = 24, H = rows.length * rh + 24;
+  svg.attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
   const m = d3.max(rows, r => Math.abs(r.v)) || 1;
-  const x = d3.scaleLinear([-m, m], [190, w - 10]);
+  const x = d3.scaleLinear([-m, m], [Math.min(260, w * 0.45) + 50, w - 50]);
   svg.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 0).attr("y2", H - 20).attr("stroke", "var(--axis)");
   const g = svg.selectAll("g.shap-row").data(rows).join("g").attr("class", "shap-row")
     .attr("transform", (_, k) => `translate(0,${k * rh})`)
