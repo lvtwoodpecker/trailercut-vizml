@@ -2,6 +2,20 @@
 
 Owner in brackets. Move items to **Done** with the date when finished.
 
+## Open right now (2026-10-28, end of session)
+
+- [ ] **[Cedric]** `trailer_asr` is mid-run (165/293 done); rerun `python -m trailercut.trailer_asr` (skips done ones), then `dialogue_align`, `viewer_export`
+- [ ] **[Cedric]** Check the new player captions (`viz/data/{id}.vtt`, `<track default>`) in Chrome and Firefox; CC button should toggle them
+- [ ] **[Cedric]** Pick a video player: native `<video>` (now, looks different per browser), Plyr (polished, consistent), Media Chrome (web components, styled with our tokens), or custom controls where the trailer strip is the scrubber
+- [ ] **[Cedric]** Plan section A (audio): dialogue anchors vs hand labels; sound/picture sync rate per trailer as RQ2 features + one figure; fusion only if it beats the labels; trailer dialogue features from transcripts (see `plan.md`)
+- [ ] **[Cedric]** Replace Scarface (tt0086250, VHS-quality TV spot): add `recover --ids` to re-search a working link (`data/ids/trailer_review.csv`)
+- [ ] **[Cedric]** Doc-keeper pass for everything since 47614fd: playable view, sound track, sync panel, captions, terse labels, `trailer_asr`, `dialogue_align`, `rerank` (negative result), `model_figures`, `trailer_review.csv`; README browser note (AV1/VP9: Chrome/Firefox)
+- [ ] **[Cedric]** Cluster: get HPC access, set `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`; then write the VLM-judge job (vLLM, open model, uncertain shots only)
+- [ ] **[Cedric]** Refresh numbers in the project update draft (293 trailers, label-picked cutoff 0.535) before submitting
+- [ ] **[Estee]** Label the first 2 sample trailers (name box filled) for kappa
+- [ ] **[Estee]** RQ2: dialogue clusters now follow genre (NMI 0.105 vs 0.033 null); add sound/picture sync features once they exist
+- Stale, drop: "keypoint verification" (SSCD showed stricter visual matching doesn't help); "Whisper on the cluster" (runs locally)
+
 ## Now (Nov 3 to 17)
 
 - [ ] **[Cedric]** Check the 15 trailers that had under 15% of shots matched at the 0.74 cutoff (all original MovieNet links): wrong video, teaser, or re-release cut? At 0.535 none is under 15%, but that hides wrong videos: Scarface tt0086250 went from 0% to 92% matched with no shot above 0.74. Replace through `recover` if wrong
