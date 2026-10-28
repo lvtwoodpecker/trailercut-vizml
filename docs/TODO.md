@@ -1,46 +1,46 @@
 # TODO
 
-Owner in brackets. Move items to **Done** with the date when finished. Step-by-step detail for the
+Move items to **Done** with the date when finished. Step-by-step detail for the
 current block lives in `plan.md`.
 
 ## Now
 
 **Audio alignment** (`plan.md` section A)
-- [ ] **[Cedric]** Finish transcription: rerun `python -m trailercut.trailer_asr` (skips done ones; stopped at 165/293), then `dialogue_align` and `viewer_export`
-- [ ] **[Cedric]** Check dialogue anchors against the hand labels
-- [ ] **[Cedric]** Sound/picture sync rate per trailer: RQ2 features + one figure
-- [ ] **[Cedric]** Trailer dialogue features from the transcripts (speech share, words per minute, share of lines found in the film) to replace the subtitle proxy
-- [ ] **[Cedric]** Fuse dialogue into shot matching, only if it beats the current matching on the labels
+- [ ] Finish transcription: rerun `python -m trailercut.trailer_asr` (skips done ones; stopped at 165/293), then `dialogue_align` and `viewer_export`
+- [ ] Check dialogue anchors against the hand labels
+- [ ] Sound/picture sync rate per trailer: RQ2 features + one figure
+- [ ] Trailer dialogue features from the transcripts (speech share, words per minute, share of lines found in the film) to replace the subtitle proxy
+- [ ] Fuse dialogue into shot matching, only if it beats the current matching on the labels
 
 **Trailer View**
-- [ ] **[Cedric]** Custom player: drop the native control bar; the trailer strip is the scrubber (click/drag to seek), small play/pause button, our own caption overlay (on by default, toggle), space plays, ← → step. The `<video>` element only shows the picture
-- [ ] **[Cedric]** Split long caption cues (Whisper merges up to ~35 s, e.g. Rebel 0:01 to 0:36) into chunks of at most ~6 s or 12 words using the word timestamps
+- [ ] Custom player: drop the native control bar; the trailer strip is the scrubber (click/drag to seek), small play/pause button, our own caption overlay (on by default, toggle), space plays, ← → step. The `<video>` element only shows the picture
+- [ ] Split long caption cues (Whisper merges up to ~35 s, e.g. Rebel 0:01 to 0:36) into chunks of at most ~6 s or 12 words using the word timestamps
 
 **Data**
-- [ ] **[Cedric]** Replace Scarface (tt0086250, VHS-quality TV spot): add `recover --ids` to re-search one film (see `data/ids/trailer_review.csv`)
+- [ ] Replace Scarface (tt0086250, VHS-quality TV spot): add `recover --ids` to re-search one film (see `data/ids/trailer_review.csv`)
 
 **Docs and submission**
-- [ ] **[Cedric]** Doc-keeper pass for everything since 47614fd: playable view, sound track, sync panel, captions, terse labels, `trailer_asr`, `dialogue_align`, `rerank` (negative result), `model_figures`, `trailer_review.csv`; README browser note (trailers are AV1/VP9/H.264: use Chrome or Firefox)
-- [ ] **[Cedric]** Refresh the numbers in the project update draft (293 trailers, cutoff 0.535) before submitting
+- [ ] Doc-keeper pass for everything since 47614fd: playable view, sound track, sync panel, captions, terse labels, `trailer_asr`, `dialogue_align`, `rerank` (negative result), `model_figures`, `trailer_review.csv`; README browser note (trailers are AV1/VP9/H.264: use Chrome or Firefox)
+- [ ] Refresh the numbers in the project update draft (293 trailers, cutoff 0.535) before submitting
 
-**Estee**
-- [ ] **[Estee]** Label the first 2 trailers of `labels/label_sample.json` (name box filled, exports `gold_estee.json`) for Cohen's kappa against `gold_ced.json`
-- [ ] **[Estee]** Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters now follow genre (NMI 0.105 vs 0.033 null); add sync features once they exist
-- [ ] **[Estee]** Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
-- [ ] **[Estee]** D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
+**Clustering and Overview**
+- [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
+- [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters now follow genre (NMI 0.105 vs 0.033 null); add sync features once they exist
+- [ ] Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
+- [ ] D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] **[Cedric]** Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
-- [ ] **[Cedric]** ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
-- [ ] **[Cedric]** VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
-- [ ] **[Estee]** Overview linked to the Trailer View
-- [ ] **[Estee]** Pick case studies (model misses, cluster extremes, sound/picture mismatches)
+- [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
+- [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
+- [ ] VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
+- [ ] Overview linked to the Trailer View
+- [ ] Pick case studies (model misses, cluster extremes, sound/picture mismatches)
 
 ## Later (Dec 1 to 15)
 
-- [ ] **[Both]** Final ablations and evaluation tables
-- [ ] **[Both]** Report and presentation
+- [ ] Final ablations and evaluation tables
+- [ ] Report and presentation
 
 ## Maybe
 
