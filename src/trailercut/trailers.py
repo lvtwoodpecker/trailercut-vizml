@@ -14,7 +14,7 @@ import yt_dlp
 from .paths import IDS, TRAILERS
 
 STATUS = IDS.parent / "trailer_status.csv"
-FIELDS = ["imdb_id", "youtube_id", "status", "duration", "title", "error"]
+FIELDS = ["imdb_id", "youtube_id", "status", "duration", "title", "error", "source"]
 
 
 def fetch(imdb_id, youtube_id):
@@ -67,7 +67,7 @@ def main():
             print(f"[{i}/{len(todo)}] {res['imdb_id']} {res['status']} {res['error'][:80]}")
 
     with open(STATUS, "w", newline="") as f:
-        w = csv.DictWriter(f, FIELDS)
+        w = csv.DictWriter(f, FIELDS, restval="movienet")
         w.writeheader()
         for r in sorted(done.values(), key=lambda r: r["imdb_id"]):
             w.writerow(r)
