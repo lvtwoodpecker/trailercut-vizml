@@ -12,10 +12,10 @@ steps that haven't produced a committed output so far.
 **`trailer_status.csv`** (C): one row per core film.
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
 `title` (YouTube title), `error` (first line of the yt-dlp error, up to 200 chars), `source` (`movienet`
-or `search`). `duration` and `title` are empty when the video was already on disk. The committed file
-predates `source`; the next `trailers` or `recover` run adds it (`movienet` for every old row).
+or `search`). `duration` and `title` are empty when the video was already on disk. All 293 rows are `ok`
+(244 `movienet`, 49 `search`).
 
-**`trailer_recovery.csv`** (C, not written yet): every search candidate tried for a dead link, appended across runs.
+**`trailer_recovery.csv`** (C): every search candidate tried for a dead link, appended across runs (55 rows for 49 films, 49 accepted).
 `imdb_id`, `rank` (search order among filtered results, 0-based), `youtube_id`, `title`, `channel`,
 `duration` (s, from search results), `match_share` (fraction of non-blank shots matched to the film,
 empty if download or alignment failed), `accepted` (`match_share` at least `--min-match`, default 0.25).
@@ -41,7 +41,10 @@ One row per trailer shot.
 | `film_story_pos` | story position (0 to 1, film shot midpoint over film duration) of the matched film shot; empty if not matched |
 | `top5`, `top5_scores` | space-separated top-5 film shot indices and scores |
 
-**`alignment_threshold.json`** (C): `fpr`, `threshold`, `n_null`, `null_quantiles` (impostor null at 0.5, 0.9, 0.99, 0.999).
+**`alignment_threshold.json`** (C): `fpr`, `threshold`, `source`, `n_null`, `null_quantiles` (impostor null at
+0.5, 0.9, 0.99, 0.999). `source` is `impostor_null` (threshold = null quantile at `fpr`) or `manual`
+(`align --threshold`; `fpr` is then the null's false-match rate at that threshold). The committed file
+was written without `source`, which means `impostor_null`.
 
 **`alignment_eval.json`** (C, not written yet; needs `labels/gold_*.json`): hand-label scores from
 `label_eval`; keys listed in `labeling_guide.md`.
@@ -62,7 +65,7 @@ One row per film shot of every film with an aligned trailer.
 
 ## RQ1 model outputs
 
-**`model_report.json`** (C, not written yet): `n_shots`, `n_films`, `positive_rate`, `folds`, `clip_pcs`, `groups`,
+**`model_report.json`** (C): `n_shots`, `n_films`, `positive_rate`, `folds`, `clip_pcs`, `groups`,
 `models` (per model: `ap`, `ap_film`, `r_prec`, `ap_lenadj`), `ablation_drop` (full minus each
 ablation, per metric), `shap_mean_abs_by_group` (mean |summed SHAP| per group), `shap_mean_abs_top`
 (15 largest mean |SHAP| columns). `groups` lists each group's columns except `clip`.
@@ -113,9 +116,35 @@ share of 200 shuffles with NMI at least as high).
 **`labels/label_sample.json`** (C): list of the sampled IMDb IDs. **`labels/gold_<name>.json`** (C,
 none yet): `{labeler, labels}`, labels keyed `imdb_id:shot_idx` with a film shot index, `s`, `n` or
 `u`. **`labels/label_tool.html`** (G): the page, with each shot's top-5 candidates embedded.
+**`labels/img/{id}/`** (G): images the page shows, copied by `label_tool`: `t_shot_XXXX_img_{0,1,2}.jpg`
+(trailer keyframes) and `f_shot_XXXX_img_1.jpg` (film candidates, re-saved as JPEG).
+
+## Trailer View data (`viz/data/`, G)
+
+Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written as `null`.
+
+**`index.json`**: list, one entry per trailer: `id`, `title`, `year`, `genre` (first genre), `shots`,
+`match_rate`.
+
+**`{imdb_id}.json`**: one trailer.
+
+| key | meaning |
+|---|---|
+| `id`, `title`, `year`, `genres`, `duration` | ids; `duration` = end of the last trailer shot (s) |
+| `curves` | that trailer's entry from `trailer_curves.json` (`rms_db`, `cuts`) |
+| `shots` | one list per trailer shot: `[t_start, t_end, matched (0/1), film_shot or -1, score, blank (0/1)]` |
+| `shot_colors` | average color (`#rrggbb`) of each trailer shot's middle keyframe |
+| `film.n`, `film.story_pos`, `film.shot_len`, `film.in_trailer` | per film shot, from `film_shots.parquet` |
+| `film.start`, `film.end` | film shot extent as a fraction of runtime (for the barcode) |
+| `film.color` | average color of each film shot's middle keyframe; `null` if the image can't be read |
+| `film.trailerness`, `film.trailerness_readable` | out-of-fold scores of the `full` and `readable` models (only if `model` was run) |
+| `film.shap_groups`, `film.shap` | group order and per film shot SHAP summed per group (`position`, `dialogue`, `scale`, `content`, `editing`, `clip`) |
+| `film.detail_features`, `film.detail` | readable feature names, and for in-trailer shots plus the top `--detail` (default 60) by `full` score, `[value, SHAP]` per feature, keyed by shot index |
 
 ## Caches (G, under `$TRAILERCUT_DATA/cache/`)
 
 `clip/<tag>/{film,trailer}/{id}.npy` (float16, [shots, 3, d], L2-normalized),
 `trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `trailer_audio/{id}.wav` (mono 22,050 Hz),
-`concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`.
+`concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
+`shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
+while the shot counts match).
