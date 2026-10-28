@@ -5,6 +5,7 @@ Owner in brackets. Move items to **Done** with the date when finished.
 ## Open right now (2026-10-28, end of session)
 
 - [ ] **[Cedric]** `trailer_asr` is mid-run (165/293 done); rerun `python -m trailercut.trailer_asr` (skips done ones), then `dialogue_align`, `viewer_export`
+- [ ] **[Cedric]** Split long caption cues (Whisper merges up to ~35 s, e.g. Rebel 0:01 to 0:36) into chunks of at most ~6 s or 12 words using the word timestamps in `viewer_export.vtt()`
 - [ ] **[Cedric]** Check the new player captions (`viz/data/{id}.vtt`, `<track default>`) in Chrome and Firefox; CC button should toggle them
 - [ ] **[Cedric]** Pick a video player: native `<video>` (now, looks different per browser), Plyr (polished, consistent), Media Chrome (web components, styled with our tokens), or custom controls where the trailer strip is the scrubber
 - [ ] **[Cedric]** Plan section A (audio): dialogue anchors vs hand labels; sound/picture sync rate per trailer as RQ2 features + one figure; fusion only if it beats the labels; trailer dialogue features from transcripts (see `plan.md`)
