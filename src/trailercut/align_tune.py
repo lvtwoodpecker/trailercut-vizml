@@ -21,7 +21,7 @@ from .align import BLANK, blankness, load, shot_sim, smooth
 from .label_eval import load_gold
 from .paths import FEATURES
 
-THRESHOLDS = np.round(np.arange(0.60, 0.86, 0.01), 2)
+THRESHOLDS = np.round(np.arange(0.40, 0.86, 0.01), 2)
 LAMS, TAUS = [0.02, 0.05, 0.1, 0.2], [3, 10, 30]
 
 

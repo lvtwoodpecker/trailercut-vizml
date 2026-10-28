@@ -52,7 +52,7 @@ def main():
     report["label_mix"] = {k: int(v) for k, v in d.label.where(~d.has_source, "film shot").value_counts().items()}
     report["top1_acc_when_source"] = float(d[d.has_source].top1_right.mean())
 
-    ts = np.linspace(0.5, 0.95, 91)
+    ts = np.linspace(0.4, 0.95, 111)
     prec, rec = [], []
     for t in ts:
         pm = (d.score >= t) & ~d.blank

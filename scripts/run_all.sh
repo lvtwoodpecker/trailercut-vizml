@@ -22,6 +22,11 @@ $PY -m trailercut.recover                    # dead links: search, keep only if 
 $PY -m trailercut.align
 $PY -m trailercut.label_tool --n 10 --seed 0
 $PY -m trailercut.label_eval                 # needs labels/gold_*.json
+$PY -m trailercut.align_tune                 # raw vs smoothed matching against the labels
+# re-align with the cutoff picked from the hand labels (best F1), once labels exist
+if [ -f data/features/alignment_eval.json ]; then
+  $PY -m trailercut.align --threshold "$($PY -c 'import json; print(json.load(open("data/features/alignment_eval.json"))["best_f1"]["threshold"])')"
+fi
 
 # 4. features, clustering, figures
 $PY -m trailercut.film_features
@@ -33,3 +38,4 @@ $PY -m trailercut.figures
 
 # 5. data for the D3 views in viz/
 $PY -m trailercut.viewer_export
+$PY -m trailercut.rq1_export
