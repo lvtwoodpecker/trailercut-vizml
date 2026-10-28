@@ -4,21 +4,18 @@ Owner in brackets. Move items to **Done** with the date when finished.
 
 ## Now (Nov 3 to 17)
 
-- [ ] **[Cedric]** Finish dead-link recovery (`trailercut.recover`), rerun align → features → model → cluster → figures on the bigger set
-- [ ] **[Cedric]** Check the 15 trailers with under 15% of shots matched (Scarface tt0086250 is at 0%): wrong video, teaser, or re-release cut? Replace through `recover` if wrong
-- [ ] **[Cedric]** RQ1 model: read the first CV results, write them into `docs/results.md`
+- [ ] **[Cedric]** Check the 15 trailers with under 15% of shots matched (still 15 on 293, all original MovieNet links; Scarface tt0086250 is at 0%): wrong video, teaser, or re-release cut? Replace through `recover` if wrong
+- [ ] **[Cedric]** Model eval with a ±k shot tolerance (count a top-ranked shot as a hit if a used shot is within k film shots), since neighbor-shot alignment errors count as negatives now
+- [ ] **[Cedric]** Eyeball the recovered trailers with the lowest match share: *Basic* (31%), *Dogma* (33%), *Serenity* (34%)
 - [ ] **[Cedric]** PR curve and ablation figures for the model
 - [ ] **[Both]** Hand-label the 10 sampled trailers in `labels/label_tool.html` (both label the first 2 for kappa; separate browsers, since progress is one shared `localStorage` slot), save as `labels/gold_<name>.json`
-- [ ] **[Cedric]** Add a way to pass a fixed threshold to `align` (it only takes `--fpr` now)
 - [ ] **[Cedric]** Run `label_eval`, pick the final match threshold, rerun everything downstream with it
 - [ ] **[Estee]** Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks
 - [ ] **[Estee]** Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
-- [ ] **[Cedric]** D3 Trailer View skeleton: export one JSON per trailer, static page with cut timeline, audio curve, shot-to-film links
 - [ ] **[Estee]** D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] **[Cedric]** Trailer View: SHAP bars per film shot (grouped, click to expand), keyframe on hover
 - [ ] **[Estee]** Overview linked to the Trailer View
 - [ ] **[Estee]** Pick case studies (use the model's misses and the cluster extremes)
 - [ ] **[Cedric]** ViT-H/14 rerun on the cluster (`hpc/`), compare alignment and model numbers to B/32
@@ -38,7 +35,13 @@ Owner in brackets. Move items to **Done** with the date when finished.
 
 ## Done
 
-- 2026-10-28: full pipeline on all 244 available trailers (except `model`)
+- 2026-10-28: dead-link recovery finished: all 49 replaced, 293/293 trailers
+- 2026-10-28: full rerun on 293 trailers (align, features, model, cluster, figures)
+- 2026-10-28: RQ1 model first full run, results written into `results.md`
+- 2026-10-28: Trailer View SHAP bars per film shot (grouped, click a group to expand) and keyframes on hover
+- 2026-10-28: D3 Trailer View skeleton (`viewer_export`, `viz/index.html`): cut timeline, movie barcode, shot-to-film links, click to lock, order scatter, grouped SHAP
+- 2026-10-28: `align --threshold` for a hand-picked cutoff
+- 2026-10-28: full pipeline on the 244 then-available trailers (except `model`)
 - 2026-10-28: RQ1 model module with grouped CV, baselines, ablations, out-of-fold SHAP
 - 2026-10-28: dead-link recovery module
 - 2026-10-27: Slurm setup for the cluster (`hpc/`)
