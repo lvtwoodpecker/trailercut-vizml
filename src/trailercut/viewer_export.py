@@ -10,6 +10,7 @@ the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe)
 
 Outputs (gitignored, rebuilt in seconds)
   viz/data/index.json        one entry per trailer: id, title, year, genre, shots, match rate
+  viz/data/{imdb_id}.vtt     captions for the video player, from the Whisper transcript
   viz/data/{imdb_id}.json    trailer shots + matches, audio/cut curves, film shots with trailerness
                              and grouped SHAP, named-feature detail for the shots worth hovering
 
@@ -137,6 +138,16 @@ def speech(imdb_id, runtime):
             for d in pd.read_csv(csv).itertuples()]
 
 
+def vtt(imdb_id):
+    """WebVTT captions from the trailer transcript, so the browser's player can show and toggle them."""
+    asr = CACHE / "trailer_asr" / f"{imdb_id}.json"
+    if not asr.exists():
+        return
+    ts = lambda t: f"{int(t // 3600):02d}:{int(t % 3600 // 60):02d}:{t % 60:06.3f}"
+    cues = [f"{ts(s['start'])} --> {ts(s['end'])}\n{s['text']}" for s in json.loads(asr.read_text())["segments"]]
+    (OUT / f"{imdb_id}.vtt").write_text("WEBVTT\n\n" + "\n\n".join(cues) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--detail", type=int, default=60, help="top-ranked film shots per film with feature detail")
@@ -155,6 +166,7 @@ def main():
     for i in tqdm(sorted(films.imdb_id.unique())):
         d = trailer_json(i, curves, films, preds, shap, a.detail)
         (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":"), allow_nan=False))
+        vtt(i)
         matched = [s[2] for s in d["shots"]]
         index.append(dict(id=i, title=d["title"], year=d["year"], genre=(d["genres"] or [""])[0],
                           shots=len(matched), match_rate=r(np.mean(matched))))

@@ -51,6 +51,7 @@ svg { display: block; overflow: visible; }
 .sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
 #playhead { stroke: var(--ink); stroke-width: 2; }
 #player { margin: 8px 0 4px; position: relative; }
+#player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 #player video { display: block; width: 100%; max-height: 50vh; border-radius: 6px; background: #000; }
 .link.hi { stroke-opacity: 1; stroke-width: 2.5; }
 .dim { opacity: 0.2; }
@@ -168,6 +169,11 @@ async function load(id) {
   drawMain(); drawOrder(); drawSync(); drawShap(null); show(null); drawLock();
   playing = false; curShot = -1; curLine = -1;
   vid.src = `../data/trailers/${id}.mp4`;
+  // captions from the transcript, shown by default; the player's own CC button toggles them
+  vid.querySelectorAll("track").forEach(t => t.remove());
+  const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
+  vid.appendChild(track);
+  track.addEventListener("load", () => { track.track.mode = "showing"; });
 }
 
 // ---- playback: the video's clock drives the same highlight as hover ----
