@@ -3,24 +3,24 @@
     "MovieNet films w/ keyframes": 1100,
     "+ synopsis-shot alignment": 297,
     "+ trailer URL (core set)": 293,
-    "trailer still on YouTube": 244,
-    "trailer aligned to film": 244
+    "trailer still on YouTube": 293,
+    "trailer aligned to film": 293
   },
   "corpus": {
-    "trailers": 244,
-    "trailer_len_median": 132.392,
-    "shots_per_trailer_median": 74.5,
-    "shot_len_median": 1.213075
+    "trailers": 293,
+    "trailer_len_median": 133.9255,
+    "shots_per_trailer_median": 76.0,
+    "shot_len_median": 1.2095
   },
   "story_depth": {
-    "pooled_final_quarter": 0.16444444444444445,
-    "pooled_first_quarter": 0.3380878552971576,
-    "median_trailer_final_act_share": 0.14285714285714285
+    "pooled_final_quarter": 0.164572454308094,
+    "pooled_first_quarter": 0.337467362924282,
+    "median_trailer_final_act_share": 0.1501610305958132
   },
   "alignment": {
-    "trailer_shots": 17929,
-    "blank": 0.018238607842043616,
-    "matched": 0.5396285347760611,
-    "match_rate_per_trailer_median": 0.5783625730994152
+    "trailer_shots": 22031,
+    "blank": 0.018428577912940856,
+    "matched": 0.556307021923653,
+    "match_rate_per_trailer_median": 0.5853658536585366
   }
 }
