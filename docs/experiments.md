@@ -16,3 +16,5 @@ tries them again by accident. The reasoning behind what we kept is in `design.md
 | 2026-10-27 | Augmented film shots as an alignment test (proposal) | measures robustness to edits, not correctness on real trailers | dropped for hand labels |
 | 2026-10-28 | YouTube search for dead links, title filter only | 2nd hit for *Godfather Part II* is the *Godfather* anniversary trailer | added the 25% alignment check |
 | 2026-10-28 | Committing `film_shots.parquet` | 65 MB, over GitHub's 50 MB warning, regenerated in a minute | gitignored |
+| 2026-10-28 | Trailer View with only the curves from trailer shots to film position | with 70+ shots the curves cross into a tangle; order is hard to read | kept, plus an order scatter (trailer vs film position) |
+| 2026-10-28 | First full RQ1 model run (293 films, LightGBM, grouped 5-fold CV) | full AP 0.050 vs random 0.024, readable 0.045; length-adjusted AP 0.046 (see `results.md`) | yes, as the baseline to improve on |
