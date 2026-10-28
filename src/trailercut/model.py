@@ -45,22 +45,54 @@ GROUPS = {
     "scale": ["scale_ecu", "scale_cu", "scale_ms", "scale_fs", "scale_ls", "scale_width"],
     "content": None,  # every c_* column
     "editing": ["shot_len", "visual_change"],
+    "context": ["distinct", "novelty", "recurrence"],  # how the shot looks next to the rest of its film
+    "relative": None,  # rel_* columns: within-film percentile of the readable/context features
     "clip": None,  # clip_pc* columns
 }
+# first/last 1% of each film: studio logos and credits, which match the trailer's own logos and cards
+# and would teach the model "the start of the film gets picked"
+EDGE = 0.01
+RELATIVE = ["shot_len", "visual_change", "dlg_words", "scale_width", "distinct", "novelty", "recurrence"]
 PARAMS = dict(n_estimators=400, learning_rate=0.05, num_leaves=63, min_child_samples=50, subsample=0.8,
               subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0, n_jobs=8, verbose=-1)
 
 
-def load(pcs):
+def context(E):
+    """E: one film's normalized shot embeddings [n, d] in shot order."""
+    m = E.mean(0)
+    distinct = 1 - E @ (m / np.linalg.norm(m))  # unusual for this film
+    n = len(E)
+    near = np.zeros(n)
+    cnt = np.zeros(n)
+    for o in (1, 2):  # mean similarity to the 2 shots on each side
+        s = (E[o:] * E[:-o]).sum(1)
+        near[o:] += s; near[:-o] += s
+        cnt[o:] += 1; cnt[:-o] += 1
+    novelty = 1 - near / np.maximum(cnt, 1)
+    S = E @ E.T
+    idx = np.arange(n)
+    S[np.abs(idx[:, None] - idx[None, :]) <= 10] = -1
+    recurrence = S.max(1)  # does this look come back elsewhere in the film
+    return np.stack([distinct, novelty, recurrence], 1)
+
+
+def load(pcs, edge=EDGE):
     df = pd.read_parquet(FEATURES / "film_shots.parquet")
     GROUPS["content"] = [c for c in df.columns if c.startswith("c_")]
     # mean of the 3 keyframes per shot; PCA is unsupervised so fitting it on all films doesn't leak labels
-    emb = np.concatenate([np.load(CLIP / "film" / f"{i}.npy").astype(np.float32).mean(1)
-                          for i in df.imdb_id.unique()])
+    embs = [np.load(CLIP / "film" / f"{i}.npy").astype(np.float32).mean(1) for i in df.imdb_id.unique()]
+    embs = [e / np.linalg.norm(e, axis=1, keepdims=True) for e in embs]
+    emb = np.concatenate(embs)
     assert len(emb) == len(df), "film_shots.parquet is out of date with the film embeddings"
-    pc = PCA(pcs, random_state=0).fit_transform(emb / np.linalg.norm(emb, axis=1, keepdims=True))
+    ctx = np.concatenate([context(e) for e in embs])
+    df[GROUPS["context"]] = ctx.astype(np.float32)
+    rel = RELATIVE + GROUPS["content"]
+    GROUPS["relative"] = [f"rel_{c}" for c in rel]
+    df[GROUPS["relative"]] = df.groupby("imdb_id")[rel].rank(pct=True).astype(np.float32).values
+    pc = PCA(pcs, random_state=0).fit_transform(emb)
     GROUPS["clip"] = [f"clip_pc{k}" for k in range(pcs)]
-    return pd.concat([df, pd.DataFrame(pc.astype(np.float32), columns=GROUPS["clip"])], axis=1)
+    df = pd.concat([df, pd.DataFrame(pc.astype(np.float32), columns=GROUPS["clip"])], axis=1)
+    return df[(df.story_pos >= edge) & (df.story_pos <= 1 - edge)].reset_index(drop=True)
 
 
 def feats(groups):
