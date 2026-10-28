@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import movienet_io as mn
-from .paths import CACHE, CLIP_TAG, FEATURES, FIGURES, ROOT
+from .paths import CACHE, CLIP_TAG, FEATURES, FIGURES, IDS
 
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False, "font.size": 9})
 
@@ -20,7 +20,7 @@ def alignments():
 
 
 def funnel():
-    status = list(csv.DictReader(open(ROOT / "data" / "ids" / "trailer_status.csv")))
+    status = list(csv.DictReader(open(IDS.parent / "trailer_status.csv")))
     steps = [
         ("MovieNet films w/ keyframes", len(mn.video_info())),
         ("+ synopsis-shot alignment", 297),
