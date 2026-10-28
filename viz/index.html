@@ -51,6 +51,11 @@ svg { display: block; overflow: visible; }
 .sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
 #playhead { stroke: var(--ink); stroke-width: 2; }
 #player { margin: 8px 0 4px; position: relative; }
+#player video { cursor: pointer; }
+#bar { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#bar button { font: 13px system-ui, sans-serif; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 10px; cursor: pointer; }
+#bar #cc[aria-pressed="false"] { opacity: .45; }
+#main { touch-action: none; }
 #player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 #player video { display: block; width: 100%; max-height: 50vh; border-radius: 6px; background: #000; }
 .link.hi { stroke-opacity: 1; stroke-width: 2.5; }
@@ -100,9 +105,10 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
       <span><i style="background:var(--unmatched)"></i>no match</span>
       <span><i style="background:var(--used)"></i>used in trailer</span>
       <span><i style="background:var(--speech)"></i>dialogue from the film</span>
-      <span class="note" style="margin:0">click to lock · ← → step · space play · esc unlock</span>
+      <span class="note" style="margin:0">drag the strip to scrub · click to lock · ← → step · space play</span>
     </div>
-    <div id="player"><video id="vid" controls preload="metadata"></video></div>
+    <div id="player"><video id="vid" preload="metadata"></video>
+      <div id="bar"><button id="pp" aria-label="Play">▶</button><span id="clock">0:00</span><span style="flex:1"></span><button id="cc" aria-pressed="true">CC</button></div></div>
     <div id="main-wrap"><svg id="main"></svg></div>
     <p class="note" id="film-note"></p>
     <div id="lock"></div>
@@ -173,10 +179,32 @@ async function load(id) {
   vid.querySelectorAll("track").forEach(t => t.remove());
   const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
   vid.appendChild(track);
-  track.addEventListener("load", () => { track.track.mode = "showing"; });
+  track.addEventListener("load", () => { track.track.mode = captionsOn ? "showing" : "hidden"; });
 }
 
 // ---- playback: the video's clock drives the same highlight as hover ----
+// our own controls: the trailer strip and sound track are the scrubber
+const pp = document.getElementById("pp"), clock = document.getElementById("clock");
+const toggle = () => (vid.paused ? vid.play() : vid.pause());
+pp.addEventListener("click", toggle);
+vid.addEventListener("click", toggle);
+const syncBar = () => { pp.textContent = vid.paused ? "▶" : "❚❚"; clock.textContent = `${fmtT(vid.currentTime || 0)} / ${fmtT(vid.duration || D.duration)}`; };
+["play", "pause", "timeupdate", "loadedmetadata", "seeked"].forEach(e => vid.addEventListener(e, syncBar));
+let captionsOn = true;
+document.getElementById("cc").addEventListener("click", function () {
+  captionsOn = !captionsOn; this.setAttribute("aria-pressed", captionsOn);
+  for (const t of vid.textTracks) t.mode = captionsOn ? "showing" : "hidden";
+});
+let scrubbing = false;
+const inStrip = y => y >= Y.audio[0] && y <= Y.tmatch[1];
+const seekTo = x => { vid.currentTime = Math.max(0, Math.min(D.duration, tx.invert(x))); if (!playing) follow(vid.currentTime); };
+document.getElementById("main").addEventListener("pointerdown", ev => {
+  const [x, y] = d3.pointer(ev);
+  if (!inStrip(y)) return;
+  scrubbing = true; seekTo(x);
+});
+addEventListener("pointermove", ev => { if (scrubbing) seekTo(d3.pointer(ev, document.getElementById("main"))[0]); });
+addEventListener("pointerup", () => { scrubbing = false; });
 vid.addEventListener("error", () => d3.select("#player").style("display", "none"));
 vid.addEventListener("play", () => { playing = true; lock = null; drawLock(); requestAnimationFrame(tick); });
 vid.addEventListener("pause", () => {
@@ -219,7 +247,7 @@ function step(dir) {
 }
 addEventListener("keydown", ev => {
   if (ev.target.tagName === "INPUT") return;
-  if (ev.key === " ") { ev.preventDefault(); vid.paused ? vid.play() : vid.pause(); }
+  if (ev.key === " ") { ev.preventDefault(); toggle(); }
   if (ev.key === "Escape") { lock = null; show(null); drawLock(); }
   if (ev.key === "ArrowRight") { ev.preventDefault(); step(1); }
   if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
