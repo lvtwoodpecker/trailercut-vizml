@@ -51,7 +51,25 @@ in 100 picks are right. Readable features get most of the way (0.045 vs 0.050). 
 editing or position costs the most (AP down 0.0052, 0.0034, 0.0025); dropping dialogue or content
 barely matters, and dropping scale slightly helps. Length-adjusted AP holds up (0.046 vs 0.050), and
 length alone falls to random once length is controlled (0.026), so the gain is not just "long shots
-get sampled". Part of the ceiling is probably label noise from neighbor-shot alignment errors.
+get sampled". Neighbor-shot alignment errors don't explain the ceiling (see the tolerance eval below).
+
+**Tolerance eval** [`model_eval.json`]: same out-of-fold predictions, a pick counts if a used shot is
+within ±k film shots; random gets the same tolerance. Precision and lift are at trailer length, per film.
+
+| model | prec k=0 | lift k=0 | prec ±1 | lift ±1 | prec ±3 | lift ±3 | prec ±5 | lift ±5 |
+|---|---|---|---|---|---|---|---|---|
+| random | 0.027 | 1.09 | 0.073 | 1.15 | 0.141 | 1.09 | 0.199 | 1.08 |
+| position only | 0.045 | 1.82 | 0.107 | 1.68 | 0.196 | 1.53 | 0.260 | 1.42 |
+| CLIP only | 0.077 | 3.11 | 0.131 | 2.05 | 0.212 | 1.65 | 0.275 | 1.50 |
+| readable | 0.083 | 3.35 | 0.145 | 2.27 | 0.235 | 1.83 | 0.305 | 1.66 |
+| full | 0.088 | 3.56 | 0.154 | 2.41 | 0.246 | 1.92 | 0.312 | 1.70 |
+
+Base rate (share of shots within ±k of a used shot): 0.025, 0.064, 0.129, 0.184.
+
+Read: lift is highest at the exact shot (full 3.6x) and falls as tolerance grows (about 1.9x at ±3),
+so the misses are different moments, not neighboring shots. Position only has decent precision but
+very low recall at ±3 (0.072 vs 0.167 for random, 0.236 for full) because it concentrates its picks in
+one stretch of the film.
 
 **Clustering** [`cluster_report.json`]
 
