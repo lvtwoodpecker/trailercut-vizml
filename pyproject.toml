@@ -23,6 +23,8 @@ dependencies = [
   "lightgbm",
   "shap",
   "vaderSentiment",
+  "faster-whisper",
+  "rapidfuzz",
 ]
 
 [project.optional-dependencies]
