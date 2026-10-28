@@ -2,6 +2,7 @@
 
 One file per trailer so the page loads only what it shows, plus an index for the picker.
 Model predictions and SHAP are included when model.py has been run; the view works without them.
+They are joined by shot, so logo/credit shots at the film's edges (skipped by the model) have no score.
 Each film and trailer shot also gets the average color of its middle keyframe, so the view can draw
 the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe).
 

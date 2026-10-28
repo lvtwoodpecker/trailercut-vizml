@@ -8,6 +8,10 @@ and test). Every model is scored out-of-fold on the same splits:
   full        readable + CLIP (PCA of the shot embedding, one "other appearance" block)
   ablations   full minus one group at a time
 
+Film shots in the first and last 1% of each film (EDGE: studio logos, credits) are dropped from
+training and scoring. load() also builds the "context" and "relative" groups; they are not in the
+default models (model_tune.py tried them, no gain).
+
 Metrics
   ap          average precision over all held-out shots (pooled)
   ap_film     mean per-film average precision
