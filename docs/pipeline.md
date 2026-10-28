@@ -21,6 +21,7 @@ MovieNet (HF mirror)                    YouTube
         film shot + in_trailer label    trailer (pacing, audio, story,
                      │                  dialogue, visual)
                   model (RQ1)                  │
+                  model_eval (±k shots)        │
                                             cluster (RQ2)
                            │
                         figures
@@ -45,10 +46,11 @@ MovieNet (HF mirror)                    YouTube
 | 11 | `trailercut.label_eval` | `labels/gold_*.json`, alignment, `alignment_threshold.json` | `alignment_eval.json`, `figures/alignment_pr.png` | seconds |
 | 12 | `trailercut.film_features` | alignment, embeddings, subtitles, story | `data/features/film_shots.parquet` | ~1 min |
 | 13 | `trailercut.model` | film shot table, film embeddings | `model_report.json`, `model_preds.parquet`, `model_shap.parquet` | ~15 min (approx., not timed yet) |
-| 14 | `trailercut.trailer_features` | alignment, trailer shots, audio, subtitles, trailer embeddings, meta | `trailers.parquet`, `trailer_curves.json` | ~1 min |
-| 15 | `trailercut.cluster` | trailer table | `clusters.csv`, `cluster_report.json`, `figures/clusters_all_umap.png` | ~1 min |
-| 16 | `trailercut.figures` | alignment, status log, trailer shots, impostor null cache | `figures/{data_funnel,alignment_scores,alignment_examples,story_depth,corpus}.png`, `summary.json` | seconds |
-| 17 | `trailercut.viewer_export` | alignment, `film_shots.parquet`, `trailer_curves.json`, model preds/SHAP if present, keyframes | `viz/data/index.json`, `viz/data/{id}.json`, `cache/shot_colors/{id}.json` | seconds once colors are cached; first color pass ~1 ms per keyframe |
+| 14 | `trailercut.model_eval` | `model_preds.parquet` | `model_eval.json` | seconds |
+| 15 | `trailercut.trailer_features` | alignment, trailer shots, audio, subtitles, trailer embeddings, meta | `trailers.parquet`, `trailer_curves.json` | ~1 min |
+| 16 | `trailercut.cluster` | trailer table | `clusters.csv`, `cluster_report.json`, `figures/clusters_all_umap.png` | ~1 min |
+| 17 | `trailercut.figures` | alignment, status log, trailer shots, impostor null cache | `figures/{data_funnel,alignment_scores,alignment_examples,story_depth,corpus}.png`, `summary.json` | seconds |
+| 18 | `trailercut.viewer_export` | alignment, `film_shots.parquet`, `trailer_curves.json`, model preds/SHAP if present, keyframes | `viz/data/index.json`, `viz/data/{id}.json`, `cache/shot_colors/{id}.json` | seconds once colors are cached; first color pass ~1 ms per keyframe |
 
 `cache/` is `$TRAILERCUT_DATA/cache` (default `data/cache`). `<tag>` is the CLIP backbone
 (`b32`, `l14`, `h14`). Steps 2, 4, 5 and 6 are the heavy ones and have Slurm jobs in `hpc/` (the
@@ -78,9 +80,10 @@ Features, figures and labels always live in the repo checkout, not under `TRAILE
 | trailer list or recovered trailers | `trailer_prep` (skips done ones), `embed trailer`, then `align` onward |
 | CLIP backbone | `embed film`, `embed trailer`, `concepts`, then `align` onward |
 | match threshold or alignment logic | `align` (`--threshold T` for a hand-picked cutoff) onward |
-| film shot features | `film_features`, `model`, `viewer_export` |
+| film shot features | `film_features`, `model`, `model_eval`, `viewer_export` |
 | trailer features | `trailer_features`, `cluster`, `viewer_export` (it reads `trailer_curves.json`) |
-| model | `model`, `viewer_export` |
+| model | `model`, `model_eval`, `viewer_export` |
+| tolerance eval only | `model_eval` (reuses saved predictions, no retraining) |
 | the Trailer View page only | nothing; reload `viz/index.html` |
 
 "`align` onward" includes `viewer_export`.

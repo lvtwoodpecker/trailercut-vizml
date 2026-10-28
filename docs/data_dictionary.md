@@ -74,6 +74,13 @@ ablation, per metric), `shap_mean_abs_by_group` (mean |summed SHAP| per group), 
 score column per model (`random`, `position_only`, `length_only`, `clip_only`, `readable`, `full`,
 `full_minus_<group>` for the 5 readable groups and `clip`).
 
+**`model_eval.json`** (C): keys `k0`, `k1`, `k3`, `k5` (tolerance in film shots), then one entry per
+model (`random`, `position_only`, `length_only`, `clip_only`, `readable`, `full`) with `base_rate`
+(share of shots within ±k of a used shot; what random scores as precision), `ap` (pooled AP against
+the ±k label), `prec_at_k` (per film, share of the top-m shots within ±k of a used shot, m = shots the
+trailer used, averaged over films), `recall_at_k` (per film, share of used shots with a top-m shot
+within ±k, averaged) and `lift` (`prec_at_k / base_rate`). `k0` is the exact-shot score.
+
 **`model_shap.parquet`** (G): `imdb_id`, `shot_idx`, one out-of-fold SHAP column per readable
 feature, `clip` (sum over the CLIP PCs), `bias`. Values are in log-odds; a row sums to the full
 model's log-odds for that shot.

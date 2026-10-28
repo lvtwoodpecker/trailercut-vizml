@@ -22,6 +22,7 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | `data/features/alignment/*.csv` | per trailer shot: matched film shot, score, margin, top-5 candidates |
 | `data/features/film_shots.parquet` | RQ1 table: one row per film shot, readable features + `in_trailer` label (not committed, ~65 MB; `python -m trailercut.film_features` rebuilds it) |
 | `data/features/model_report.json` | RQ1 metrics per model (baselines, readable, full, ablations) and SHAP summaries; per-shot predictions and SHAP (`model_preds.parquet`, `model_shap.parquet`) are not committed |
+| `data/features/model_eval.json` | RQ1 scores with a ±k film shot tolerance (k = 0, 1, 3, 5), from the saved predictions |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
 | `labels/` | hand-labeling sample + gold labels for alignment (the generated page and `labels/img/` are not committed) |
@@ -55,6 +56,7 @@ finished films and trailers; from `align` on, each step recomputes everything.
 | readable features | `trailercut.concepts` | zero-shot shot scale + 20 content concepts, so SHAP names things people can read |
 | RQ1 table | `trailercut.film_features` | position, dialogue (subtitles + VADER), scale, content, editing |
 | RQ1 model | `trailercut.model` | LightGBM, folds grouped by film, baselines + ablations, out-of-fold TreeSHAP |
+| RQ1 tolerance eval | `trailercut.model_eval` | rescores the saved out-of-fold predictions counting a pick as a hit within ±k film shots; random gets the same tolerance |
 | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts |
 | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth |
