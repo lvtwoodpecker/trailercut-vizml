@@ -8,19 +8,19 @@
   },
   "corpus": {
     "trailers": 293,
-    "trailer_len_median": 133.9255,
+    "trailer_len_median": 133.9672,
     "shots_per_trailer_median": 76.0,
     "shot_len_median": 1.2095
   },
   "story_depth": {
-    "pooled_final_quarter": 0.18016528925619835,
-    "pooled_first_quarter": 0.3313298271975958,
-    "median_trailer_final_act_share": 0.16666666666666666
+    "pooled_final_quarter": 0.1798482125024965,
+    "pooled_first_quarter": 0.3313361294188137,
+    "median_trailer_final_act_share": 0.16363636363636364
   },
   "alignment": {
-    "trailer_shots": 22031,
-    "blank": 0.018428577912940856,
-    "matched": 0.906223049339567,
+    "trailer_shots": 22095,
+    "blank": 0.01837519800859923,
+    "matched": 0.906449422946368,
     "match_rate_per_trailer_median": 0.9146341463414634
   }
 }
