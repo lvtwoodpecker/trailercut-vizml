@@ -224,7 +224,7 @@ function drawLock() {
       <div class="row">${[0, 1, 2].map(k => img(fImg(j, k))).join("")}</div></figure>` +
       (users.length ? `<figure><figcaption>Used by trailer shot${users.length > 1 ? "s" : ""} ${users.map(d => d[1]).join(", ")}</figcaption>
       <div class="row">${users.slice(0, 3).map(d => img(tImg(d[1]))).join("")}</div></figure>` : "") + `</div>
-      <div class="info">${users.length ? "" : "not used in this trailer"}${f.trailerness ? ` · trailerness ${(100 * f.trailerness[j]).toFixed(1)}%` : ""}</div>`;
+      <div class="info">${users.length ? "" : "not used in this trailer"}${f.trailerness && f.trailerness[j] != null ? ` · trailerness ${(100 * f.trailerness[j]).toFixed(1)}%` : ""}</div>`;
   }
   box.style("display", "block").html(html + `<p class="note">Locked. Click the shot again or press Esc to unlock.</p>`);
 }
@@ -314,7 +314,7 @@ function drawMain() {
     .on("mousemove", (ev, i) => {
       hover({ film: i });
       showTip(ev, img(fImg(i)) + `<div>Film shot ${i} · story ${Math.round(100 * f.story_pos[i])}% · ${f.shot_len[i]} s</div>` +
-        (has ? `<div class="v">trailerness ${(100 * f.trailerness[i]).toFixed(1)}%</div>` : "") +
+        (has && f.trailerness[i] != null ? `<div class="v">trailerness ${(100 * f.trailerness[i]).toFixed(1)}%</div>` : "") +
         `<div>${f.in_trailer[i] ? "used in this trailer" : "not used"}</div>`);
     })
     .on("mouseleave", unhover)
@@ -348,7 +348,7 @@ function drawOrder() {
 function drawShap(i) {
   const svg = d3.select("#shap"), f = D.film, w = document.getElementById("shap").parentNode.clientWidth - 32;
   svg.selectAll("*").remove();
-  if (i === null || !f.shap) {
+  if (i === null || !f.shap || f.trailerness[i] == null) {
     svg.attr("width", w).attr("height", 10).attr("viewBox", `0 0 ${w} 10`);
     d3.select("#shap-title").text("Why this shot?");
     d3.select("#shap-note").text(f.shap ? "Hover a film shot; click to lock it." : "Needs model outputs.");

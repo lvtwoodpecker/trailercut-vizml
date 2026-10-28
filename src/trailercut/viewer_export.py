@@ -70,7 +70,7 @@ def load_model_outputs():
 def shap_groups(shap):
     cols = {g: [c for c in (GROUPS[g] or []) if c in shap.columns] for g in GROUP_ORDER if g != "clip"}
     cols["content"] = [c for c in shap.columns if c.startswith("c_")]
-    out = pd.DataFrame({g: shap[c].sum(1) for g, c in cols.items()})
+    out = pd.DataFrame({g: shap[c].sum(1, min_count=1) for g, c in cols.items()})
     out["clip"] = shap["clip"]
     return out[GROUP_ORDER], cols
 
@@ -103,7 +103,7 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
         film["shap_groups"] = GROUP_ORDER
         film["shap"] = [[r(x) for x in row] for row in groups.values]
         # named features (value + SHAP) only for shots someone will hover: used in the trailer or ranked high
-        pick = set(np.flatnonzero(f.in_trailer.values)) | set(np.argsort(-p.full.values)[:n_detail])
+        pick = set(np.flatnonzero(f.in_trailer.values)) | set(np.argsort(-np.nan_to_num(p.full.values, nan=-1))[:n_detail])
         feats = [c for g in GROUP_ORDER if g != "clip" for c in cols[g]]
         film["detail_features"] = feats
         film["detail"] = {int(i): [[r(f[c].values[i]), r(raw[c].values[i])] for c in feats] for i in sorted(pick)}
@@ -120,6 +120,10 @@ def main():
     films = pd.read_parquet(FEATURES / "film_shots.parquet")
     preds, shap = load_model_outputs()
     if preds is not None:
+        # the model skips logo/credit shots at the film's edges; join on shot so rows line up, edges get no score
+        key = films[["imdb_id", "shot_idx"]]
+        preds = key.merge(preds.drop(columns=["shot_len", "in_trailer"]), how="left", on=["imdb_id", "shot_idx"])
+        shap = key.merge(shap, how="left", on=["imdb_id", "shot_idx"])
         shap = (*shap_groups(shap), shap)
     index = []
     for i in tqdm(sorted(films.imdb_id.unique())):
