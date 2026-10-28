@@ -55,7 +55,11 @@ svg { display: block; width: 100%; overflow: visible; }
 .shap-row { cursor: pointer; }
 .shap-row text { fill: var(--ink); font-size: 12px; }
 .shap-row .val { fill: var(--ink-2); font-variant-numeric: tabular-nums; }
-.note { color: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.dot { fill: var(--matched); stroke: var(--surface); stroke-width: 1.5; }
+.diag { stroke: var(--axis); stroke-dasharray: 4 4; }
 </style>
 </head>
 <body>
@@ -77,13 +81,21 @@ svg { display: block; width: 100%; overflow: visible; }
       <span><i style="background:var(--used)"></i>film shot used by this trailer</span>
       <span id="lg-score"><i style="background:var(--matched);opacity:.55"></i>trailerness (model score)</span>
     </div>
+    <p class="note">Each curve links a trailer shot to the moment of the film it was cut from. Curves that drop straight down mean the trailer follows the film's order; crossing curves mean it jumps around.</p>
     <svg id="main"></svg>
     <p class="note" id="film-note"></p>
   </div>
-  <div class="card" style="max-width:720px">
-    <h2 id="shap-title">Why this shot?</h2>
-    <svg id="shap"></svg>
-    <p class="note" id="shap-note">Hover or click a film shot.</p>
+  <div class="grid2">
+    <div class="card">
+      <h2>Does the trailer follow the film's order?</h2>
+      <svg id="order"></svg>
+      <p class="note">One dot per matched trailer shot. Dots on the dashed line = same order as the film; above it = later in the film than the trailer's pace; below = earlier.</p>
+    </div>
+    <div class="card">
+      <h2 id="shap-title">Why this shot?</h2>
+      <svg id="shap"></svg>
+      <p class="note" id="shap-note">Hover or click a film shot.</p>
+    </div>
   </div>
 </main>
 <div id="tip"></div>
@@ -122,14 +134,17 @@ async function load(id) {
   d3.select("#title").text(D.title);
   d3.select("#meta").text(`${(D.genres || []).slice(0, 3).join(", ")} · ${D.shots.length} trailer shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed} of ${D.film.n} film shots used`);
-  drawMain(); drawShap(null);
+  drawMain(); drawOrder(); drawShap(null);
 }
 
 // one canvas, shared x range: trailer time on top, story position on the bottom
-const Y = { audio: [10, 62], shots: [72, 112], tAxis: 116, link: [140, 206], used: [206, 218], bars: [226, 380], fAxis: 384 };
+let Y;
 
 function drawMain() {
-  const H = 420, svg = d3.select("#main").attr("viewBox", `0 0 ${W} ${H}`);
+  const f0 = D.film, barsH = f0.trailerness ? 154 : 24;
+  Y = { audio: [10, 62], shots: [72, 112], tAxis: 116, link: [140, 206], used: [206, 218], bars: [226, 226 + barsH] };
+  Y.fAxis = Y.bars[1] + 4;
+  const H = Y.fAxis + 36, svg = d3.select("#main").attr("viewBox", `0 0 ${W} ${H}`);
   svg.selectAll("*").remove();
   const tx = d3.scaleLinear([0, D.duration], [PAD.l, W - PAD.r]);
   const fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
@@ -207,14 +222,39 @@ function drawMain() {
 function highlight(h) {
   const links = d3.select("#main .links").selectAll("path");
   const cells = d3.select("#main .shots").selectAll("rect");
-  if (!h) { links.classed("hi", false).classed("dim", false); cells.classed("dim", false); return; }
+  const dots = d3.select("#order").selectAll("circle");
+  if (!h) { links.classed("hi", false).classed("dim", false); cells.classed("dim", false); dots.classed("dim", false); return; }
   if (h.trailer !== undefined) {
     links.classed("hi", ([, i]) => i === h.trailer).classed("dim", ([, i]) => i !== h.trailer);
     cells.classed("dim", (_, i) => i !== h.trailer);
+    dots.classed("dim", ([, i]) => i !== h.trailer);
   } else {
     links.classed("hi", ([s]) => s[3] === h.film).classed("dim", ([s]) => s[3] !== h.film);
     cells.classed("dim", s => s[3] !== h.film);
+    dots.classed("dim", ([s]) => s[3] !== h.film);
   }
+}
+
+function drawOrder() {
+  const w = 560, H = 350, m = { l: 44, r: 12, t: 24, b: 40 };
+  const svg = d3.select("#order").attr("viewBox", `0 0 ${w} ${H}`);
+  svg.selectAll("*").remove();
+  const x = d3.scaleLinear([0, D.duration], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
+  svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(D.duration)).attr("y2", y(1));
+  svg.append("text").attr("class", "act-label").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
+  const pts = D.shots.map((s, i) => [s, i]).filter(d => d[0][2]);
+  svg.append("g").selectAll("circle").data(pts).join("circle").attr("class", "dot").attr("r", 4.5)
+    .attr("cx", ([s]) => x((s[0] + s[1]) / 2)).attr("cy", ([s]) => y(D.film.story_pos[s[3]]))
+    .on("mousemove", (ev, [s, i]) => {
+      highlight({ trailer: i, film: s[3] });
+      showTip(ev, `<img src="../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_1.jpg" onerror="this.remove()">` +
+        `<div>Trailer ${fmtT(s[0])} · film ${Math.round(100 * D.film.story_pos[s[3]])}%</div>`);
+    })
+    .on("mouseleave", () => { highlight(null); hideTip(); });
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(fmtT).tickSizeOuter(0));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+  svg.append("text").attr("class", "act-label").attr("x", w - m.r).attr("y", H - 6).attr("text-anchor", "end").text("trailer time");
+  svg.append("text").attr("class", "act-label").attr("x", m.l).attr("y", 12).attr("text-anchor", "middle").text("film position");
 }
 
 function drawShap(i) {
