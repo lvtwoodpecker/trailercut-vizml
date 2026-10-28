@@ -5,7 +5,7 @@
 | core set | the 293 MovieNet films with keyframes, synopsis-to-shot alignment and a trailer link |
 | shot | a continuous run of frames between two cuts. Film shots come from MovieNet; trailer shots from TransNetV2 |
 | keyframe | one of the 3 frames sampled per shot (MovieNet's for films; 25/50/75% for trailers) |
-| story position | where a film shot falls in the film, 0 (start) to 1 (end) |
+| story position | where a film shot falls in the film: shot midpoint over runtime, 0 (start) to 1 (end) |
 | act | story position split 1/4, 1/2, 1/4 into setup, middle, ending |
 | synopsis position | which paragraph of the MovieNet synopsis covers the shot, scaled 0 to 1 |
 | alignment | matching each trailer shot to the film shot it was cut from |
