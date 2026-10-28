@@ -4,15 +4,14 @@ Owner in brackets. Move items to **Done** with the date when finished.
 
 ## Now (Nov 3 to 17)
 
-- [ ] **[Cedric]** Check the 15 trailers with under 15% of shots matched (still 15 on 293, all original MovieNet links; Scarface tt0086250 is at 0%): wrong video, teaser, or re-release cut? Replace through `recover` if wrong
+- [ ] **[Cedric]** Check the 15 trailers that had under 15% of shots matched at the 0.74 cutoff (all original MovieNet links): wrong video, teaser, or re-release cut? At 0.535 none is under 15%, but that hides wrong videos: Scarface tt0086250 went from 0% to 92% matched with no shot above 0.74. Replace through `recover` if wrong
+- [ ] **[Estee]** Label the first 2 trailers of `labels/label_sample.json` in the label tool (name box filled, so it exports `gold_estee.json`) for Cohen's kappa against `gold_ced.json`
+- [ ] **[Cedric]** Prototype keypoint-based verification to rerank CLIP's top-5 candidates (status: proposed, not started)
 - [ ] **[Cedric]** Eyeball the recovered trailers with the lowest match share: *Basic* (31%), *Dogma* (33%), *Serenity* (34%)
 - [ ] **[Cedric]** PR curve and ablation figures for the model
-- [ ] **[Both]** Hand-label the 10 sampled trailers in `labels/label_tool.html` (both label the first 2 for kappa; separate browsers, since progress is one shared `localStorage` slot), save as `labels/gold_<name>.json`
-- [ ] **[Cedric]** Run `label_eval`, pick the final match threshold, rerun everything downstream with it
 - [ ] **[Estee]** Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks
 - [ ] **[Estee]** Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
 - [ ] **[Estee]** D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
-- [ ] **[Cedric]** Drop studio logos and credits from the RQ1 labels: in *The Shining*, film shot 0 (studio logo) counts as used because the trailer opens on the same logo. Use `c_logo` / `c_text_card` and first/last shots to filter, then rerun `film_features` onward
 
 ## Next (Nov 17 to Dec 1)
 
@@ -20,7 +19,6 @@ Owner in brackets. Move items to **Done** with the date when finished.
 - [ ] **[Estee]** Pick case studies (use the model's misses and the cluster extremes)
 - [ ] **[Cedric]** ViT-H/14 rerun on the cluster (`hpc/`), compare alignment and model numbers to B/32
 - [ ] **[Cedric]** Whisper on trailer audio to replace the subtitle dialogue proxy (cluster GPU)
-- [ ] **[Cedric]** Temporal smoothing in alignment (neighboring trailer shots prefer nearby film shots)
 
 ## Later (Dec 1 to 15)
 
@@ -34,6 +32,16 @@ Owner in brackets. Move items to **Done** with the date when finished.
 - Film mode in `trailer_prep` for user-owned films outside MovieNet
 
 ## Done
+
+- 2026-10-28: `recover` uses the impostor cutoff (`impostor_threshold`), not the label-picked one
+- 2026-10-28: RQ1 page shows only the models in `model_eval.json` (no tuned bar from an older threshold)
+
+- 2026-10-28: RQ1 page `viz/rq1.html` (`rq1_export`): pick-rate lifts across all films with film-bootstrap intervals, linked from the Trailer View
+- 2026-10-28: model variants evaluated (`model_tune.py`, `model_tune.json`): context/relative features, lambdarank, LightGBM settings; none beat the plain model
+- 2026-10-28: logo/credit shots (first and last 1% of each film) dropped from the RQ1 model and page (`model.EDGE`)
+- 2026-10-28: temporal smoothing in alignment evaluated against the labels (`align.smooth`, `align_tune.json`): lower F1 than raw, dropped
+- 2026-10-28: match threshold picked from the hand labels (best F1, 0.535); everything downstream rerun at 0.535
+- 2026-10-28: hand labels for the 10 sampled trailers, one labeler (`labels/gold_ced.json`, 710 usable shots)
 
 - 2026-10-28: model eval with a ±k shot tolerance (`model_eval.py`, `model_eval.json`); neighbor-shot errors don't explain the weak RQ1 score
 - 2026-10-28: dead-link recovery finished: all 49 replaced, 293/293 trailers

@@ -23,10 +23,12 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | `data/features/film_shots.parquet` | RQ1 table: one row per film shot, readable features + `in_trailer` label (not committed, ~65 MB; `python -m trailercut.film_features` rebuilds it) |
 | `data/features/model_report.json` | RQ1 metrics per model (baselines, readable, full, ablations) and SHAP summaries; per-shot predictions and SHAP (`model_preds.parquet`, `model_shap.parquet`) are not committed |
 | `data/features/model_eval.json` | RQ1 scores with a ±k film shot tolerance (k = 0, 1, 3, 5), from the saved predictions |
+| `data/features/model_tune.json` | RQ1 model variants (extra feature groups, ranker, LightGBM settings) on the same folds |
+| `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
 | `labels/` | hand-labeling sample + gold labels for alignment (the generated page and `labels/img/` are not committed) |
-| `viz/index.html` | the D3 Trailer View; its data (`viz/data/`) is generated and not committed |
+| `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
 
 ## Setup
 
@@ -51,16 +53,18 @@ finished films and trailers; from `align` on, each step recomputes everything.
 | dead links | `trailercut.recover` | YouTube search for replacements; accepted only if at least 25% of shots align to the film |
 | shots | `trailercut.trailer_prep` | TransNetV2 boundaries, 3 keyframes/shot (MovieNet style), mono audio |
 | embeddings | `trailercut.embed` | CLIP ViT-B/32 (LAION-2B), 3 keyframes per shot; trailer letterbox bars cropped per trailer |
-| alignment | `trailercut.align` | mean-of-max similarity over keyframes; blank shots masked; "no match" threshold from an impostor null |
-| label check | `trailercut.label_tool`, `label_eval` | hand-check top-5 candidates, then pick the threshold from precision/recall |
+| alignment | `trailercut.align` | mean-of-max similarity over keyframes; blank shots masked; "no match" below a threshold picked from hand labels (best F1), impostor null kept for reference |
+| label check | `trailercut.label_tool`, `label_eval`, `align_tune` | hand-check top-5 candidates, pick the threshold from precision/recall; `align_tune` compares raw vs sequence-smoothed matching (smoothing not used) |
 | readable features | `trailercut.concepts` | zero-shot shot scale + 20 content concepts, so SHAP names things people can read |
 | RQ1 table | `trailercut.film_features` | position, dialogue (subtitles + VADER), scale, content, editing |
-| RQ1 model | `trailercut.model` | LightGBM, folds grouped by film, baselines + ablations, out-of-fold TreeSHAP |
+| RQ1 model | `trailercut.model` | LightGBM, folds grouped by film, baselines + ablations, out-of-fold TreeSHAP; logo/credit shots (first and last 1% of each film) left out |
+| RQ1 variants | `trailercut.model_tune` | run by hand: context/relative features, lambdarank, LightGBM settings; none beat the plain model |
 | RQ1 tolerance eval | `trailercut.model_eval` | rescores the saved out-of-fold predictions counting a pick as a hit within ±k film shots; random gets the same tolerance |
 | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts |
 | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth |
 | Trailer View data | `trailercut.viewer_export` | one JSON per trailer in `viz/data/` (gitignored) plus average shot colors for the movie barcode |
+| RQ1 page data | `trailercut.rq1_export` | pick-rate lifts with film-bootstrap intervals, `viz/data/rq1.json` (gitignored) |
 
 ## Hand-labeling alignments
 
@@ -69,7 +73,7 @@ finished films and trailers; from `align` on, each step recomputes everything.
 open labels/label_tool.html
 ```
 Keys: `1`-`5` pick a candidate, `s` same scene but other shot, `n` not in film, `u` unsure, `j`/`k` next/prev.
-Export and save as `labels/gold_<name>.json`, then run `python -m trailercut.label_eval`.
+Type your name in the Labeler box (empty exports `gold_anon.json`, which counts as another labeler), export and save as `labels/gold_<name>.json`, then run `python -m trailercut.label_eval`.
 
 ## Trailer View
 
@@ -84,7 +88,8 @@ features). Per-shot model scores show in the film-shot tooltip and the SHAP pane
 python -m trailercut.viewer_export   # writes viz/data/
 ```
 Then serve the repo root with any static server, e.g. `python -m http.server [port]`, and open
-`/viz/` (add `?id=<imdb_id>` for a film).
+`/viz/` (add `?id=<imdb_id>` for a film). `python -m trailercut.rq1_export` writes the data for
+`/viz/rq1.html`, the across-films page linked from the Trailer View header.
 Frame thumbnails load from your local `data/movienet/frames/` (loose JPEGs) and
 `data/cache/trailer_frames/`, so they only show on a machine that has the data. Nothing copyrighted is
 committed or hosted.

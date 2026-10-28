@@ -41,13 +41,19 @@ One row per trailer shot.
 | `film_story_pos` | story position (0 to 1, film shot midpoint over film duration) of the matched film shot; empty if not matched |
 | `top5`, `top5_scores` | space-separated top-5 film shot indices and scores |
 
-**`alignment_threshold.json`** (C): `fpr`, `threshold`, `source`, `n_null`, `null_quantiles` (impostor null at
+**`alignment_threshold.json`** (C): `fpr`, `threshold`, `source`, `impostor_threshold` (5% impostor cutoff, always saved; used by `recover`), `n_null`, `null_quantiles` (impostor null at
 0.5, 0.9, 0.99, 0.999). `source` is `impostor_null` (threshold = null quantile at `fpr`) or `manual`
-(`align --threshold`; `fpr` is then the null's false-match rate at that threshold). The committed file
-was written without `source`, which means `impostor_null`.
+(`align --threshold`; `fpr` is then the share of impostor scores at or above that threshold). A file
+without `source` means `impostor_null`. The committed file is `manual`, threshold 0.535, `fpr` 0.77.
 
-**`alignment_eval.json`** (C, not written yet; needs `labels/gold_*.json`): hand-label scores from
-`label_eval`; keys listed in `labeling_guide.md`.
+**`alignment_eval.json`** (C): hand-label scores from `label_eval`; keys listed in `labeling_guide.md`.
+
+**`align_tune.json`** (C): raw vs smoothed matching scored against the hand labels (`align_tune`).
+`n` (labeled shots, `u` dropped), `trailers`, `current` (raw at the threshold in
+`alignment_threshold.json` when it ran; in `run_all.sh` order that is the impostor cutoff), `best`
+(`raw`, `smooth`: the best-F1 row of each), `grid` (every row). Each row: `method` (`raw` / `smooth`),
+`threshold`, `lam`, `tau` (smooth only), `precision`, `recall`, `f1`, `near_precision` (a match within
+±3 film shots of the labeled source counts), `n_pred` (shots predicted matched).
 
 ## RQ1: film shots (`data/features/film_shots.parquet`, G, ~65 MB)
 
@@ -65,6 +71,12 @@ One row per film shot of every film with an aligned trailer.
 
 ## RQ1 model outputs
 
+`model`, `model_tune` and `rq1_export` leave out film shots with `story_pos` below 0.01 or above 0.99
+(studio logos and credits, `model.EDGE`), so their row counts are lower than `film_shots.parquet`.
+`model.load` also adds, in memory only, `distinct`, `novelty`, `recurrence` (group `context`) and
+`rel_<feature>` within-film percentile ranks (group `relative`) for `shot_len`, `visual_change`,
+`dlg_words`, `scale_width`, the 3 context features and the 20 concepts.
+
 **`model_report.json`** (C): `n_shots`, `n_films`, `positive_rate`, `folds`, `clip_pcs`, `groups`,
 `models` (per model: `ap`, `ap_film`, `r_prec`, `ap_lenadj`), `ablation_drop` (full minus each
 ablation, per metric), `shap_mean_abs_by_group` (mean |summed SHAP| per group), `shap_mean_abs_top`
@@ -80,6 +92,12 @@ model (`random`, `position_only`, `length_only`, `clip_only`, `readable`, `full`
 the ±k label), `prec_at_k` (per film, share of the top-m shots within ±k of a used shot, m = shots the
 trailer used, averaged over films), `recall_at_k` (per film, share of used shots with a top-m shot
 within ±k, averaged) and `lift` (`prec_at_k / base_rate`). `k0` is the exact-shot score.
+
+**`model_tune.json`** (C): `n_shots`, `n_films`, `positive_rate`, `variants` (per variant: `ap`,
+`ap_film`, `r_prec`, `ap_lenadj`, and `lift` = `r_prec / positive_rate`). Variants: `random`, `full`,
+`full+context`, `full+relative`, `full+context+relative`, `rank: full+context+relative`, `rank, slower
+learning`, `rank, smaller trees`. The committed file was computed at threshold 0.74, before the
+re-alignment at 0.535.
 
 **`model_shap.parquet`** (G): `imdb_id`, `shot_idx`, one out-of-fold SHAP column per readable
 feature, `clip` (sum over the CLIP PCs), `bias`. Values are in log-odds; a row sums to the full
@@ -121,7 +139,7 @@ share of 200 shuffles with NMI at least as high).
 `matched`, `match_rate_per_trailer_median`). The numbers behind the figures.
 
 **`labels/label_sample.json`** (C): list of the sampled IMDb IDs. **`labels/gold_<name>.json`** (C,
-none yet): `{labeler, labels}`, labels keyed `imdb_id:shot_idx` with a film shot index, `s`, `n` or
+`gold_ced.json` so far): `{labeler, labels}`, labels keyed `imdb_id:shot_idx` with a film shot index, `s`, `n` or
 `u`. **`labels/label_tool.html`** (G): the page, with each shot's top-5 candidates embedded.
 **`labels/img/{id}/`** (G): images the page shows, copied by `label_tool`: `t_shot_XXXX_img_{0,1,2}.jpg`
 (trailer keyframes) and `f_shot_XXXX_img_1.jpg` (film candidates, re-saved as JPEG).
@@ -144,9 +162,17 @@ Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written 
 | `film.n`, `film.story_pos`, `film.shot_len`, `film.in_trailer` | per film shot, from `film_shots.parquet` |
 | `film.start`, `film.end` | film shot extent as a fraction of runtime (for the barcode) |
 | `film.color` | average color of each film shot's middle keyframe; `null` if the image can't be read |
-| `film.trailerness`, `film.trailerness_readable` | out-of-fold scores of the `full` and `readable` models (only if `model` was run) |
+| `film.trailerness`, `film.trailerness_readable` | out-of-fold scores of the `full` and `readable` models (only if `model` was run); `null` for logo/credit edge shots the model skips |
 | `film.shap_groups`, `film.shap` | group order and per film shot SHAP summed per group (`position`, `dialogue`, `scale`, `content`, `editing`, `clip`) |
 | `film.detail_features`, `film.detail` | readable feature names, and for in-trailer shots plus the top `--detail` (default 60) by `full` score, `[value, SHAP]` per feature, keyed by shot index |
+
+**`rq1.json`** (from `rq1_export`, read by `viz/rq1.html`): `n_shots`, `n_films`, `positive_rate`
+(edge shots excluded), then lift tables `story` (20 bins of story position, `level` = bin center),
+`scale` (dominant scale class), `length` and `distinct` (within-film quintiles of `rel_shot_len`,
+`rel_distinct`), `dialogue` (has / no dialogue), `content` (per concept, shots in the film's top 10%
+for it). Each row: `level`, `lift` (pick rate over the overall pick rate), `lo`, `hi` (95% interval,
+films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` from `model_eval.json`
+`k0`.
 
 ## Caches (G, under `$TRAILERCUT_DATA/cache/`)
 
