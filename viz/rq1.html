@@ -63,7 +63,7 @@ svg { display: block; overflow: visible; }
 
   <div class="card">
     <h2>Can a model pick the trailer's shots?</h2>
-    <p class="sub">Per film, the model ranks every shot and keeps as many as the trailer used. Lift = how many more of its picks are right than random picks.</p>
+    <p class="sub">Model picks vs random picks, per film.</p>
     <svg id="models"></svg>
   </div>
 
@@ -139,8 +139,6 @@ function story(rows) {
   svg.selectAll("*").remove();
   const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLog(LIFT, [H - m.b, m.t]);
   TICKS.forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(t)).attr("y2", y(t)));
-  [0.25, 0.75].forEach(p => svg.append("line").attr("class", "gridline").attr("x1", x(p)).attr("x2", x(p)).attr("y1", m.t).attr("y2", H - m.b));
-  [[0, "setup"], [0.25, "middle"], [0.75, "ending"]].forEach(([p, t]) => svg.append("text").attr("class", "lbl-2").attr("x", x(p) + 4).attr("y", m.t + 10).text(t));
   svg.append("path").attr("fill", "var(--band)")
     .attr("d", d3.area().x(r => x(r.level)).y0(r => y(r.lo)).y1(r => y(r.hi)).curve(d3.curveMonotoneX)(rows));
   svg.append("path").attr("fill", "none").attr("stroke", "var(--pos)").attr("stroke-width", 2)
@@ -155,9 +153,7 @@ function story(rows) {
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
   svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text("position in the film");
   const first = rows[0], late = rows.reduce((a, b) => b.lift < a.lift ? b : a);
-  d3.select("#story-sub").text(`Shots from the first 5% of a film are picked ${times(first.lift)} as often as the average shot; ` +
-    `around ${Math.round(100 * late.level)}% in, only ${times(late.lift)}. The band is a 95% interval from resampling films. ` +
-    `Studio logos and credits (the first and last 1%) are left out.`);
+  d3.select("#story-sub").text(`Start of the film: ${times(first.lift)}. Around ${Math.round(100 * late.level)}%: ${times(late.lift)}.`);
 }
 
 function models(rows, best) {
@@ -179,18 +175,17 @@ const label = n => ({ random: "random picks", position_only: "story position onl
   clip_only: "CLIP look only", readable: "named features (no CLIP)", full: "named features + CLIP" }[n] || n);
 
 d3.json("data/rq1.json").then(D => {
-  d3.select("#lede").text(`Across ${D.n_films} films and ${d3.format(",")(D.n_shots)} film shots, ${d3.format(".1%")(D.positive_rate)} end up in the trailer. ` +
-    `Each chart shows how much more (blue) or less (red) often a kind of shot is picked than the average shot; grey means the 95% interval includes 1×, so no clear difference.`);
+  d3.select("#lede").text(`How often each kind of shot makes the trailer, vs the average shot. ${D.n_films} films. Grey: no clear difference.`);
   const draw = () => {
     if (D.models) models(D.models, D.best_model);
     story(D.story);
     for (const k of ["scale", "length", "distinct", "dialogue"]) { dotPlot(k, D[k]); sub(k + "-sub", D[k]); }
     dotPlot("content", D.content, 120);
-    d3.select("#content-sub").text("Shots in the top 10% of their film for each concept (scored zero-shot by CLIP), compared with the average shot.");
+    d3.select("#content-sub").text("Top 10% of each film's shots for the concept.");
   };
   draw();
   let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(draw, 150); });
-  d3.select("#foot").text("Intervals: 95%, from resampling films. Concepts and shot scale are CLIP zero-shot scores, so treat them as soft labels.");
+  d3.select("#foot").text("95% intervals, resampling films.");
 });
 </script>
 </body>
