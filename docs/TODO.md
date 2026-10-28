@@ -12,6 +12,7 @@ Owner in brackets. Move items to **Done** with the date when finished.
 - [ ] **[Estee]** Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks
 - [ ] **[Estee]** Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
 - [ ] **[Estee]** D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
+- [ ] **[Cedric]** Drop studio logos and credits from the RQ1 labels: in *The Shining*, film shot 0 (studio logo) counts as used because the trailer opens on the same logo. Use `c_logo` / `c_text_card` and first/last shots to filter, then rerun `film_features` onward
 
 ## Next (Nov 17 to Dec 1)
 

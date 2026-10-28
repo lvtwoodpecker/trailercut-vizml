@@ -30,6 +30,8 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 - **Shot length.** Longer film shots give a trailer more footage to sample, so they are more likely to
   be labeled in-trailer regardless of content. Controlled with a length-only baseline and
   length-adjusted AP, not removed.
+- **Studio logos and credits.** Logo or credit shots can be matched and counted as editorial picks
+  (e.g. *The Shining* film shot 0, a studio logo the trailer also opens on). Not filtered yet.
 
 ## Features
 
