@@ -16,3 +16,4 @@ __pycache__/
 .DS_Store
 labels/label_tool.html
 logs/
+data/features/film_shots.parquet

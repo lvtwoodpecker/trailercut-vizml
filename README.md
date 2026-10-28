@@ -19,7 +19,7 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | `data/ids/trailer_status.csv` | which trailers still download (ok / unavailable / error) |
 | `data/features/trailer_shots/*.csv` | TransNetV2 shots per trailer |
 | `data/features/alignment/*.csv` | per trailer shot: matched film shot, score, margin, top-5 candidates |
-| `data/features/film_shots.parquet` | RQ1 table: one row per film shot, readable features + `in_trailer` label |
+| `data/features/film_shots.parquet` | RQ1 table: one row per film shot, readable features + `in_trailer` label (not committed, ~65 MB; `python -m trailercut.film_features` rebuilds it) |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
 | `labels/` | hand-labeling tool + gold labels for alignment |
