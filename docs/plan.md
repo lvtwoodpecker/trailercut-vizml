@@ -30,13 +30,13 @@ Working plan for the current block. Check items off as they land; anything that 
 
 ## B. Playable Trailer View
 
-1. [ ] Export: trailer speech segments (times, film times, matched) per trailer; transcript text only
+1. [x] Export: trailer speech segments (times, film times, matched) per trailer; transcript text only
    in the local, gitignored viewer data.
-2. [ ] Video player above the timeline (trailer video with its audio, local only). Playhead on the
+2. [x] Video player above the timeline (trailer video with its audio, local only). Playhead on the
    trailer strip; the current shot drives the same highlight as hover (link, film outline, scatter
    dot); the matched film keyframe shows live next to the video.
-3. [ ] Click the trailer strip to seek; space to play/pause; arrows keep stepping through shots.
-4. [ ] Audio row: speech segments under the trailer strip with their own links to the film moment
+3. [x] Click the trailer strip to seek; space to play/pause; arrows keep stepping through shots.
+4. [x] Audio row: speech segments under the trailer strip with their own links to the film moment
    they come from, in a separate color from picture links; current line shown while playing.
 5. [ ] Browser note in the README: trailers are AV1/VP9/H.264 in MP4; Chrome and Firefox play all of
    them. Optional later: transcode to H.264 for Safari.
