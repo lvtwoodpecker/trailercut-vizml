@@ -1,0 +1,17 @@
+imdb_id,verdict,reason
+tt0086250,right film; replace if possible,TV spot with VHS-quality picture; most matches land on the wrong shot
+tt0114558,right film,German version; dubbed audio so no dialogue matches
+tt0119396,right film,
+tt0383574,right film,Spanish dub; several dark trailer shots land on the same film shot
+tt0258463,right film,French version
+tt0088847,right film,German version; dubbed audio so no dialogue matches
+tt1124035,right film,French subtitles burned in
+tt1462758,right film,German version; dark one-location film
+tt1454468,right film,Greek subtitles; dark space scenes look alike
+tt0104257,right film,TV spot
+tt1375666,right film,Hungarian subtitles; end credits matched to a film shot
+tt0072684,right film,French subtitles burned in; dubbed or subtitled audio so no dialogue matches
+tt0075148,right film,studio logo matched (dropped from the model by the edge filter)
+tt0379786,right film,recovered by search; matches correct
+tt0120655,right film,recovered by search; matches correct
+tt0264395,right film,recovered by search; matches correct
