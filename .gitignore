@@ -17,3 +17,5 @@ __pycache__/
 labels/label_tool.html
 logs/
 data/features/film_shots.parquet
+data/features/model_preds.parquet
+data/features/model_shap.parquet
