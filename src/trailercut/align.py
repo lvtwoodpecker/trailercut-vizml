@@ -91,6 +91,34 @@ def impostor_null(ids, rng, n_impostors=3):
     return np.concatenate(null)
 
 
+def smooth(S, blank, threshold, k=20, lam=0.05, tau=5):
+    """Match the whole trailer as a sequence (Viterbi). Each trailer shot picks one of its top-k film shots
+    or "no match". Picking a film shot earns its similarity, "no match" earns the threshold, and two
+    consecutive matched trailer shots earn a bonus lam * (1 - min(|jump| / tau, 1)) when they land close
+    together in the film, so shots cut from the same scene pull each other onto neighboring film shots.
+    A far jump just earns no bonus: trailers cut between scenes all the time, so jumps aren't penalized.
+    Returns the chosen film shot per trailer shot (-1 = no match) and its similarity."""
+    S = S.numpy() if hasattr(S, "numpy") else S
+    m = len(S)
+    cand = np.argsort(-S, 1)[:, :k]
+    emit = np.concatenate([np.take_along_axis(S, cand, 1), np.full((m, 1), threshold)], 1)
+    emit[blank, :k] = -np.inf  # blank trailer shots are never matched
+    best, back = emit[0].copy(), np.zeros((m, k + 1), dtype=int)
+    for i in range(1, m):
+        jump = np.abs(cand[i - 1][:, None] - cand[i][None, :])
+        trans = np.zeros((k + 1, k + 1))
+        trans[:k, :k] = lam * (1 - np.minimum(jump / tau, 1))
+        tot = best[:, None] + trans
+        back[i] = tot.argmax(0)
+        best = tot.max(0) + emit[i]
+    path = np.zeros(m, dtype=int)
+    path[-1] = best.argmax()
+    for i in range(m - 1, 0, -1):
+        path[i - 1] = back[i, path[i]]
+    shot = np.where(path < k, cand[np.arange(m), np.minimum(path, k - 1)], -1)
+    return shot, np.where(shot >= 0, S[np.arange(m), np.maximum(shot, 0)], np.nan)
+
+
 def align_one(imdb_id, threshold):
     T, F = load("trailer", imdb_id), load("film", imdb_id)
     S = shot_sim(T, F)
