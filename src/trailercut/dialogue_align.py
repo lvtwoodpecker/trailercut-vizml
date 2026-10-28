@@ -69,7 +69,8 @@ def align_film(imdb_id):
             row.update(film_t_start=wins[b][1], film_t_end=wins[b][2], score=sc, margin=mg,
                        matched=n >= MIN_WORDS and sc >= MIN_SCORE and mg >= MIN_MARGIN)
         rows.append(row)
-    return pd.DataFrame(rows), asr["language"]
+    cols = ["seg_idx", "t_start", "t_end", "n_words", "film_t_start", "film_t_end", "score", "margin", "matched"]
+    return pd.DataFrame(rows, columns=cols), asr["language"]
 
 
 def main():
