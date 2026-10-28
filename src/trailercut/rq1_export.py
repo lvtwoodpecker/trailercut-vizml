@@ -74,14 +74,10 @@ def main():
                  "dialogue": ["no dialogue", "has dialogue"]}[k]
         out[k] = sorted(out[k], key=lambda r: order.index(r["level"]))
 
-    tune, ev = FEATURES / "model_tune.json", FEATURES / "model_eval.json"
+    ev = FEATURES / "model_eval.json"
     if ev.exists():
         k0 = json.loads(ev.read_text())["k0"]
         out["models"] = [dict(name=n, lift=k0[n]["lift"]) for n in ["random", "position_only", "length_only", "clip_only", "readable", "full"]]
-    if tune.exists():
-        t = json.loads(tune.read_text())["variants"]
-        best = max((k for k in t if k != "random"), key=lambda k: t[k]["r_prec"])
-        out["best_model"] = dict(name=best, lift=t[best]["lift"])
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, allow_nan=False))
     print("->", OUT)
