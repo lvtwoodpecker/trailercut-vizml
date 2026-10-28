@@ -26,6 +26,7 @@ $PY -m trailercut.label_eval                 # needs labels/gold_*.json
 # 4. features, clustering, figures
 $PY -m trailercut.film_features
 $PY -m trailercut.model                      # RQ1: grouped CV, baselines, ablations, SHAP
+$PY -m trailercut.model_eval                 # same predictions scored with ±k shot tolerance
 $PY -m trailercut.trailer_features
 $PY -m trailercut.cluster
 $PY -m trailercut.figures
