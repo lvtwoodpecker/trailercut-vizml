@@ -54,7 +54,7 @@ def trailers():
 
 CARD = """---
 pretty_name: Trailer-to-film alignment for MovieNet
-license: other
+license: cc-by-nc-4.0
 task_categories: [video-classification]
 tags: [movie-trailers, movienet, shot-alignment, video]
 ---
@@ -99,7 +99,7 @@ Film shot indices refer to MovieNet's shot annotations (`movie1K.shot_detection`
 ## Terms
 
 Annotations only. Videos stay on YouTube and are not redistributed; MovieNet's keyframes, subtitles
-and annotations are under MovieNet's own terms (research use). License for these annotations: TBD.
+and annotations are under MovieNet's own terms (research use). These annotations: CC BY-NC 4.0.
 """
 
 
