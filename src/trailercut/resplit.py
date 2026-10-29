@@ -25,7 +25,7 @@ from transnetv2_pytorch import TransNetV2
 
 from .align import load
 from .align_diagnostics import consistency
-from .paths import CACHE, CLIP, FEATURES, LABELS, TRAILERS
+from .paths import CACHE, CLIP, FEATURES, IDS_DIR, LABELS, TRAILERS
 from .trailer_prep import FRAMES_DIR, SHOTS_DIR, extract_keyframes, probe, read_frames
 
 LOG = FEATURES / "resplit_log.csv"
@@ -37,8 +37,20 @@ def floor():
 
 
 def main():
-    labeled = set(pd.read_csv(LABELS / "label_trailers.csv", dtype=str).imdb_id) if (LABELS / "label_trailers.csv").exists() else set()
-    done = set(pd.read_csv(LOG, dtype=str).imdb_id) if LOG.exists() else set()
+    # keyed on the trailer video, not the film: a film whose trailer is swapped later gets checked again,
+    # and labels only protect the trailer they were made on
+    now = dict(pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)[["imdb_id", "youtube_id"]].values)
+    ref = LABELS / "label_trailers.csv"
+    labeled = {i for i, y in pd.read_csv(ref, dtype=str).values if now.get(i) == y} if ref.exists() else set()
+    done = set()
+    if LOG.exists():
+        log = pd.read_csv(LOG, dtype=str)
+        if "youtube_id" not in log:  # one-time migration: rows so far were made on the trailers in use now
+            log.insert(1, "youtube_id", log.imdb_id.map(now))
+            log.to_csv(LOG, index=False)
+        yid = log.youtube_id if "youtube_id" in log else pd.Series(index=log.index, dtype=str)
+        # rows from before youtube_id was logged were made on the trailer in use then, i.e. now
+        done = {i for i, y in zip(log.imdb_id, yid) if pd.isna(y) or y == now.get(i)}
     f0 = floor()
     model = TransNetV2(device="cpu").eval()
     torch.set_num_threads(8)
@@ -68,7 +80,7 @@ def main():
             f = int(inner[prob[inner].argmax()])
             if prob[f] >= MIN_P:
                 cuts.append(f)
-                rows.append(dict(imdb_id=i, shot_idx=int(k), split_frame=f, prob=round(float(prob[f]), 3)))
+                rows.append(dict(imdb_id=i, youtube_id=now.get(i), shot_idx=int(k), split_frame=f, prob=round(float(prob[f]), 3)))
         if cuts:
             spans = []
             for r in sh.itertuples():
@@ -94,7 +106,9 @@ def main():
             os.replace(FRAMES_DIR / i / "shots.csv", SHOTS_DIR / f"{i}.csv")
             (CLIP / "trailer" / f"{i}.npy").unlink(missing_ok=True)
         # log even when nothing split, so a rerun skips this trailer
-        out = pd.DataFrame(rows or [dict(imdb_id=i, shot_idx=-1, split_frame=-1, prob=np.nan)])
+        out = pd.DataFrame(rows or [dict(imdb_id=i, youtube_id=now.get(i), shot_idx=-1, split_frame=-1, prob=np.nan)])
+        if LOG.exists():  # line up with the log's columns (older logs have no youtube_id)
+            out = out.reindex(columns=pd.read_csv(LOG, nrows=0).columns)
         out.to_csv(LOG, mode="a", header=not LOG.exists(), index=False)
     log = pd.read_csv(LOG)
     print(f"{int((log.shot_idx >= 0).sum())} shots split in {log[log.shot_idx >= 0].imdb_id.nunique()} trailers")
