@@ -63,8 +63,10 @@ def prepare(sleep):
     """Pick first-choice candidates for films without a trailer yet, from metadata only."""
     films = pd.read_csv(IDS.parent / "films_1100.csv", dtype=str).fillna("")
     have = {r["imdb_id"] for r in csv.DictReader(open(STATUS))}
-    rows = []
+    if CANDS.exists():  # resume: films already prepared in an earlier run
+        have |= set(pd.read_csv(CANDS, dtype=str).imdb_id)
     for f in films[~films.imdb_id.isin(have)].itertuples():
+        rows = []
         clean = False
         if f.youtube_id:
             m = yt_meta(f.youtube_id)
@@ -78,8 +80,12 @@ def prepare(sleep):
             for rank, c in enumerate(candidates(f.imdb_id), start=1):
                 rows.append(dict(imdb_id=f.imdb_id, rank=rank, **c, source="search"))
             time.sleep(sleep)
-    mark_unavailable(pd.DataFrame(rows))
-    d = pd.DataFrame(rows)
+        if rows:  # append per film, so an interrupted run keeps what it found
+            new = pd.DataFrame(rows)
+            if CANDS.exists():  # line up with the file's columns (it may have gained `unavailable`)
+                new = new.reindex(columns=pd.read_csv(CANDS, nrows=0).columns)
+            new.to_csv(CANDS, mode="a", header=not CANDS.exists(), index=False)
+    d = mark_unavailable(pd.read_csv(CANDS))
     print(f"{d.imdb_id.nunique()} films: {(d['rank'] == 0).sum()} keep MovieNet's link, "
           f"{d[d['rank'] > 0].imdb_id.nunique()} need a search pick -> {CANDS}")
 

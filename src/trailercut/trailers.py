@@ -43,6 +43,14 @@ def fetch(imdb_id, youtube_id):
         return dict(imdb_id=imdb_id, youtube_id=youtube_id, status=status, duration="", title="", error=msg)
 
 
+def write_status(done):
+    with open(STATUS, "w", newline="") as f:
+        w = csv.DictWriter(f, FIELDS, restval="movienet")
+        w.writeheader()
+        for r in sorted(done.values(), key=lambda r: r["imdb_id"]):
+            w.writerow(r)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
@@ -64,13 +72,8 @@ def main():
         for i, fut in enumerate(as_completed(futs), 1):
             res = fut.result()
             done[res["imdb_id"]] = res
+            write_status(done)  # after every trailer, so an interrupted run keeps what it got
             print(f"[{i}/{len(todo)}] {res['imdb_id']} {res['status']} {res['error'][:80]}")
-
-    with open(STATUS, "w", newline="") as f:
-        w = csv.DictWriter(f, FIELDS, restval="movienet")
-        w.writeheader()
-        for r in sorted(done.values(), key=lambda r: r["imdb_id"]):
-            w.writerow(r)
     counts = {}
     for r in done.values():
         counts[r["status"]] = counts.get(r["status"], 0) + 1

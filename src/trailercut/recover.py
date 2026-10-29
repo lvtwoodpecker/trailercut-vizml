@@ -98,6 +98,20 @@ def run(*mod):
     subprocess.run([sys.executable, "-m", *mod], check=True)
 
 
+def save(status, rows):
+    """Status log rewritten, recovery log appended; called after every film."""
+    with open(STATUS, "w", newline="") as f:
+        w = csv.DictWriter(f, FIELDS, restval="movienet")
+        w.writeheader()
+        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
+    new = not LOG.exists()
+    with open(LOG, "a", newline="") as f:
+        w = csv.DictWriter(f, LOG_FIELDS)
+        if new:
+            w.writeheader()
+        w.writerows(rows)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tries", type=int, default=3)
@@ -156,21 +170,14 @@ def main():
                 del cands[i]
             else:
                 clear(i)
+            save(status, log[-1:])  # after every film, so an interrupted run keeps its decisions
         print(f"round {rank + 1}: {sum(r['accepted'] for r in log)} recovered so far")
 
     for i in a.ids:
         if i in cands:  # no candidate passed: put the old trailer back
             clear(i)
             backup(i, restore=True)
-    with open(STATUS, "w", newline="") as f:
-        w = csv.DictWriter(f, FIELDS, restval="movienet")
-        w.writeheader()
-        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
-    prev = list(csv.DictReader(open(LOG))) if LOG.exists() else []
-    with open(LOG, "w", newline="") as f:
-        w = csv.DictWriter(f, LOG_FIELDS)
-        w.writeheader()
-        w.writerows(prev + log)
+    save(status, [])
     print(f"recovered {sum(r['accepted'] for r in log)}/{len(todo)}")
 
 
