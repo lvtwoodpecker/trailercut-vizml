@@ -12,7 +12,7 @@ PY=.venv/bin/python
 data() {   # raw files stay in data/, gitignored
   $PY src/trailercut/movienet.py small --out data/movienet
   for z in annotation meta subtitle1K movie1K.shot_detection; do unzip -qn data/movienet/$z.v1.zip -d data/movienet; done
-  $PY src/trailercut/movienet.py keyframes --ids data/ids/core_films_293.csv --out data/movienet
+  $PY src/trailercut/movienet.py keyframes --ids data/ids/films_1100.csv --out data/movienet
   $PY -m trailercut.trailers                 # -> data/ids/trailer_status.csv
 }
 

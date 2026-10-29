@@ -22,7 +22,7 @@ for z in annotation subtitle1K movie1K.shot_detection; do
   unzip -qn "$TRAILERCUT_DATA/movienet/$z.v1.zip" -d "$TRAILERCUT_DATA/movienet"
 done
 # meta.v1.zip holds ~375k tiny files; only extract the films we use (inode quotas)
-tail -n +2 data/ids/core_films_293.csv | cut -d, -f1 | sed 's|^|meta/|; s|$|.json|' \
+tail -n +2 data/ids/films_1100.csv | cut -d, -f1 | sed 's|^|meta/|; s|$|.json|' \
   | xargs unzip -qn "$TRAILERCUT_DATA/movienet/meta.v1.zip" -d "$TRAILERCUT_DATA/movienet"
 
 # Pre-download CLIP weights so GPU jobs don't depend on internet (h14 is ~4 GB)

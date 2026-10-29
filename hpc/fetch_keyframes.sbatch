@@ -1,5 +1,5 @@
 #!/bin/bash
-# CPU + network job: MovieNet keyframes for the core films, one zip per film (~37 GB, ~880 files).
+# CPU + network job: MovieNet keyframes for all 1,100 films, one zip per film (~185 GB, ~1,100 files).
 # Resumable: rerun after a timeout and it skips finished films.
 #SBATCH --job-name=tc-keyframes
 #SBATCH --account=CHANGE_ME
@@ -14,5 +14,5 @@ source hpc/env.sh
 
 # Compute nodes may have no internet. If this fails with connection errors, run the same
 # command on a login node / data-transfer node inside tmux instead.
-$PY src/trailercut/movienet.py keyframes --ids data/ids/core_films_293.csv \
+$PY src/trailercut/movienet.py keyframes --ids data/ids/films_1100.csv \
   --out "$TRAILERCUT_DATA/movienet" --pack
