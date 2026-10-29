@@ -17,7 +17,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import cohen_kappa_score
 
-from .paths import FEATURES, FIGURES, LABELS
+from .paths import FEATURES, FIGURES, IDS, LABELS
+
+STATUS_CSV = IDS.parent / "trailer_status.csv"
 
 
 def load_gold():
@@ -25,7 +27,18 @@ def load_gold():
     for p in sorted(LABELS.glob("gold_*.json")):
         g = json.loads(p.read_text())
         frames.append(pd.DataFrame([dict(key=k, label=v, labeler=g["labeler"]) for k, v in g["labels"].items()]))
-    return pd.concat(frames) if frames else pd.DataFrame(columns=["key", "label", "labeler"])
+    gold = pd.concat(frames) if frames else pd.DataFrame(columns=["key", "label", "labeler"])
+    # labels index shots of the trailer that was labeled; drop films whose trailer has since been swapped
+    ref = LABELS / "label_trailers.csv"
+    if ref.exists() and len(gold):
+        labeled = dict(pd.read_csv(ref, dtype=str).values)
+        now = dict(pd.read_csv(STATUS_CSV, dtype=str)[["imdb_id", "youtube_id"]].values)
+        film = gold.key.str.split(":").str[0]
+        keep = film.map(lambda f: labeled.get(f) is None or labeled[f] == now.get(f))
+        if (~keep).any():
+            print(f"dropping {(~keep).sum()} labels from films whose trailer was swapped: {sorted(set(film[~keep]))}")
+        gold = gold[keep]
+    return gold
 
 
 def main():
