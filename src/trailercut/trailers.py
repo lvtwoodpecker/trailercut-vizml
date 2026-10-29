@@ -58,7 +58,7 @@ def main():
     a = ap.parse_args()
 
     TRAILERS.mkdir(parents=True, exist_ok=True)
-    rows = list(csv.DictReader(open(IDS)))
+    rows = [r for r in csv.DictReader(open(IDS)) if r["youtube_id"]]  # films without a link go through `swap`
     if a.limit:
         rows = rows[: a.limit]
 

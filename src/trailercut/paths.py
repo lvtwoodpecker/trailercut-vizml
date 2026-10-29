@@ -10,7 +10,9 @@ TRAILERS = DATA / "trailers"
 CACHE = DATA / "cache"
 # Small, committed outputs always stay in the repo
 FEATURES = ROOT / "data" / "features"
-IDS = ROOT / "data" / "ids" / "core_films_293.csv"
+# all MovieNet films with keyframes (the original 293-film core set is marked in its `core` column);
+# TRAILERCUT_FILMS points at another list
+IDS = Path(os.environ.get("TRAILERCUT_FILMS", ROOT / "data" / "ids" / "films_1100.csv"))
 LABELS = ROOT / "labels"
 FIGURES = ROOT / "figures"
 

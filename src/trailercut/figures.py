@@ -21,11 +21,11 @@ def alignments():
 
 def funnel():
     status = list(csv.DictReader(open(IDS.parent / "trailer_status.csv")))
+    films = list(csv.DictReader(open(IDS)))
     steps = [
         ("MovieNet films w/ keyframes", len(mn.video_info())),
-        ("+ synopsis-shot alignment", 297),
-        ("+ trailer URL (core set)", len(mn.core_ids())),
-        ("trailer still on YouTube", sum(r["status"] == "ok" for r in status)),
+        ("+ trailer link in MovieNet", sum(bool(r["youtube_id"]) for r in films)),
+        ("working trailer (MovieNet or replaced)", sum(r["status"] == "ok" for r in status)),
         ("trailer aligned to film", len(list((FEATURES / "alignment").glob("*.csv")))),
     ]
     fig, ax = plt.subplots(figsize=(6, 2.4))
