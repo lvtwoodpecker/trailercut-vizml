@@ -59,7 +59,7 @@ Working plan for the current block. Check items off as they land; anything that 
 ## E. Better alignment and trailerness: diagnostics and explanations
 
 1. [x] Shape plots: how each readable feature moves the pick chance (binned SHAP, as an odds multiplier), small multiples; `figures/model_shapes.png`
-2. [ ] EBM (glass-box model, readable features) with the same folds and metrics; adopt its curves for the report if lift is close to LightGBM's
+2. [x] EBM (glass-box model, readable features) with the same folds and metrics; adopt its curves for the report if lift is close to LightGBM's
 3. [x] Case finder: trailers ranked by order (chronological vs shuffled), sound/picture sync, final-act share, and per-film model hits; `data/features/case_studies.json`
 4. [x] Alignment diagnostics from the labels: score distributions by label type; match rate by trailer language (Whisper); `figures/alignment_diagnostics.png`
 5. [x] Shot detection check: trailer shots whose 3 keyframes disagree (likely missed cuts); count and examples
