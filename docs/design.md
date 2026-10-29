@@ -48,8 +48,11 @@ reruns the same way. Hard flags mean the video isn't what we study and should be
 trailer by its title, a home-video ad, a scene clip, a dub, or under 60 s (TV spots, teasers). Soft
 flags (re-release title, under 360p, over 240 s) mean swap only if a better candidate exists. A dub
 needs Whisper to be confident (p 0.8+) over 15+ s of speech. What we give up: rules can miss what a
-person would catch (a re-cut with a clean title). TODO(why): why 240 s as the upper length bound and
-p 0.8 / 15 s for dubs.
+person would catch (a re-cut with a clean title). The cutoffs are judgment calls, not tuned: theatrical
+trailers mostly run 1.5 to 3 minutes, so 240 s leaves room for long ones while catching extended
+previews and featurettes (as a soft flag, since some official trailers do run longer). For dubs,
+Whisper's language guess is unreliable on a few words or on music, so a trailer is only flagged when
+Whisper is at least 80% sure and has 15+ s of speech to go on.
 
 **Swaps in three steps: search, slow download, apply** (`swap.py`). Swapping 80+ trailers in one
 `recover --ids` run hit YouTube's bot check. Splitting it means only the download step talks to
