@@ -5,6 +5,9 @@ current block lives in `plan.md`.
 
 ## Now
 
+- [ ] After the 77 core swaps: rebuild (`bash scripts/run_all.sh align audio rq1 rq2 viz`, plus the missed-cut re-split), then `swap sheet` (it reads the alignment CSVs, which are stale for swapped films until the rebuild) and skim the contact sheets
+- [ ] New films: when `swap prepare --set expand` finishes, `swap download --set expand` overnight (VPN), then `swap apply --set expand --batch`
+
 - [ ] Finish the trailer swaps: candidates downloaded for all 83 searchable flagged films (`data/ids/swap_downloads.csv`); `bash scripts/curate.sh swap-apply` is running. Then commit the status and recovery logs, re-transcribe swapped trailers, rerun the audit, and rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz` plus `ebm`. Films whose candidates all fail (and Freddy vs. Jason, no candidates) keep their trailer
 - [ ] Re-split likely missed cuts (6.7% of trailer shots below the film keyframe-consistency floor) before the full rerun (`plan.md` E6)
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
