@@ -87,3 +87,11 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 2. [ ] Dataset card: provenance (MovieNet + YouTube + our pipeline), licensing (MovieNet is research-only; videos stay on YouTube), how each column was made, known limitations
 3. [ ] Publish to Hugging Face (needs an HF account/token)
 4. [ ] Expansion: the ~800 other MovieNet films with keyframes and a trailer link (no synopsis annotation, so no synopsis-position feature); keyframes (~100 GB) on the cluster; trailers through audit + swap
+
+## H. All 1,100 MovieNet films (time position replaces the synopsis requirement)
+
+1. [ ] Film list `data/ids/films_1100.csv`: every film with keyframes, with MovieNet's trailer link where it exists (993 do, 107 don't)
+2. [ ] Keyframes for the ~807 new films (~135 GB, network bound, many hours; resumable)
+3. [ ] Trailers: download MovieNet links over the VPN; audit; search + swap for dead links, dubs, clips, and the 107 without a link
+4. [ ] Switch the pipeline's film list to all films; new films have no synopsis feature (NaN)
+5. [ ] Rebuild: prep, align, audio, rq1, rq2, viz (and the EBM)
