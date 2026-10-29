@@ -5,6 +5,9 @@
 #   bash scripts/curate.sh recover           replace dead trailer links (search + alignment check)
 #   bash scripts/curate.sh audit             flag trailers that aren't the original theatrical trailer
 #   bash scripts/curate.sh swap ID [ID ...]  replace those films' trailers (keeps the old one if nothing passes)
+#   bash scripts/curate.sh swap-search       ranked replacement candidates for the audit's `swap` films
+#   bash scripts/curate.sh swap-download     download them slowly, one at a time (resumable)
+#   bash scripts/curate.sh swap-apply        check and swap in the downloaded candidates
 #   bash scripts/curate.sh labels            regenerate the hand-labeling page
 #   bash scripts/curate.sh tune              compare alignment and model variants against the labels
 set -euo pipefail
@@ -15,7 +18,10 @@ case "${1:-}" in
   recover) $PY -m trailercut.recover ;;
   audit)   $PY -m trailercut.trailer_audit ;;
   swap)    shift; $PY -m trailercut.recover --ids "$@" ;;
+  swap-search)   $PY -m trailercut.swap search ;;
+  swap-download) shift; $PY -m trailercut.swap download "$@" ;;
+  swap-apply)    $PY -m trailercut.swap apply ;;
   labels)  $PY -m trailercut.label_tool --n 10 --seed 0 ;;
   tune)    $PY -m trailercut.align_tune; $PY -m trailercut.rerank --eval; $PY -m trailercut.model_tune ;;
-  *) sed -n '2,10p' "$0"; exit 1 ;;
+  *) sed -n '2,13p' "$0"; exit 1 ;;
 esac
