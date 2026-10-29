@@ -93,6 +93,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tries", type=int, default=3)
     ap.add_argument("--min-match", type=float, default=0.25)
+    ap.add_argument("--min-span", type=float, default=0.2, help="matched shots must span this much of the film")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--ids", nargs="*", default=[], help="replace these films' working trailers too")
     a = ap.parse_args()
@@ -132,6 +133,10 @@ def main():
                 try:
                     df = align_one(i, threshold)
                     share = float(df.matched[~df.blank].mean())
+                    # a scene clip of the right film aligns perfectly but covers a sliver of it
+                    pos = df.film_story_pos.dropna()
+                    if len(pos) and pos.quantile(0.9) - pos.quantile(0.1) < a.min_span:
+                        share = 0.0
                 except Exception as e:
                     print(i, "align failed:", e)
             accepted = share is not None and share >= a.min_match
