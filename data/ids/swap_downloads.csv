@@ -1,0 +1,10 @@
+imdb_id,youtube_id,status,error
+tt0073486,OXrcDonY-B8,ok,
+tt0075314,T5IligQP7Fo,ok,
+tt0032138,H_3T4DGw10U,error,ERROR: [youtube] H_3T4DGw10U: This video is not available
+tt0372183,Y-HqyyfBbSo,error,ERROR: [youtube] Y-HqyyfBbSo: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github
+tt0032138,njdreZRjvpc,error,ERROR: [youtube] njdreZRjvpc: This video is not available
+tt0032138,FfpF8UUVTeM,error,ERROR: [youtube] FfpF8UUVTeM: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github
+tt0032138,VNugTWHnSfw,ok,
+tt0078788,9l-ViOOFH-s,ok,
+tt0080684,JNwNXF9Y6kY,ok,
