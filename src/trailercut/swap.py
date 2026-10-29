@@ -2,9 +2,10 @@
 
   python -m trailercut.swap search [--ids ...]     ranked candidates -> data/ids/swap_candidates.csv
                                                    (default ids: `swap` rows of data/ids/trailer_audit.csv)
-  python -m trailercut.swap download [--sleep 30] [--top 2] [--cookies-from-browser chrome]
-                                                   one video at a time into data/trailers/candidates/;
-                                                   skips done ones; stops after repeated bot checks
+  python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
+                                                   one video at a time into data/trailers/candidates/,
+                                                   walking down each film's candidates past unavailable
+                                                   ones; resumable; stops after repeated bot checks
   python -m trailercut.swap apply                  for each film, try its downloaded candidates in rank
                                                    order with the usual checks (25% of shots match,
                                                    matched shots span 20% of the film); keep the old
@@ -43,36 +44,42 @@ def search(ids):
     print(f"{len(rows)} candidates for {len({r['imdb_id'] for r in rows})} of {len(ids)} films -> {CANDS}")
 
 
-def download(sleep, top, cookies):
-    cands = pd.read_csv(CANDS)
-    cands = cands[cands["rank"] < top]
+def download(sleep, per_film, cookies):
+    """Per film, walk down its ranked candidates until `per_film` of them downloaded. Unavailable
+    videos (removed, region-locked) are skipped for good; bot-check errors are retried on the next run."""
+    cands = pd.read_csv(CANDS).sort_values(["imdb_id", "rank"])
     done = pd.read_csv(DOWNLOADS) if DOWNLOADS.exists() else pd.DataFrame(columns=["imdb_id", "youtube_id", "status", "error"])
-    ok = set(done[done.status == "ok"].youtube_id)
+    log = {r["youtube_id"]: r for r in done.to_dict("records")}
     DIR.mkdir(parents=True, exist_ok=True)
     opts = dict(format=FORMAT, merge_output_format="mp4", quiet=True, no_warnings=True, noprogress=True, retries=2)
     if cookies:
         opts["cookiesfrombrowser"] = (cookies,)
-    blocked, log = 0, done.to_dict("records")
-    for c in cands.itertuples():
-        if c.youtube_id in ok:
-            continue
-        out = DIR / f"{c.imdb_id}__{c.youtube_id}.mp4"
-        try:
-            with yt_dlp.YoutubeDL(dict(opts, outtmpl=str(out.with_suffix(".%(ext)s")))) as y:
-                y.download([f"https://www.youtube.com/watch?v={c.youtube_id}"])
-            log.append(dict(imdb_id=c.imdb_id, youtube_id=c.youtube_id, status="ok", error=""))
-            blocked = 0
-            print("ok", c.imdb_id, c.youtube_id)
-        except Exception as e:
-            msg = str(e).splitlines()[0][:150]
-            log.append(dict(imdb_id=c.imdb_id, youtube_id=c.youtube_id, status="error", error=msg))
-            blocked = blocked + 1 if "not a bot" in msg else 0
-            print("error", c.imdb_id, msg[:80])
-        pd.DataFrame(log).drop_duplicates(["youtube_id"], keep="last").to_csv(DOWNLOADS, index=False)
-        if blocked >= 3:
-            print("YouTube is blocking (3 bot checks in a row); stopping. Rerun later, it resumes.")
-            break
-        time.sleep(sleep)
+    blocked = 0
+    for i, g in cands.groupby("imdb_id"):
+        got = sum(log.get(y, {}).get("status") == "ok" for y in g.youtube_id)
+        for c in g.itertuples():
+            if got >= per_film:
+                break
+            prev = log.get(c.youtube_id)
+            if prev and (prev["status"] == "ok" or "not a bot" not in str(prev["error"])):
+                continue  # downloaded already, or permanently unavailable
+            out = DIR / f"{c.imdb_id}__{c.youtube_id}.mp4"
+            try:
+                with yt_dlp.YoutubeDL(dict(opts, outtmpl=str(out.with_suffix(".%(ext)s")))) as y:
+                    y.download([f"https://www.youtube.com/watch?v={c.youtube_id}"])
+                log[c.youtube_id] = dict(imdb_id=i, youtube_id=c.youtube_id, status="ok", error="")
+                got, blocked = got + 1, 0
+                print("ok", i, c.youtube_id, flush=True)
+            except Exception as e:
+                msg = str(e).splitlines()[0][:150]
+                log[c.youtube_id] = dict(imdb_id=i, youtube_id=c.youtube_id, status="error", error=msg)
+                blocked = blocked + 1 if "not a bot" in msg else 0
+                print("error", i, msg[:80], flush=True)
+            pd.DataFrame(log.values()).to_csv(DOWNLOADS, index=False)
+            if blocked >= 3:
+                print("YouTube is blocking (3 bot checks in a row); stopping. Rerun later, it resumes.")
+                return
+            time.sleep(sleep)
 
 
 def apply():
@@ -126,7 +133,7 @@ def main():
     ap.add_argument("step", choices=["search", "download", "apply"])
     ap.add_argument("--ids", nargs="*", default=None)
     ap.add_argument("--sleep", type=float, default=30)
-    ap.add_argument("--top", type=int, default=2, help="download this many candidates per film")
+    ap.add_argument("--per-film", type=int, default=1, help="successful downloads wanted per film")
     ap.add_argument("--cookies-from-browser", default=None)
     a = ap.parse_args()
     if a.step == "search":
@@ -135,7 +142,7 @@ def main():
         ids = a.ids or [i for i in audit[audit["swap"]].imdb_id if status.loc[i, "source"] != "search"]
         search(ids)
     elif a.step == "download":
-        download(a.sleep, a.top, a.cookies_from_browser)
+        download(a.sleep, a.per_film, a.cookies_from_browser)
     else:
         apply()
 
