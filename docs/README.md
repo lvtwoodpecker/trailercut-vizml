@@ -3,7 +3,7 @@
 | doc | read it when |
 |---|---|
 | [plan.md](plan.md) | you want the step-by-step plan for the current block of work |
-| [TODO.md](TODO.md) | you want to know what's next and who owns it |
+| [TODO.md](TODO.md) | you want to know what's next |
 | [pipeline.md](pipeline.md) | you need to run something or know what feeds what |
 | [data_dictionary.md](data_dictionary.md) | you're reading a file and need to know what a column means |
 | [design.md](design.md) | you wonder why something is done the way it is |

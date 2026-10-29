@@ -13,12 +13,15 @@ steps that haven't produced a committed output so far.
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
 `title` (YouTube title), `error` (first line of the yt-dlp error, up to 200 chars), `source` (`movienet`
 or `search`). `duration` and `title` are empty when the video was already on disk. All 293 rows are `ok`
-(244 `movienet`, 49 `search`).
+(243 `movienet`, 50 `search`: 49 dead links plus Scarface, replaced with `recover --ids`).
 
-**`trailer_recovery.csv`** (C): every search candidate tried for a dead link, appended across runs (55 rows for 49 films, 49 accepted).
+**`trailer_recovery.csv`** (C): every search candidate tried for a dead link or a film passed to `recover --ids`, appended across runs (56 rows for 50 films, 50 accepted; Scarface's row is a replacement of a working link).
 `imdb_id`, `rank` (search order among filtered results, 0-based), `youtube_id`, `title`, `channel`,
 `duration` (s, from search results), `match_share` (fraction of non-blank shots matched to the film,
 empty if download or alignment failed), `accepted` (`match_share` at least `--min-match`, default 0.25).
+
+**`trailer_review.csv`** (C): eye check of low-match and recovered trailers. `imdb_id`, `verdict`
+(`right film` or `replaced`), `reason` (free text: foreign version, TV spot, dark film, ...; may be empty).
 
 ## Trailer shots (`data/features/trailer_shots/{imdb_id}.csv`, C)
 
@@ -54,6 +57,30 @@ without `source` means `impostor_null`. The committed file is `manual`, threshol
 (`raw`, `smooth`: the best-F1 row of each), `grid` (every row). Each row: `method` (`raw` / `smooth`),
 `threshold`, `lam`, `tau` (smooth only), `precision`, `recall`, `f1`, `near_precision` (a match within
 ±3 film shots of the labeled source counts), `n_pred` (shots predicted matched).
+
+## Sound (`data/features/`)
+
+**`dialogue_alignment/{imdb_id}.csv`** (C): one row per Whisper speech segment of the trailer, no text.
+`seg_idx` (segment index in the transcript), `t_start`, `t_end` (trailer s), `n_words`, `film_t_start`,
+`film_t_end` (s, the best-matching subtitle line or run of 2 to 3 lines), `score` (fuzzy match, 0 to
+100), `margin` (score minus the best score more than 30 s away), `matched` (at least 3 words, score
+at least 90, margin at least 10). Film times and scores are empty for segments under 2 words or films
+without subtitles.
+
+**`av_sync.csv`** (C): one row per trailer. `imdb_id`, `speech_share` (transcribed speech time over
+trailer length), `words_per_min`, `lines_found` (share of segments `matched`), `sync_rate` (of found
+lines over a matched picture, share whose film time is within 30 s of the picture's film shot; empty
+when there are none), `n_lines_paired` (those lines; `sync_rate`'s denominator).
+
+**`av_sync.json`** (C): `trailers`, `trailers_with_found_lines`, `lines_paired`, `pooled_sync_rate`
+(weighted by `n_lines_paired`), `median_sync_rate_3plus` and `trailers_3plus` (trailers with 3+ paired
+lines), `median_speech_share`, `median_words_per_min`, `sync_seconds` (30), `labels`
+(`labeled_shots_under_found_line`, `line_within_sync_of_labeled_shot`: share of those where the line's
+film time is within 30 s of the labeled source shot).
+
+**`rerank_eval.json`** (C): `clip`, `sscd`, `blend` (CLIP + SSCD), each with `best_f1` (`threshold`,
+`precision`, `recall`, `f1`, `near_precision`, `n_pred`, as in `align_tune.json`) and
+`recall_no_threshold` (share of labeled sources that are the top pick).
 
 ## RQ1: film shots (`data/features/film_shots.parquet`, G, ~65 MB)
 
@@ -114,6 +141,7 @@ One row per trailer. Ids: `imdb_id`, `title`, `year`, `decade`, `genres`, `prima
 | story | `match_rate` (matched shots over all shots, blank ones included), then over matched shots' `film_story_pos`: `story_mean`, `story_median`, `story_max`, `story_std`, `first_act_share` (< 0.25), `final_act_share` (> 0.75), `order_corr` (Spearman of trailer position vs story position; empty under 3 matched shots) |
 | dialogue | over each distinct matched film shot, from the film subtitles overlapping it: `dlg_words_per_shot` (mean words), `dlg_sentiment_mean`, `dlg_sentiment_std` (VADER compound, shots with text only), `dlg_neg_share` (share with compound < -0.05) |
 | visual | means over trailer shots: `scale_width_mean`, `c_<concept>_mean` for the 20 concepts (e.g. `c_gun_mean`) |
+| speech | copied from `av_sync.csv`: `speech_share`, `words_per_min`, `lines_found`, `sync_rate` (only when that file exists) |
 
 **`trailer_curves.json`** (C): object keyed by IMDb ID; each has `rms_db` (100 values, dB relative to
 the loudest frame, interpolated over trailer time) and `cuts` (100 counts of shots whose midpoint falls
@@ -122,11 +150,11 @@ in each bin).
 ## Clusters
 
 **`clusters.csv`** (C): one row per trailer. `imdb_id`, `title`, `year`, `primary_genre`, k-means
-label `cluster_<group>` for `all`, `pacing`, `audio`, `story`, `dialogue`, `visual`, and `umap_x`,
+label `cluster_<group>` for `all`, `pacing`, `audio`, `story`, `dialogue`, `visual`, `speech`, and `umap_x`,
 `umap_y` (UMAP of all features, standardized, medians imputed).
 
-**`cluster_report.json`** (C): a JSON list, one object per feature set (`all` first, then the 5
-groups). Keys: `modality`, `n_features`, `best_k`, `silhouette` (k-means silhouette for k = 2 to 8,
+**`cluster_report.json`** (C): a JSON list, one object per feature set (`all` first, then the 6
+groups, `speech` last). Keys: `modality`, `n_features`, `best_k`, `silhouette` (k-means silhouette for k = 2 to 8,
 keyed by k as a string), `stability_ari_mean`, `stability_ari_std` (50 refits on 80% subsamples),
 `hdbscan_n_clusters`, `hdbscan_noise_frac`, and `genre`, `decade`, each `{nmi, null_p95, p}` (`p` =
 share of 200 shuffles with NMI at least as high).
@@ -156,15 +184,20 @@ Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written 
 | key | meaning |
 |---|---|
 | `id`, `title`, `year`, `genres`, `duration` | ids; `duration` = end of the last trailer shot (s) |
+| `speech` | one list per transcript segment: `[t_start, t_end, matched (0/1), film position of the matched line (0 to 1) or null, text, words as [start, end, word]]`; empty without a transcript |
 | `curves` | that trailer's entry from `trailer_curves.json` (`rms_db`, `cuts`) |
 | `shots` | one list per trailer shot: `[t_start, t_end, matched (0/1), film_shot or -1, score, blank (0/1)]` |
 | `shot_colors` | average color (`#rrggbb`) of each trailer shot's middle keyframe |
+| `film.runtime` | film runtime (s, end of the last film shot) |
 | `film.n`, `film.story_pos`, `film.shot_len`, `film.in_trailer` | per film shot, from `film_shots.parquet` |
 | `film.start`, `film.end` | film shot extent as a fraction of runtime (for the barcode) |
 | `film.color` | average color of each film shot's middle keyframe; `null` if the image can't be read |
 | `film.trailerness`, `film.trailerness_readable` | out-of-fold scores of the `full` and `readable` models (only if `model` was run); `null` for logo/credit edge shots the model skips |
 | `film.shap_groups`, `film.shap` | group order and per film shot SHAP summed per group (`position`, `dialogue`, `scale`, `content`, `editing`, `clip`) |
 | `film.detail_features`, `film.detail` | readable feature names, and for in-trailer shots plus the top `--detail` (default 60) by `full` score, `[value, SHAP]` per feature, keyed by shot index |
+
+**`{imdb_id}.vtt`**: WebVTT captions from the Whisper transcript, cues split at about 6 s, 12 words
+or a pause over 1.5 s. Written only when the transcript exists.
 
 **`rq1.json`** (from `rq1_export`, read by `viz/rq1.html`): `n_shots`, `n_films`, `positive_rate`
 (edge shots excluded), then lift tables `story` (20 bins of story position, `level` = bin center),
@@ -178,6 +211,9 @@ films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` fr
 
 `clip/<tag>/{film,trailer}/{id}.npy` (float16, [shots, 3, d], L2-normalized),
 `trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `trailer_audio/{id}.wav` (mono 22,050 Hz),
+`trailer_asr/{id}.json` (`trailer_asr`: `language`, `language_p`, `segments` with `start`, `end`,
+`text`, `words` [{`start`, `end`, `word`, `p`}]), `models/` (SSCD weights for `rerank`),
+`replaced/{id}/` (a trailer's old files while `recover --ids` replaces it, plus `_paths.json`),
 `concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
 `shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
 while the shot counts match).

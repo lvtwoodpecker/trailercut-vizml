@@ -1,8 +1,8 @@
 # Pipeline
 
 How data flows from MovieNet and YouTube to the model, clusters and figures. `scripts/run_all.sh`
-runs steps 1 to 21 in this order (`model_tune` is run by hand). The download and preprocessing steps (1 to 7) skip films and
-trailers that are already done. From `align` on, each step recomputes everything, which takes minutes.
+runs steps 1 to 25 in this order (`model_tune` and `rerank` are run by hand). The download and preprocessing steps (1 to 7) skip films and
+trailers that are already done. From `align` on, each step recomputes everything (except `trailer_asr`, which skips transcribed trailers), which takes minutes.
 
 ```
 MovieNet (HF mirror)                    YouTube
@@ -22,8 +22,9 @@ MovieNet (HF mirror)                    YouTube
         film_features: one row per      trailer_features: one row per
         film shot + in_trailer label    trailer (pacing, audio, story,
                      │                  dialogue, visual)
-                  model (RQ1)                  │
-                  model_eval (±k shots)        │
+                  model (RQ1)           trailer_asr: Whisper transcripts
+                  model_eval (±k shots) dialogue_align: lines → film subtitles
+                  model_figures         av_sync: speech features, sync rate
                   model_tune (by hand)         │
                                             cluster (RQ2)
                            │
@@ -53,12 +54,18 @@ MovieNet (HF mirror)                    YouTube
 | 14 | `trailercut.film_features` | alignment, embeddings, subtitles, story | `data/features/film_shots.parquet` | ~1 min |
 | 15 | `trailercut.model` | film shot table, film embeddings | `model_report.json`, `model_preds.parquet`, `model_shap.parquet` | ~15 min (approx., not timed yet) |
 | 16 | `trailercut.model_eval` | `model_preds.parquet` | `model_eval.json` | seconds |
-| 17 | `trailercut.trailer_features` | alignment, trailer shots, audio, subtitles, trailer embeddings, meta | `trailers.parquet`, `trailer_curves.json` | ~1 min |
-| 18 | `trailercut.cluster` | trailer table | `clusters.csv`, `cluster_report.json`, `figures/clusters_all_umap.png` | ~1 min |
-| 19 | `trailercut.figures` | alignment, status log, trailer shots, impostor null cache | `figures/{data_funnel,alignment_scores,alignment_examples,story_depth,corpus}.png`, `summary.json` | seconds |
-| 20 | `trailercut.viewer_export` | alignment, `film_shots.parquet`, `trailer_curves.json`, model preds/SHAP if present, keyframes | `viz/data/index.json`, `viz/data/{id}.json`, `cache/shot_colors/{id}.json` | seconds once colors are cached; first color pass ~1 ms per keyframe |
-| 21 | `trailercut.rq1_export` | film shot table, film embeddings, `model_eval.json`, `model_tune.json` if present | `viz/data/rq1.json` | under a minute |
+| 17 | `trailercut.model_figures` | `model_preds.parquet`, `model_report.json`, `model_eval.json` | `figures/{model_pr,model_ablation,model_tolerance}.png` | seconds |
+| 18 | `trailercut.trailer_asr` | `cache/trailer_audio/` | `cache/trailer_asr/{id}.json` (skips done ones) | ~13 s/trailer |
+| 19 | `trailercut.dialogue_align` | transcripts, MovieNet subtitles | `data/features/dialogue_alignment/{id}.csv` | not timed |
+| 20 | `trailercut.av_sync` | alignment, dialogue alignment, transcripts, MovieNet shots, `labels/gold_*.json` | `av_sync.csv`, `av_sync.json`, `figures/av_sync.png` | not timed |
+| 21 | `trailercut.trailer_features` | alignment, trailer shots, audio, subtitles, trailer embeddings, meta, `av_sync.csv` if present | `trailers.parquet`, `trailer_curves.json` | ~1 min |
+| 22 | `trailercut.cluster` | trailer table | `clusters.csv`, `cluster_report.json`, `figures/clusters_all_umap.png` | ~1 min |
+| 23 | `trailercut.figures` | alignment, status log, trailer shots, impostor null cache | `figures/{data_funnel,alignment_scores,alignment_examples,story_depth,corpus}.png`, `summary.json` | seconds |
+| 24 | `trailercut.viewer_export` | alignment, `film_shots.parquet`, `trailer_curves.json`, model preds/SHAP if present, keyframes, dialogue alignment and transcripts if present | `viz/data/index.json`, `viz/data/{id}.json`, `viz/data/{id}.vtt`, `cache/shot_colors/{id}.json` | seconds once colors are cached; first color pass ~1 ms per keyframe |
+| 25 | `trailercut.rq1_export` | film shot table, film embeddings, `model_eval.json`, `model_tune.json` if present | `viz/data/rq1.json` | under a minute |
 | (by hand) | `trailercut.model_tune` | film shot table, film embeddings | `model_tune.json` | not timed |
+| (by hand) | `trailercut.rerank --eval` | alignment embeddings, keyframes, `labels/gold_*.json`; downloads SSCD weights to `cache/models/` | `rerank_eval.json` | not timed |
+| (by hand) | `trailercut.recover --ids <id> ...` | as step 8 | replaces these films' working trailers; old files kept in `cache/replaced/{id}/` and restored if no candidate passes | not timed |
 
 `cache/` is `$TRAILERCUT_DATA/cache` (default `data/cache`). `<tag>` is the CLIP backbone
 (`b32`, `l14`, `h14`). Steps 2, 4, 5 and 6 are the heavy ones and have Slurm jobs in `hpc/` (the
@@ -88,13 +95,14 @@ Features, figures and labels always live in the repo checkout, not under `TRAILE
 
 | you changed | rerun from |
 |---|---|
-| trailer list or recovered trailers | `trailer_prep` (skips done ones), `embed trailer`, then `align` onward |
+| trailer list or recovered trailers | `trailer_prep` (skips done ones), `embed trailer`, `trailer_asr`, then `align` onward |
 | CLIP backbone | `embed film`, `embed trailer`, `concepts`, then `align` onward |
 | match threshold or alignment logic | `align` (`--threshold T` for a hand-picked cutoff) onward |
 | hand labels | `label_eval`, `align_tune`, `align --threshold T`, then everything after |
 | film shot features | `film_features`, `model`, `model_eval`, `viewer_export`, `rq1_export` |
 | trailer features | `trailer_features`, `cluster`, `viewer_export` (it reads `trailer_curves.json`) |
-| model | `model`, `model_eval`, `viewer_export`, `rq1_export` (`model_tune` by hand) |
+| transcripts or dialogue matching | `dialogue_align`, `av_sync`, `trailer_features`, `cluster`, `viewer_export` (delete `cache/trailer_asr/{id}.json` to re-transcribe) |
+| model | `model`, `model_eval`, `model_figures`, `viewer_export`, `rq1_export` (`model_tune` by hand) |
 | tolerance eval only | `model_eval` (reuses saved predictions, no retraining) |
 | the Trailer View or RQ1 page only | nothing; reload `viz/index.html` or `viz/rq1.html` |
 
