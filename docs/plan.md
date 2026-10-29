@@ -80,3 +80,10 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 4. [ ] Contact sheet of every swap to skim before the rerun
 5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
 6. [ ] Re-split likely missed cuts (section E6), then one full rerun (E7), then rerun the EBM
+
+## G. Dataset release and expansion
+
+1. [ ] `release` module: one consolidated table per film (MovieNet link vs link in use, source, why it changed, channel, title, duration, audit flags, match share/span, date checked) plus our annotations (trailer shot boundaries, trailer-to-film alignment with scores, dialogue alignment times, sync, hand labels); links and annotations only, no videos, frames or transcripts
+2. [ ] Dataset card: provenance (MovieNet + YouTube + our pipeline), licensing (MovieNet is research-only; videos stay on YouTube), how each column was made, known limitations
+3. [ ] Publish to Hugging Face (needs an HF account/token)
+4. [ ] Expansion: the ~800 other MovieNet films with keyframes and a trailer link (no synopsis annotation, so no synopsis-position feature); keyframes (~100 GB) on the cluster; trailers through audit + swap

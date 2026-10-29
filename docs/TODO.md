@@ -17,6 +17,9 @@ current block lives in `plan.md`.
 
 ## Next (Nov 17 to Dec 1)
 
+- [ ] Dataset release on Hugging Face: consolidated links + annotations + dataset card (`plan.md` section G)
+- [ ] Expand to the ~800 other MovieNet films with keyframes and a trailer (keyframes on the cluster)
+
 - [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
 - [ ] VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
