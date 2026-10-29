@@ -8,11 +8,14 @@ are at least MIN_FRAMES long. The trailer's shot table and keyframes are rewritt
 embedding removed, so `embed trailer` and everything after picks up the new shots.
 
 Hand-labeled trailers are skipped (their labels index the current shots).
-Writes data/features/resplit_log.csv (committed), one row per split; saves per trailer.
+Writes data/features/resplit_log.csv (committed), one row per split, plus a shot_idx -1 row for a
+trailer checked with nothing to split; saves per trailer, and a rerun skips trailers already logged.
 
   python -m trailercut.resplit
 """
 import json
+import os
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -42,6 +45,7 @@ def main():
     todo = []
     for p in sorted(SHOTS_DIR.glob("*.csv")):
         i = p.stem
+        shutil.rmtree(FRAMES_DIR / f"{i}.resplit", ignore_errors=True)  # leftover from an interrupted run
         if i in labeled or i in done or not (CLIP / "trailer" / f"{i}.npy").exists():
             continue
         c = consistency(load("trailer", i).numpy())
@@ -79,11 +83,16 @@ def main():
             new["t_end"] = (new.frame_end + 1) / fps
             new["shot_len"] = new.t_end - new.t_start
             new["trailer_pos"] = (new.t_start + new.t_end) / 2 / (n / fps)
-            for old in (FRAMES_DIR / i).glob("*.jpg"):
-                old.unlink()
-            extract_keyframes(path, new, FRAMES_DIR / i, fps)
+            # build the new keyframes and shot table next to the old ones, then swap them in, so an
+            # interrupted run never leaves keyframes that don't match the shot table
+            tmp = FRAMES_DIR / f"{i}.resplit"
+            shutil.rmtree(tmp, ignore_errors=True)
+            extract_keyframes(path, new, tmp, fps)
+            new.round(4).to_csv(tmp / "shots.csv", index=False)
+            shutil.rmtree(FRAMES_DIR / i)
+            os.replace(tmp, FRAMES_DIR / i)
+            os.replace(FRAMES_DIR / i / "shots.csv", SHOTS_DIR / f"{i}.csv")
             (CLIP / "trailer" / f"{i}.npy").unlink(missing_ok=True)
-            new.round(4).to_csv(SHOTS_DIR / f"{i}.csv", index=False)
         # log even when nothing split, so a rerun skips this trailer
         out = pd.DataFrame(rows or [dict(imdb_id=i, shot_idx=-1, split_frame=-1, prob=np.nan)])
         out.to_csv(LOG, mode="a", header=not LOG.exists(), index=False)
