@@ -3,6 +3,7 @@
   figures/model_pr.png         precision/recall per model, out of fold, pooled over films
   figures/model_ablation.png   lift lost when one feature group is removed from the full model
   figures/model_tolerance.png  lift at trailer length as the ±k shot tolerance grows
+  figures/model_shapes.png     how each readable feature moves the pick chance (binned out-of-fold SHAP)
 
 Lift = per-film precision at trailer length over the positive rate (see model_eval.py).
 
@@ -83,8 +84,44 @@ def tolerance(ev):
     plt.close(fig)
 
 
+SHAPES = [("story_pos", "position in film", False), ("shot_len", "shot length (s)", True),
+          ("scale_width", "shot width (close → wide)", False), ("visual_change", "visual change in shot", False),
+          ("dlg_words", "words spoken", False)]
+
+
+def shapes():
+    shap = pd.read_parquet(FEATURES / "model_shap.parquet")
+    films = pd.read_parquet(FEATURES / "film_shots.parquet")
+    d = shap.merge(films, on=["imdb_id", "shot_idx"], suffixes=("", "_v"))
+    concept = shap.filter(like="c_").abs().mean().idxmax()  # the content concept that matters most
+    panels = SHAPES + [(concept, concept.removeprefix("c_").replace("_", " ") + " (CLIP score)", False)]
+    # one shared log scale, so a 6% effect doesn't look as big as a 60% one
+    fig, axs = plt.subplots(2, 3, figsize=(9, 5), sharey=True)
+    for ax, (col, label, logx) in zip(axs.flat, panels):
+        ax.set_yscale("log")
+        # the merge suffixes the feature values with _v; the bare column is the SHAP value (log-odds)
+        x = d[f"{col}_v"]
+        g = pd.DataFrame(dict(x=x, s=d[col], q=pd.qcut(x.rank(method="first"), 20, labels=False))).groupby("q")
+        mid, lo, med, hi = g.x.median(), g.s.quantile(0.25), g.s.median(), g.s.quantile(0.75)
+        ax.fill_between(mid, np.exp(lo), np.exp(hi), color="#2a78d6", alpha=0.18, lw=0)
+        ax.plot(mid, np.exp(med), color="#2a78d6", lw=2)
+        ax.axhline(1, color="#898781", lw=0.8, ls="--")
+        if logx:
+            ax.set_xscale("log")
+        ax.set_title(label, loc="left", fontsize=9)
+        ax.tick_params(labelsize=7)
+    ticks = [0.7, 0.8, 1, 1.25, 1.5]
+    axs.flat[0].set_yticks(ticks, [f"{t}×" for t in ticks])
+    axs.flat[0].yaxis.set_minor_formatter(plt.NullFormatter())
+    fig.supylabel("odds of making the trailer", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "model_shapes.png")
+    plt.close(fig)
+
+
 def main():
     preds = pd.read_parquet(FEATURES / "model_preds.parquet")
+    shapes()
     pr_curves(preds)
     ablation(json.loads((FEATURES / "model_report.json").read_text()))
     tolerance(json.loads((FEATURES / "model_eval.json").read_text()))
