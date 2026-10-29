@@ -90,8 +90,9 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 
 ## H. All 1,100 MovieNet films (time position replaces the synopsis requirement)
 
-1. [ ] Film list `data/ids/films_1100.csv`: every film with keyframes, with MovieNet's trailer link where it exists (993 do, 107 don't)
+1. [x] Film list `data/ids/films_1100.csv`: every film with keyframes, with MovieNet's trailer link where it exists (993 do, 107 don't)
 2. [ ] Keyframes for the ~807 new films (~135 GB, network bound, many hours; resumable)
-3. [ ] Trailers: download MovieNet links over the VPN; audit; search + swap for dead links, dubs, clips, and the 107 without a link
+3. [ ] Trailers, metadata first (`swap prepare --set expand`): MovieNet's link stays first choice if its metadata is clean (alive, trailer-like title, 60 to 240 s); dead/flagged/missing links get a search pick. Nothing downloaded yet
+3b. [ ] Download one pick per film (`swap download --set expand`), falling through unavailable ones; then `swap apply --set expand` (alignment, coverage) and the post-download audit (Whisper language)
 4. [ ] Switch the pipeline's film list to all films; new films have no synopsis feature (NaN)
 5. [ ] Rebuild: prep, align, audio, rq1, rq2, viz (and the EBM)
