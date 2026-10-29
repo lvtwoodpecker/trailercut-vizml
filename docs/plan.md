@@ -76,7 +76,7 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 
 1. [x] `trailer_audit`: flags from YouTube metadata, transcript and alignment; hard flags (not a trailer, ad, clip, dub, under 60 s) mean swap, soft ones (re-release, low resolution, over 240 s) don't
 2. [x] `recover` search: "official trailer" query, rejects dubs/teasers/TV spots/re-releases by title, official titles and 90 to 180 s first
-3. [ ] Swap the 88 hard-flagged trailers with `recover --ids` (running; films with no passing candidate keep their trailer)
+3. [ ] Swap the hard-flagged trailers: bulk `recover --ids` was blocked by YouTube; the three-step `swap` (search, slow download, apply) got candidates downloaded for 83 films; `swap apply` running
 4. [ ] Contact sheet of every swap to skim before the rerun
 5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
 6. [ ] Re-split likely missed cuts (section E6), then one full rerun (E7), then rerun the EBM

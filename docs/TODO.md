@@ -5,9 +5,11 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] Finish the trailer swaps: candidates found for 83 of 84 flagged films (`data/ids/swap_candidates.csv`). Downloads run with `bash scripts/curate.sh swap-download` (resumable, stops on bot checks; rerun later); then `bash scripts/curate.sh swap-apply`, then rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz`. Second candidates (`--top 2`) for films whose first pick fails
-
-- [ ] Doc pass: `run_all.sh` is now staged (`bash scripts/run_all.sh rq1 viz`), input-changing steps moved to `scripts/curate.sh`; update README, pipeline.md, workflow.md
+- [ ] Finish the trailer swaps: candidates downloaded for all 83 searchable flagged films (`data/ids/swap_downloads.csv`); `bash scripts/curate.sh swap-apply` is running. Then commit the status and recovery logs, re-transcribe swapped trailers, rerun the audit, and rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz` plus `ebm`. Films whose candidates all fail (and Freddy vs. Jason, no candidates) keep their trailer
+- [ ] Re-split likely missed cuts (6.7% of trailer shots below the film keyframe-consistency floor) before the full rerun (`plan.md` E6)
+- [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
+- [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips
+- [ ] Add `--set` to `curate.sh` swap steps (or an `expand` step) so the new-film flow runs through `curate.sh`
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
@@ -18,13 +20,13 @@ current block lives in `plan.md`.
 ## Next (Nov 17 to Dec 1)
 
 - [ ] Dataset release on Hugging Face: consolidated links + annotations + dataset card (`plan.md` section G)
-- [ ] Expand to the ~800 other MovieNet films with keyframes and a trailer (keyframes on the cluster)
+- [ ] Expand to all 1,100 MovieNet keyframe films (`data/ids/films_1100.csv`, `plan.md` section H): keyframes, `swap prepare/download/apply --set expand`, then switch the pipeline's film list
 
 - [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
 - [ ] VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
 - [ ] Overview linked to the Trailer View
-- [ ] Pick case studies (model misses, cluster extremes, sound/picture mismatches)
+- [ ] Pick case studies from `case_studies.json` (after the rerun) plus cluster extremes
 
 ## Later (Dec 1 to 15)
 
@@ -33,9 +35,6 @@ current block lives in `plan.md`.
 
 ## Maybe
 
-- Automatic synopsis-to-shot alignment for the ~520 extra films that have a written synopsis (819 of 1,100 keyframe films do): align paragraphs in order using subtitles and keyframes, scored against MovieNet's 293 human alignments. Only worth it for story-event / spoiler analysis; time position already covers what `synopsis_pos` adds to RQ1
-
-- Expand beyond the 293 core films (~800 MovieNet films have keyframes + trailer, but no synopsis alignment)
 - Letterboxd list as a filter for case studies
 - Film mode in `trailer_prep` for user-owned films outside MovieNet
 - Transcode trailers to H.264 so Safari plays all of them
@@ -47,9 +46,23 @@ current block lives in `plan.md`.
 - Keypoint verification of CLIP's top 5: copy detection (SSCD) already showed stricter visual matching doesn't help with 3 keyframes per film shot
 - Whisper on the cluster: it runs locally (~13 s per trailer)
 - Temporal smoothing of the alignment: lower F1 than raw matching on the labels
+- Automatic synopsis-to-shot alignment for the extra films with a written synopsis: time position already covers what `synopsis_pos` adds to RQ1
+- Bulk trailer swaps in one `recover --ids` run: blocked by YouTube's bot check; replaced by the three-step `swap`
 
 ## Done
 
+- 2026-10-29: docs pass for the staged pipeline, `curate.sh`, EBM, shapes, diagnostics, case finder, audit and swaps
+- 2026-10-29: `run_all.sh` split into stages (`data prep align audio rq1 rq2 viz`, opt-in `ebm`); input-changing steps in `scripts/curate.sh`
+- 2026-10-29: swap candidates downloaded for 83 of 83 searchable flagged films, one at a time, over a different network after the bot check (`swap_downloads.csv`)
+- 2026-10-29: three-step trailer swap (`swap.py` search, download, apply); unavailable candidates marked with the reason; `prepare --set expand` for new films (metadata first)
+- 2026-10-29: film list of all 1,100 MovieNet keyframe films, 993 with a trailer link (`films_1100.csv`)
+- 2026-10-29: trailer audit with hard and soft flags (`trailer_audit.csv`); stricter `recover` search (official trailers first; dubs, teasers, TV spots, re-releases rejected)
+- 2026-10-29: Mulholland Drive's German dub replaced by the official trailer
+- 2026-10-29: `recover --min-span 0.2`; four scene clips replaced (Moonstruck, Commando, Ferris Bueller, Phone Booth)
+- 2026-10-29: EBM glass-box model (`model_ebm.py`): lift 2.83 vs 2.88 for LightGBM on the same features; `figures/ebm_shapes.png`
+- 2026-10-29: shape plots from binned SHAP (`figures/model_shapes.png`)
+- 2026-10-29: case finder (`case_studies.py`, `case_studies.json`)
+- 2026-10-29: alignment diagnostics (`align_diagnostics.py`): score by label type, match rate by language, likely missed cuts
 - 2026-10-29: project update draft refreshed with the final numbers (local, not committed)
 - 2026-10-28: docs pass for the sound work, Trailer View player and Scarface replacement
 - 2026-10-28: dialogue anchors checked against the hand labels: 59% within 30 s of the labeled shot (`av_sync.json`)
