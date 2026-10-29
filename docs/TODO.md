@@ -5,6 +5,8 @@ current block lives in `plan.md`.
 
 ## Now
 
+- [ ] Retry the trailer swaps: 87 of the 88 hard-flagged trailers (`swap` in `data/ids/trailer_audit.csv`) were blocked by YouTube's bot check on 2026-10-29 and kept their old trailer. Retry after a cool-down with one download at a time and a pause between requests (`bash scripts/curate.sh swap ...`), or pass browser cookies to yt-dlp
+
 - [ ] Doc pass: `run_all.sh` is now staged (`bash scripts/run_all.sh rq1 viz`), input-changing steps moved to `scripts/curate.sh`; update README, pipeline.md, workflow.md
 
 **Clustering and Overview**
