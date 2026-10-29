@@ -9,7 +9,10 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   replacements. A replacement may be a re-release, anniversary or international cut, not the original
   theatrical trailer (tracked in `source`). The 3 weakest replacements and the 15 lowest-match trailers
   were checked by eye and are all the right film (`trailer_review.csv`). Six working links were also
-  replaced: Scarface's TV spot, four scene clips and Mulholland Drive's German dub.
+  replaced: Scarface's TV spot, four scene clips and Mulholland Drive's German dub. Then 77 trailers
+  the audit flagged were swapped for official theatrical ones (6 flagged films kept theirs), so 132 of
+  293 core trailers are search picks now (`trailer_status.csv`). The swaps were checked by alignment,
+  not yet by eye (contact sheets are pending).
 - **YouTube rate limits and region locks.** Bulk downloads trip YouTube's bot check, so swaps run one
   video at a time with pauses and can take several sessions. Some candidates are unavailable in one
   region and fine in another, so which trailer a film ends up with can depend on where the download
@@ -18,7 +21,9 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   usually whichever MovieNet's authors found, so "what the trailer used" means "what this trailer used".
 - **Missed cuts in trailer shots.** TransNetV2 misses some cuts (fast flashes, dissolves). 6.7% of
   trailer shots have keyframes less alike than 99% of MovieNet film shots (`alignment_diagnostics.json`),
-  so they likely span two shots; such a shot gets one match for two pieces of footage.
+  so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
+  splits each such shot at most once, so a shot hiding two missed cuts stays partly merged, and
+  hand-labeled trailers are not re-split.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
   look like any of the 3 keyframes and goes unmatched. This also limits strict visual matching: SSCD
   copy detection did worse than CLIP (top pick right 71% vs 93%).
@@ -35,9 +40,10 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 ## Labels
 
 - **`in_trailer` comes from our aligner, not ground truth.** Missed matches become false negatives
-  in the model's training data; wrong matches become false positives. Hand labels measure this on 10
-  trailers only (precision 0.85, recall 0.91 at the 0.535 cutoff).
-- **Hand labels: one labeler, possible anchoring.** All 710 labels are from one person, so there is
+  in the model's training data; wrong matches become false positives. Hand labels measure this on few
+  trailers: 10 were labeled (precision 0.85, recall 0.91 at the 0.535 cutoff), and since Miami Vice's
+  trailer was swapped its labels no longer count, so 9 trailers (641 labels) are left.
+- **Hand labels: one labeler, possible anchoring.** All labels are from one person, so there is
   no kappa yet. The tool shows candidates sorted by score, and 94% of picks were candidate #1, so
   labels may lean toward the aligner's own choice and overstate its accuracy.
 - **The 0.535 cutoff lets through shots that aren't in the film.** 77% of impostor scores (best match

@@ -1,0 +1,56 @@
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=0.55in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\setlist{nosep,leftmargin=1.1em,topsep=1pt}
+\titleformat{\section}{\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{5pt}{2pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\pagestyle{empty}
+
+\begin{document}
+
+{\large\bfseries What Makes The Cut? Interpretable Shot Selection and Clustering of Movie Trailers}\\[1pt]
+Project Update \quad|\quad Team 13: Cedric Lam, Estee Ng \quad|\quad
+\href{https://github.com/lvtwoodpecker/trailercut-vizml}{github.com/lvtwoodpecker/trailercut-vizml}
+
+\section{Progress}
+\begin{itemize}
+\item \textbf{Data.} 293 MovieNet films with keyframes, synopsis-to-shot alignment and a trailer, all 293 with a working trailer: 49 dead links were replaced by YouTube search, accepted only if at least 25\% of the trailer's shots align to that film. The repo stores YouTube IDs, logs, scripts and features, not videos.
+\item \textbf{Picture alignment.} CLIP embeddings of 3 keyframes per shot; each trailer shot is matched to its best film shot or to ``no match''. The cutoff comes from 710 hand-labeled trailer shots: precision 0.85, recall 0.91 (the top match is right 94\% of the time when a source exists). Sequence smoothing and a copy-detection re-ranker were tested against the labels and dropped.
+\item \textbf{Sound alignment.} Whisper transcripts of every trailer, matched to the film's subtitles: 29\% of speech segments are found in the film. Only about half of those lines play over their own scene (51\%); the rest are laid over footage from elsewhere.
+\item \textbf{RQ1.} 464K film shots, 3.8\% used in a trailer. LightGBM with folds grouped by film picks the trailer's exact shots 3.2$\times$ as often as chance. Ablations: CLIP appearance adds the most, then editing (shot length), then story position. Trailers favor the start of the film (1.5$\times$ for the first 5\%) and avoid the late film (0.6$\times$ around 90\%).
+\item \textbf{Clustering.} Stable (bootstrap ARI 0.79 to 0.94) but weakly separated (silhouette 0.11 to 0.31); pacing clusters follow decade, dialogue clusters follow genre.
+\item \textbf{Views.} D3 Trailer View: the trailer plays with its timeline, each shot linked to its source on a ``movie barcode'' of the film, sound linked separately, plus an RQ1 page of what gets picked across all films.
+\end{itemize}
+
+\section{Response to Feedback}
+\begin{itemize}
+\item \textbf{Label quality.} Every trailer shot gets an explicit no-match option. The starting threshold comes from scoring each shot against a \emph{different} film; blank shots are masked on both sides and letterbox bars are cropped per trailer. Since that null cannot see ``right scene, wrong shot'' errors, we hand-labeled 10 decade-stratified trailers (710 usable shots) against each shot's top-5 candidates and picked the threshold from that precision/recall curve; a second labeler on 2 of them will give Cohen's $\kappa$. The augmentation target of 0.9 is dropped.
+\item \textbf{Attributions.} Visual features are readable by construction: zero-shot shot scale (5 MovieNet classes) and 20 named content concepts, plus story position, dialogue sentiment and editing features. SHAP is shown grouped (position, dialogue, scale, content, editing, ``other appearance (CLIP)''), with the CLIP block never split into dimensions. We report readable-only vs.\ readable+CLIP AUPRC so the gap is visible. Shot length is a known confound (longer shots offer more footage) and is controlled for.
+\item \textbf{Scope.} RQ1 and the Trailer View are the core. Clustering becomes one supporting Overview; the spoiler stretch goals are dropped, with final-act share kept as a labeled proxy.
+\item \textbf{Clustering evaluation.} Bootstrap ARI for stability and NMI with genre/decade against a permutation null. Since clusters partly follow decade, we will regress genre and decade out and re-cluster the residuals; if structure stays weak, we report continuous axes instead of trailer ``types''.
+\item \textbf{Trailer data.} IDs, availability log and features are committed; everything else is rebuilt by one script.
+\end{itemize}
+
+\section{Scope and Plan}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+Nov 3 to 17 & Second labeler for agreement; sound/picture features in the clustering; residual clustering; cluster Overview view; custom player with the timeline as scrubber. \\
+Nov 17 to Dec 1 & Overview linked to the Trailer View; case studies (model misses, sound/picture mismatches); ViT-H/14 rerun on the cluster. \\
+Dec 1 to 15 & Ablations, final evaluation, report and presentation.
+\end{tabularx}
+
+\section{Who Does What}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+Cedric & Data pipeline (MovieNet download, trailer scraping and recovery, shot detection, CLIP, alignment, cluster jobs), RQ1 trailerness model and SHAP, Trailer View. \\
+Estee & RQ2 clustering (feature selection, k-means/HDBSCAN, stability and genre/era baselines, residual clustering), cluster Overview in D3 and its link to the Trailer View, case study selection. \\
+Both & Hand labeling (shared trailers for agreement), report and presentation.
+\end{tabularx}
+
+\end{document}

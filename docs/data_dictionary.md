@@ -6,20 +6,22 @@ steps that haven't produced a committed output so far.
 
 ## IDs and logs (`data/ids/`)
 
-**`core_films_293.csv`** (C): the 293 core films.
+**`core_films_293.csv`** (C): the 293 core films (the pipeline's film list before `films_1100.csv`; still used for keyframes in `run_all.sh data`).
 `imdb_id`, `youtube_id` (MovieNet's original trailer link).
 
 **`films_1100.csv`** (C): all 1,100 MovieNet films with keyframes. `imdb_id`, `youtube_id` (MovieNet's
-trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0).
+trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0). The
+pipeline's film list (`paths.IDS`; `TRAILERCUT_FILMS` overrides).
 
-**`trailer_status.csv`** (C): one row per core film.
+**`trailer_status.csv`** (C): one row per film with a trailer in use (the 293 core films so far; new
+films are added by `swap apply --set expand`).
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
 `title` (YouTube title), `error` (first line of the yt-dlp error, up to 200 chars), `source` (`movienet`
 or `search`). `duration` and `title` are empty when the video was already on disk. All 293 rows are `ok`
-(238 `movienet`, 55 `search`: 49 dead links, plus Scarface, four scene clips and Mulholland Drive's dub,
-replaced with `recover --ids`).
+(161 `movienet`, 132 `search`: 49 dead links; Scarface, four scene clips and Mulholland Drive's dub
+replaced with `recover --ids`; 77 flagged trailers swapped with `swap apply`).
 
-**`trailer_recovery.csv`** (C): every candidate tried by `recover` (dead links, `--ids`) or `swap apply`, appended across runs (318 rows for 138 films, 55 accepted).
+**`trailer_recovery.csv`** (C): every candidate tried by `recover` (dead links, `--ids`) or `swap apply`, appended across runs and after every film (401 rows for 138 films, 132 accepted). `swap apply` reads it to skip films already decided.
 `imdb_id`, `rank` (search order among filtered results, 0-based), `youtube_id`, `title`, `channel`,
 `duration` (s, from search results), `match_share` (fraction of non-blank shots matched to the film,
 empty if download or alignment failed; `recover` sets it to 0 when the matched shots span under
@@ -52,13 +54,18 @@ empty otherwise; `download --recheck` retries these). 551 candidates for 83 film
 `status` (`ok` / `error`), `error` (first line of the yt-dlp error). Bot-check errors are retried on
 the next run. The committed log has 83 films downloaded.
 
-**`expand_candidates.csv`**, **`expand_downloads.csv`** (`swap --set expand`; not written yet): same
-columns for films new to the dataset, plus `source` (`movienet` for MovieNet's own link kept as rank 0,
-`search` for search picks ranked from 1).
+**`expand_candidates.csv`** (C, `swap prepare --set expand`): first-choice trailers for films new to the
+dataset, same columns as `swap_candidates.csv` plus `source` (`movienet` for MovieNet's own link kept
+as rank 0, `search` for search picks ranked from 1). Appended per film. The committed file has 798
+films: 349 keep MovieNet's link, 449 have a search pick. It has no `unavailable` column yet; `swap`
+adds it once a download log exists.
+
+**`expand_downloads.csv`** (`swap download --set expand`; not committed yet): same columns as
+`swap_downloads.csv`.
 
 ## Trailer shots (`data/features/trailer_shots/{imdb_id}.csv`, C)
 
-One row per TransNetV2 shot.
+One row per TransNetV2 shot, renumbered after `resplit` splits a shot.
 `shot_idx`, `frame_start`, `frame_end` (inclusive), `t_start`, `t_end` (s), `shot_len` (s),
 `trailer_pos` (shot midpoint as a fraction of video length, 0 to 1).
 
@@ -117,6 +124,11 @@ hand-label kind `right shot`, `wrong shot`, `same scene, other shot`, `not in fi
 `no speech` from Whisper: `trailers`, `median_match` rate), `cuts` (`film_floor_1pct`: keyframe
 consistency, the lowest cosine between a shot's 3 keyframes, that only 1% of MovieNet film shots fall
 below; `trailer_shots`; `trailer_below_floor`: share of trailer shots below it, likely missed cuts).
+
+**`resplit_log.csv`** (C, `resplit`; not committed yet): appended per trailer. `imdb_id`, `shot_idx`
+(the shot that was split, numbered as before the split; -1 for a trailer checked with nothing to
+split), `split_frame` (first frame of the second half), `prob` (TransNetV2's cut probability there;
+empty for -1 rows).
 
 **`rerank_eval.json`** (C): `clip`, `sscd`, `blend` (CLIP + SSCD), each with `best_f1` (`threshold`,
 `precision`, `recall`, `f1`, `near_precision`, `n_pred`, as in `align_tune.json`) and
@@ -217,7 +229,10 @@ share of 200 shuffles with NMI at least as high).
 `pooled_final_quarter`, `median_trailer_final_act_share`), `alignment` (`trailer_shots`, `blank`,
 `matched`, `match_rate_per_trailer_median`). The numbers behind the figures.
 
-**`labels/label_sample.json`** (C): list of the sampled IMDb IDs. **`labels/gold_<name>.json`** (C,
+**`labels/label_sample.json`** (C): list of the sampled IMDb IDs. **`labels/label_trailers.csv`** (C,
+kept by hand): `imdb_id`, `youtube_id` of the trailer each labeled film had when it was labeled.
+`label_eval.load_gold` drops a film's labels when its trailer in `trailer_status.csv` differs (so far
+Miami Vice's 71 labels, after its swap). Add a row when labeling a new film. **`labels/gold_<name>.json`** (C,
 `gold_ced.json` so far): `{labeler, labels}`, labels keyed `imdb_id:shot_idx` with a film shot index, `s`, `n` or
 `u`. **`labels/label_tool.html`** (G): the page, with each shot's top-5 candidates embedded.
 **`labels/img/{id}/`** (G): images the page shows, copied by `label_tool`: `t_shot_XXXX_img_{0,1,2}.jpg`
@@ -264,11 +279,25 @@ films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` fr
 `trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `trailer_audio/{id}.wav` (mono 22,050 Hz),
 `trailer_asr/{id}.json` (`trailer_asr`: `language`, `language_p`, `segments` with `start`, `end`,
 `text`, `words` [{`start`, `end`, `word`, `p`}]), `models/` (SSCD weights for `rerank`),
-`replaced/{id}/` (a trailer's old files while `recover --ids` or `swap apply` replaces it, plus `_paths.json`),
+`replaced/{id}/` (a trailer's old files while `recover --ids` or `swap apply` replaces it, plus `_paths.json`; written once, removed after a restore),
 `yt_meta/{youtube_id}.json` (`trailer_audit`: `title`, `channel`, `duration`, `height`; failed
 requests aren't cached),
 `concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
 `shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
-while the shot counts match).
+while the shot counts match), `sheets/swaps_NN.jpg` (`swap sheet`: per swapped film, old and new
+YouTube title and the new trailer's 4 best-matching shots next to the film keyframes they matched;
+film frames, so never committed).
 
 Swap downloads go to `$TRAILERCUT_DATA/trailers/candidates/{id}__{youtube_id}.mp4` (G).
+
+## Dataset release (`data/release/`, G, `release`)
+
+Links and annotations only, to upload as a dataset. Not written to the repo.
+
+| file | what |
+|---|---|
+| `trailers.csv` | one row per film in the status log: `imdb_id`, `title_film`, `core`, `movienet_youtube_id`, `youtube_id` (in use), `changed`, `source`, `status`, `youtube_title`, `channel`, `duration`, `height`, `flags`, `match_share` (non-blank shots matched), `span`, `review_note` (from `trailer_review.csv`), `checked` (build date) |
+| `trailer_shots.parquet`, `alignment.parquet`, `dialogue_alignment.parquet` | the per-trailer CSVs stacked, with an `imdb_id` column |
+| `av_sync.csv` | copy of `data/features/av_sync.csv` |
+| `hand_labels.csv` | `imdb_id`, `trailer_shot`, `label`, `labeler` (`labeler_1`, ... by file order, names removed) |
+| `README.md` | dataset card: files, how it was made, limitations, terms (annotations under CC BY-NC 4.0) |

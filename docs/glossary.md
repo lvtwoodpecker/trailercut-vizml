@@ -2,7 +2,7 @@
 
 | term | meaning here |
 |---|---|
-| core set | the 293 MovieNet films with keyframes, synopsis-to-shot alignment and a trailer link |
+| core set | the 293 MovieNet films with keyframes, synopsis-to-shot alignment and a trailer link (`core` = 1 in `films_1100.csv`) |
 | shot | a continuous run of frames between two cuts. Film shots come from MovieNet; trailer shots from TransNetV2 |
 | keyframe | one of the 3 frames sampled per shot (MovieNet's for films; 25/50/75% for trailers) |
 | story position | where a film shot falls in the film: shot midpoint over runtime, 0 (start) to 1 (end) |
@@ -54,3 +54,6 @@
 | swap | replacing a working trailer with a better candidate (`swap.py`, `recover --ids`) |
 | keyframe consistency | the lowest cosine between a shot's 3 keyframes; low = the keyframes show different things |
 | missed cut | a trailer shot whose keyframe consistency is below what 99% of MovieNet film shots reach; likely two shots TransNetV2 merged |
+| re-split | splitting a likely missed cut once, at TransNetV2's most likely cut frame inside the shot (`resplit.py`) |
+| batch apply | `swap apply --batch`: swap checks in rounds, one shot detection and CLIP pass per round over all undecided films |
+| expand set | films new to the dataset (not in the 293 core set), handled by `swap --set expand` |

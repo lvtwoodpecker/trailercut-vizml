@@ -69,22 +69,22 @@ cutoff can't remove them; trailer language makes no difference at 0.535; 6.7% of
 keyframes less consistent than 99% of MovieNet shots (likely missed cuts). Four MovieNet "trailers"
 were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were replaced.
 
-6. [~] Re-split likely missed cuts (keyframe consistency below the film floor; `resplit`, running; labeled trailers skipped): rerun TransNetV2 with a lower threshold on those shots, check the effect on matching
-7. [ ] Full rerun after the four replacements (transcripts, alignment, features, model, EBM, exports)
+6. [~] Re-split likely missed cuts (keyframe consistency below the film floor; `resplit`, running; labeled trailers skipped): split each at TransNetV2's most likely cut frame (probability at least 0.1), check the effect on matching
+7. [ ] Full rerun after the replacements and swaps (transcripts, alignment, features, model, EBM, exports)
 
 ## F. Representative trailers (original theatrical, original language; rules only)
 
 1. [x] `trailer_audit`: flags from YouTube metadata, transcript and alignment; hard flags (not a trailer, ad, clip, dub, under 60 s) mean swap, soft ones (re-release, low resolution, over 240 s) don't
 2. [x] `recover` search: "official trailer" query, rejects dubs/teasers/TV spots/re-releases by title, official titles and 90 to 180 s first
-3. [ ] Swap the hard-flagged trailers: bulk `recover --ids` was blocked by YouTube; the three-step `swap` (search, slow download, apply) got candidates downloaded for 83 films; `swap apply` running
-4. [ ] Contact sheet of every swap to skim before the rerun
+3. [x] Swap the hard-flagged trailers: bulk `recover --ids` was blocked by YouTube; the three-step `swap` (search, slow download, apply): 77 swapped, 6 kept
+4. [~] Contact sheet of every swap to skim (`swap sheet`, built; run after the rebuild)
 5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
 6. [ ] Re-split likely missed cuts (section E6), then one full rerun (E7), then rerun the EBM
 
 ## G. Dataset release and expansion
 
-1. [ ] `release` module: one consolidated table per film (MovieNet link vs link in use, source, why it changed, channel, title, duration, audit flags, match share/span, date checked) plus our annotations (trailer shot boundaries, trailer-to-film alignment with scores, dialogue alignment times, sync, hand labels); links and annotations only, no videos, frames or transcripts
-2. [ ] Dataset card: provenance (MovieNet + YouTube + our pipeline), licensing (MovieNet is research-only; videos stay on YouTube), how each column was made, known limitations
+1. [x] `release` module (local, `data/release/`): one consolidated table per film (MovieNet link vs link in use, source, why it changed, channel, title, duration, audit flags, match share/span, date checked) plus our annotations (trailer shot boundaries, trailer-to-film alignment with scores, dialogue alignment times, sync, hand labels); links and annotations only, no videos, frames or transcripts
+2. [x] Dataset card (annotations under CC BY-NC 4.0): provenance (MovieNet + YouTube + our pipeline), licensing (MovieNet is research-only; videos stay on YouTube), how each column was made, known limitations
 3. [ ] Publish to Hugging Face (needs an HF account/token)
 4. [ ] Expansion: the ~800 other MovieNet films with keyframes and a trailer link (no synopsis annotation, so no synopsis-position feature); keyframes (~100 GB) on the cluster; trailers through audit + swap
 
@@ -92,7 +92,7 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 
 1. [x] Film list `data/ids/films_1100.csv`: every film with keyframes, with MovieNet's trailer link where it exists (993 do, 107 don't)
 2. [ ] Keyframes for the ~807 new films (~135 GB, network bound, many hours; resumable)
-3. [ ] Trailers, metadata first (`swap prepare --set expand`): MovieNet's link stays first choice if its metadata is clean (alive, trailer-like title, 60 to 240 s); dead/flagged/missing links get a search pick. Nothing downloaded yet
-3b. [ ] Download one pick per film (`swap download --set expand`), falling through unavailable ones; then `swap apply --set expand` (alignment, coverage) and the post-download audit (Whisper language)
-4. [ ] Switch the pipeline's film list to all films; new films have no synopsis feature (NaN)
+3. [x] Trailers, metadata first (`swap prepare --set expand`): MovieNet's link stays first choice if its metadata is clean (alive, trailer-like title, 60 to 240 s); dead/flagged/missing links get a search pick (798 films: 349 MovieNet links, 449 search picks)
+3b. [~] Download one pick per film (`swap download --set expand`, running), falling through unavailable ones; then `swap apply --set expand --batch` (alignment, coverage) and the post-download audit (Whisper language)
+4. [x] Switch the pipeline's film list to all films; new films have no synopsis feature (NaN)
 5. [ ] Rebuild: prep, align, audio, rq1, rq2, viz (and the EBM)

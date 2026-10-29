@@ -6,10 +6,15 @@ Code paths are under `src/trailercut/`. Numbers are from the 293-trailer run wit
 ## Data
 
 **Core set = 293 films.** Films with MovieNet keyframes, synopsis-to-shot alignment and a trailer link.
-The synopsis alignment places a shot in the story (synopsis paragraph). The next step is all 1,100
-keyframe films (`data/ids/films_1100.csv`, 993 with a MovieNet trailer link): time position in the film
-covers what `synopsis_pos` adds, so new films get no synopsis feature (NaN) and we don't build an
-automatic synopsis alignment for them.
+The synopsis alignment places a shot in the story (synopsis paragraph).
+
+**Film list = all 1,100 keyframe films** (`data/ids/films_1100.csv`, 993 with a MovieNet trailer link;
+`paths.IDS`, `TRAILERCUT_FILMS` overrides). Time position in the film covers what `synopsis_pos` adds,
+so new films get no synopsis feature (NaN) and we don't build an automatic synopsis alignment for them.
+The 293 core films keep a `core` flag. `trailers` only downloads films that have a MovieNet link;
+films without one get a trailer through `swap --set expand`. The data funnel figure now counts
+keyframe films, then films with a MovieNet trailer link, then films with a working trailer (MovieNet's
+or a replacement), then aligned trailers; the synopsis step is gone since it no longer filters films.
 
 **Store IDs and features, not media.** The repo has YouTube IDs, an availability log
 (`data/ids/trailer_status.csv`) and extracted features. Videos, keyframes and embeddings are
@@ -63,6 +68,21 @@ asking YouTube again (`--recheck` retries them, e.g. from another region). Downl
 film's ranked candidates until one works. `apply` checks candidates in rank order with the same 25%
 match and 20% span rules and keeps the old trailer if none passes.
 
+**Batch apply for hundreds of films** (`swap apply --batch`). Plain `apply` runs `trailer_prep` and
+`embed trailer` per candidate, which reloads TransNetV2 and CLIP every time; fine for 80 films, slow
+for the ~800 new ones. `--batch` works in rounds: every undecided film's next downloaded candidate
+goes in place, shot detection and CLIP run once over all of them, then each film is aligned and
+decided with the same checks. A rejected film tries its next candidate in the next round. Same
+decisions, fewer model loads. A film whose check crashes (e.g. failed shot detection) counts as
+rejected.
+
+**Long jobs save per item and resume.** `trailers`, `recover`, `swap prepare` and both `swap apply`
+modes write their logs after every film, and reruns skip what is already decided (from the status
+and recovery logs, or the candidate list). These jobs can run for hours against YouTube; before
+this the logs were only written at the end, so an interrupted run lost every decision it had made.
+The backup of a film's original trailer in `cache/replaced/{id}/` is written once: a resumed run that
+finds one doesn't overwrite it with a half-tried candidate. It is removed after a restore, so the next swap of that film starts clean.
+
 **New films: metadata first** (`swap prepare --set expand`). For films new to the dataset, MovieNet's
 own link stays the first choice when its YouTube metadata looks like a clean trailer (alive, title
 passes the filter, 60 to 240 s); only dead, flagged or missing links get a search. Nothing is
@@ -94,6 +114,19 @@ keyframes aren't; the black bars pull similarity down. Bars are found from the p
 of a trailer's frames: real bars stay black in every frame, dark scenes don't. Cropping per frame
 was tried first and hurt dark films (*The Godfather* 0.65 to 0.60); per-trailer crop moved *Rebel
 Without a Cause* from 32% to 43% matched with no loss elsewhere.
+
+**Re-split likely missed cuts** (`resplit.py`). A trailer shot whose 3 keyframes disagree more than
+99% of MovieNet film shots do (lowest keyframe cosine below `film_floor_1pct` in
+`alignment_diagnostics.json`) likely spans a cut TransNetV2 missed. For those shots only, we take
+TransNetV2's per-frame cut probabilities and split the shot once, at its most likely frame, if that
+probability is at least 0.1 (TransNetV2's own cutoff is 0.5) and both halves are at least 6 frames.
+Only suspect shots are touched, so the lower cutoff can't add cuts elsewhere.
+0.1 is well below the default so the soft cuts TransNetV2 hesitates on (dissolves, flashes) still count, which is fine because only shots already flagged by their keyframes are considered; 6 frames (about a quarter second) keeps flash frames from becoming shots of their own. Neither was tuned. What we give up: at most one split per shot, so a shot hiding two
+missed cuts stays partly merged. The shot table and keyframes are rewritten and the trailer's CLIP
+embedding is removed, so `embed trailer` and everything after see the new shots. New keyframes and the
+shot table are built in a side folder and swapped in, so an interrupted run never leaves keyframes
+that don't match the shot table. The log records every
+trailer checked (`shot_idx` -1 when nothing split) so reruns skip them.
 
 ## CLIP
 
@@ -141,6 +174,15 @@ since trailers cut between scenes all the time. The kept version only rewards co
 that land within `tau` film shots and never penalizes a jump. Against the hand labels its best F1
 (0.846) is still below raw best-match (0.879), so `align` doesn't use it. The function stays for
 reference.
+
+**Labels belong to one trailer** (`labels/label_trailers.csv`, `label_eval.load_gold`). Labels are
+keyed `imdb_id:shot_idx`, so they only mean something for the trailer that was labeled. After a swap,
+the same key points at a different shot of a different video. `label_trailers.csv` records the
+`youtube_id` each labeled film had, and `load_gold` drops a film's labels when the status log now
+shows another trailer. Miami Vice's trailer was swapped, so its 71 labels drop out and 641 remain;
+every step that reads labels (`label_eval`, `align_tune`, `align_diagnostics`, `av_sync`, `rerank`) goes
+through `load_gold`. What we give up: those labels, unless that film is labeled again. `resplit` skips
+hand-labeled trailers for the same reason: splitting a shot renumbers the ones after it.
 
 **Label tool copies its own images** (`label_tool.copy_images`). The page used to load images by
 relative path from `data/`, which broke with per-film keyframe zips (`--pack`) and with
@@ -371,6 +413,17 @@ just the stages after it. Steps that change the inputs (dead-link recovery, the 
 label pages, variant comparisons against the labels) live in `scripts/curate.sh` and are run on purpose:
 they change what every later number is computed from, and the trailer steps are slow under YouTube's
 rate limits, so a full rebuild never triggers them.
+
+## Dataset release (`release.py`)
+
+**Links and annotations only.** `data/release/` holds one table per film (MovieNet's link vs the link
+we use, why it changed, YouTube metadata, audit flags, match share, span), trailer shot boundaries,
+the picture and dialogue alignments, sync features and the hand labels, plus a dataset card. Left
+out: videos, frames, audio and transcripts, which are copyrighted (transcripts are the film's
+dialogue), and MovieNet's own keyframes, subtitles and annotations, which are research-only under
+MovieNet's terms; film shot indices point into MovieNet's shot annotations instead. Labeler names are
+replaced by `labeler_1`, `labeler_2`, ... so a public file carries no personal names. The folder is
+gitignored and rebuilt from committed files. The annotations are released under CC BY-NC 4.0: non-commercial, to match MovieNet's research-only terms that the alignment depends on.
 
 ## Dropped from the proposal
 

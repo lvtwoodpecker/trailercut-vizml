@@ -12,17 +12,19 @@ Builds on Argaw et al., *Towards Automated Movie Trailer Generation* (CVPR 2024)
 
 Nothing copyrighted is committed. The repo holds YouTube IDs, download scripts and extracted features;
 raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in gitignored `data/` folders and are rebuilt by the scripts.
+The dataset release (`python -m trailercut.release`, links and annotations only) is written to gitignored `data/release/`.
 
 | committed | what |
 |---|---|
-| `data/ids/core_films_293.csv` | the 293 films with keyframes + synopsis-to-shot story alignment + a trailer URL |
-| `data/ids/films_1100.csv` | all 1,100 MovieNet films with keyframes, MovieNet's trailer link where there is one, and a `core` flag |
+| `data/ids/core_films_293.csv` | the original 293 films with keyframes + synopsis-to-shot story alignment + a trailer URL |
+| `data/ids/films_1100.csv` | all 1,100 MovieNet films with keyframes, MovieNet's trailer link where there is one, and a `core` flag; the pipeline's film list (`TRAILERCUT_FILMS` points at another) |
 | `data/ids/trailer_status.csv` | which trailers still download (ok / unavailable / error); `source` says whether the link is MovieNet's or a search replacement |
 | `data/ids/trailer_recovery.csv` | every search candidate tried for a dead link, with its match share and whether it was accepted |
 | `data/ids/trailer_review.csv` | eye check of the lowest-match and weakest recovered trailers (all the right film) and replaced ones |
 | `data/ids/trailer_audit.csv` | rule-based check of every trailer in use: flags (not a trailer, dub, scene clip, ...) and whether it should be swapped |
-| `data/ids/swap_candidates.csv`, `swap_downloads.csv` | ranked replacement candidates for flagged trailers and the download log (`expand_*` for films new to the dataset) |
-| `data/features/trailer_shots/*.csv` | TransNetV2 shots per trailer |
+| `data/ids/swap_candidates.csv`, `swap_downloads.csv` | ranked replacement candidates for flagged trailers and the download log (`expand_*` for films new to the dataset: first-choice trailers from `swap prepare --set expand`) |
+| `data/features/trailer_shots/*.csv` | TransNetV2 shots per trailer (after `resplit` where it split a shot) |
+| `data/features/resplit_log.csv` | trailer shots split by `resplit` (likely missed cuts) |
 | `data/features/alignment/*.csv` | per trailer shot: matched film shot, score, margin, top-5 candidates |
 | `data/features/dialogue_alignment/*.csv` | per trailer speech segment: trailer times, matched film subtitle time, score, margin (no text; transcripts stay in the gitignored cache) |
 | `data/features/av_sync.csv`, `av_sync.json` | per trailer speech features and sound vs picture sync rate; summary and check against the hand labels |
@@ -37,7 +39,7 @@ raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in git
 | `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
-| `labels/` | hand-labeling sample + gold labels for alignment (the generated page and `labels/img/` are not committed) |
+| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated page and `labels/img/` are not committed |
 | `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
 
 ## Setup
@@ -66,7 +68,7 @@ not in `run_all.sh`; they live in `scripts/curate.sh` (below).
 | stage | step | module | notes |
 |---|---|---|---|
 | data | MovieNet download | `src/trailercut/movienet.py` | ungated HF mirror; keyframes pulled per film with HTTP range requests (~125 MB/film instead of the 172 GB archive) |
-| data | trailers | `trailercut.trailers` | yt-dlp at 360p, logs availability |
+| data | trailers | `trailercut.trailers` | yt-dlp at 360p for the link in use per film (`trailer_status.csv`), logs availability |
 | prep | shots | `trailercut.trailer_prep` | TransNetV2 boundaries, 3 keyframes/shot (MovieNet style), mono audio |
 | prep | embeddings | `trailercut.embed` | CLIP ViT-B/32 (LAION-2B), 3 keyframes per shot; trailer letterbox bars cropped per trailer |
 | prep | readable features | `trailercut.concepts` | zero-shot shot scale + 20 content concepts, so SHAP names things people can read |
@@ -94,13 +96,16 @@ not in `run_all.sh`; they live in `scripts/curate.sh` (below).
 bash scripts/curate.sh recover           # replace dead trailer links (search + alignment check)
 bash scripts/curate.sh audit             # flag trailers that aren't the original theatrical trailer
 bash scripts/curate.sh swap ID [ID ...]  # replace these films' trailers now
+bash scripts/curate.sh swap-prepare --set expand   # first-choice trailers for new films (metadata only)
 bash scripts/curate.sh swap-search       # ranked candidates for the audit's `swap` films
 bash scripts/curate.sh swap-download     # download them slowly, one at a time (resumable)
-bash scripts/curate.sh swap-apply        # check and swap in the downloaded candidates
+bash scripts/curate.sh swap-apply        # check and swap in the downloaded candidates (resumable; --batch for hundreds)
+bash scripts/curate.sh swap-sheet        # contact sheets of the swaps to skim (cache/sheets/, not committed)
 bash scripts/curate.sh labels            # regenerate the hand-labeling page
 bash scripts/curate.sh tune              # align_tune, rerank --eval, model_tune against the labels
 ```
-After any of them, rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
+Add `--set expand` to the `swap-*` steps to work on films new to the dataset. After any of them,
+rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
 
 **Replacing trailers.** `audit` writes `data/ids/trailer_audit.csv`; films with a hard flag get
 `swap=True`. For a few films, `swap ID ...` searches, downloads and checks in one go. For many films,
@@ -109,7 +114,14 @@ candidates, `swap-download` fetches one video at a time with a pause between req
 3 bot checks in a row (rerun later, it resumes), and `swap-apply` aligns each downloaded candidate
 and keeps it only if at least 25% of its shots match and the matches span at least 20% of the film.
 A film whose candidates all fail keeps its old trailer. Accepted swaps are logged in
-`trailer_recovery.csv` and `trailer_status.csv` (`source=search`).
+`trailer_recovery.csv` and `trailer_status.csv` (`source=search`). `swap-apply` saves after every film
+and skips films already decided, so an interrupted run resumes; `--batch` runs shot detection and
+CLIP once per round over all films instead of once per film. `swap-sheet` reads the alignment, so run
+it after the rebuild.
+
+**Missed cuts.** `python -m trailercut.resplit` splits trailer shots whose keyframes disagree more
+than 99% of MovieNet film shots do (likely missed cuts) and logs them in `resplit_log.csv`; then
+`python -m trailercut.embed trailer` and rebuild from `align`.
 
 ## Hand-labeling alignments
 

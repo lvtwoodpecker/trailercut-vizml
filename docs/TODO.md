@@ -5,14 +5,11 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] After the 77 core swaps: `resplit` (running), then `python -m trailercut.embed trailer` and `bash scripts/run_all.sh align audio rq1 rq2 viz`, then `swap sheet` and skim the contact sheets
+- [ ] After the 77 core swaps: `resplit` (running, `plan.md` E6), then `python -m trailercut.embed trailer` and `bash scripts/run_all.sh align audio rq1 rq2 viz` plus `ebm`, then `swap sheet` and skim the contact sheets
 - [ ] New films: `swap download --set expand` is running (798 first choices); then `swap apply --set expand --batch`, `embed film`, `resplit`, and the full rebuild
 
-- [ ] Finish the trailer swaps: candidates downloaded for all 83 searchable flagged films (`data/ids/swap_downloads.csv`); `bash scripts/curate.sh swap-apply` is running. Then commit the status and recovery logs, re-transcribe swapped trailers, rerun the audit, and rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz` plus `ebm`. Films whose candidates all fail (and Freddy vs. Jason, no candidates) keep their trailer
-- [ ] Re-split likely missed cuts (6.7% of trailer shots below the film keyframe-consistency floor) before the full rerun (`plan.md` E6)
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
-- [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips
-- [ ] Add `--set` to `curate.sh` swap steps (or an `expand` step) so the new-film flow runs through `curate.sh`
+- [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
@@ -22,8 +19,8 @@ current block lives in `plan.md`.
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] Dataset release on Hugging Face: consolidated links + annotations + dataset card (`plan.md` section G)
-- [ ] Expand to all 1,100 MovieNet keyframe films (`data/ids/films_1100.csv`, `plan.md` section H): keyframes, `swap prepare/download/apply --set expand`, then switch the pipeline's film list
+- [ ] Dataset release on Hugging Face: `release` builds `data/release/` locally (annotations under CC BY-NC 4.0); publish (`plan.md` section G)
+- [ ] Expand to all 1,100 MovieNet keyframe films (`plan.md` section H): keyframes for the new films, then `swap download/apply --set expand` (the film list is already switched)
 
 - [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
@@ -54,6 +51,9 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-29: film list switched to all 1,100 films (`paths.IDS`, `TRAILERCUT_FILMS`); funnel figure counts MovieNet links and working trailers
+- 2026-10-29: `release` builder for the dataset (`data/release/`, local): links, shots, alignments, sync, anonymized hand labels, dataset card
+- 2026-10-29: `swap apply --batch`, `swap sheet`, `curate.sh` passes `--set`; trailers, recover, swap prepare and apply save after every film and resume
 - 2026-10-29: labels only count for the trailer that was labeled (`labels/label_trailers.csv`); Miami Vice's 71 labels dropped after its swap (641 left)
 - 2026-10-29: 77 flagged core trailers swapped for official theatrical ones (6 kept); first-choice trailers picked for 798 new films (349 MovieNet links, 449 search)
 - 2026-10-29: docs pass for the staged pipeline, `curate.sh`, EBM, shapes, diagnostics, case finder, audit and swaps

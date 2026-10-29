@@ -3,6 +3,19 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-29: trailer swaps and new-film trailer picks
+
+Data only; nothing downstream has been rerun on the swapped trailers yet.
+
+**Core swaps** [`trailer_status.csv`, `trailer_recovery.csv`]
+- 77 of the 83 flagged core films with downloaded candidates got an official theatrical trailer; 6 kept their old one
+- core trailers by source: 161 MovieNet links, 132 search picks (49 dead links, 6 earlier `recover --ids` swaps, 77 audit swaps)
+- recovery log: 401 candidates tried for 138 films, 132 accepted
+- labels: Miami Vice's trailer was swapped, so its 71 hand labels drop out; 641 remain over 9 trailers
+
+**New films** [`expand_candidates.csv`]
+- 798 new films have a first-choice trailer from metadata: 349 keep MovieNet's link, 449 have a search pick
+
 ## 2026-10-29: EBM, feature shapes, alignment diagnostics, case studies
 
 Same 293 films, CLIP ViT-B/32, threshold 0.535. These were computed before the full rerun after the

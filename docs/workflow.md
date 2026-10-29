@@ -27,7 +27,9 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 ## Adding a pipeline step
 
 1. New module `src/trailercut/<step>.py` with a top docstring: what it does, outputs, CLI usage.
-2. Skip work that's already done, so reruns are cheap.
+2. Skip work that's already done, so reruns are cheap. A step that runs long (downloads, per-film
+   checks) saves its log after every item and resumes past finished ones on rerun, so an interrupt
+   loses at most the item in progress. Backups it makes must not be overwritten by a resumed run.
 3. Paths from `trailercut.paths` only; never hardcode `data/`.
 4. Add it to the right stage of `scripts/run_all.sh` (or to `scripts/curate.sh` if it changes the
    inputs: trailer links, labels), `docs/pipeline.md` and the README pipeline table.
@@ -42,7 +44,10 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
   purpose, commit the changed logs in `data/ids/`, then rebuild with
   `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
 - YouTube steps (`recover`, `audit`, `swap-*`) are rate-limited: run swaps as `swap-search`,
-  `swap-download` (resumable; rerun later if it stops on bot checks), `swap-apply`.
+  `swap-download` (resumable; rerun later if it stops on bot checks), `swap-apply` (resumable;
+  `--batch` for hundreds of films). Add `--set expand` for films new to the dataset.
+- Swapping a hand-labeled film's trailer drops its labels (`labels/label_trailers.csv`); when labeling
+  a new film, add its `imdb_id` and current `youtube_id` there.
 
 ## What gets committed
 
