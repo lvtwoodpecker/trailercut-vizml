@@ -137,6 +137,21 @@ def download(sleep, per_film, cookies, recheck=False):
             time.sleep(sleep)
 
 
+def save(status, rows):
+    """Write the status log and append to the recovery log; called after every film so an interrupted
+    run loses at most the film in progress."""
+    with open(STATUS, "w", newline="") as f:
+        w = csv.DictWriter(f, FIELDS, restval="movienet")
+        w.writeheader()
+        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
+    new = not LOG.exists()
+    with open(LOG, "a", newline="") as f:
+        w = csv.DictWriter(f, LOG_FIELDS)
+        if new:
+            w.writeheader()
+        w.writerows(rows)
+
+
 def apply():
     from .align import align_one
     cands = pd.read_csv(CANDS)
@@ -144,13 +159,16 @@ def apply():
     meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
     threshold = meta.get("impostor_threshold", meta["threshold"])
     files = {p.stem.split("__")[1]: p for p in DIR.glob("*__*.mp4")}
-    log = []
+    tried = pd.read_csv(LOG, dtype=str) if LOG.exists() else pd.DataFrame(columns=LOG_FIELDS)
+    n = 0
     for i, g in cands.groupby("imdb_id"):
         got = [c for c in g.sort_values("rank").itertuples() if c.youtube_id in files]
-        if not got:
-            continue
+        seen = set(tried[tried.imdb_id == i].youtube_id)
+        swapped = i in status and status[i]["youtube_id"] in set(g.youtube_id)
+        if not got or swapped or all(c.youtube_id in seen for c in got):
+            continue  # nothing downloaded, or already decided in an earlier run
         backup(i)
-        accepted = False
+        accepted, rows = False, []
         for c in got:
             shutil.copyfile(files[c.youtube_id], TRAILERS / f"{i}.mp4")
             run("trailercut.trailer_prep")
@@ -160,8 +178,8 @@ def apply():
             share = float(df.matched[~df.blank].mean())
             span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
             accepted = share >= 0.25 and span >= 0.2
-            log.append(dict(imdb_id=i, rank=c.rank, youtube_id=c.youtube_id, title=c.title, channel=c.channel,
-                            duration=c.duration, match_share=share, accepted=accepted))
+            rows.append(dict(imdb_id=i, rank=c.rank, youtube_id=c.youtube_id, title=c.title, channel=c.channel,
+                             duration=c.duration, match_share=share, accepted=accepted))
             if accepted:
                 status[i] = dict(imdb_id=i, youtube_id=c.youtube_id, status="ok", duration=c.duration,
                                  title=c.title, error="", source=getattr(c, "source", "search"))
@@ -170,17 +188,10 @@ def apply():
         if not accepted:
             clear(i)
             backup(i, restore=True)
-        print(i, "swapped" if accepted else "kept old")
-    with open(STATUS, "w", newline="") as f:
-        w = csv.DictWriter(f, FIELDS, restval="movienet")
-        w.writeheader()
-        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
-    prev = list(csv.DictReader(open(LOG))) if LOG.exists() else []
-    with open(LOG, "w", newline="") as f:
-        w = csv.DictWriter(f, LOG_FIELDS)
-        w.writeheader()
-        w.writerows(prev + log)
-    print(f"swapped {sum(r['accepted'] for r in log)} films")
+        save(status, rows)
+        n += accepted
+        print(i, "swapped" if accepted else "kept old", flush=True)
+    print(f"swapped {n} films")
 
 
 def main():
