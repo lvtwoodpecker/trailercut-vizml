@@ -58,8 +58,16 @@ Working plan for the current block. Check items off as they land; anything that 
 
 ## E. Better alignment and trailerness: diagnostics and explanations
 
-1. [ ] Shape plots: how each readable feature moves the pick chance (binned SHAP, as an odds multiplier), small multiples; `figures/model_shapes.png`
+1. [x] Shape plots: how each readable feature moves the pick chance (binned SHAP, as an odds multiplier), small multiples; `figures/model_shapes.png`
 2. [ ] EBM (glass-box model, readable features) with the same folds and metrics; adopt its curves for the report if lift is close to LightGBM's
-3. [ ] Case finder: trailers ranked by order (chronological vs shuffled), sound/picture sync, final-act share, and per-film model hits; `data/features/case_studies.json`
-4. [ ] Alignment diagnostics from the labels: score distributions by label type; match rate by trailer language (Whisper); `figures/alignment_diagnostics.png`
-5. [ ] Shot detection check: trailer shots whose 3 keyframes disagree (likely missed cuts); count and examples
+3. [x] Case finder: trailers ranked by order (chronological vs shuffled), sound/picture sync, final-act share, and per-film model hits; `data/features/case_studies.json`
+4. [x] Alignment diagnostics from the labels: score distributions by label type; match rate by trailer language (Whisper); `figures/alignment_diagnostics.png`
+5. [x] Shot detection check: trailer shots whose 3 keyframes disagree (likely missed cuts); count and examples
+
+Findings so far: wrong (look-alike) and same-scene matches score as high as right ones, so the
+cutoff can't remove them; trailer language makes no difference at 0.535; 6.7% of trailer shots have
+keyframes less consistent than 99% of MovieNet shots (likely missed cuts). Four MovieNet "trailers"
+were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were replaced.
+
+6. [ ] Re-split likely missed cuts (keyframe consistency below the film floor): rerun TransNetV2 with a lower threshold on those shots, check the effect on matching
+7. [ ] Full rerun after the four replacements (transcripts, alignment, features, model, EBM, exports)
