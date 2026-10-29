@@ -28,5 +28,5 @@ case "${1:-}" in
   swap-sheet)    shift; $PY -m trailercut.swap sheet "$@" ;;
   labels)  $PY -m trailercut.label_tool --n 10 --seed 0 ;;
   tune)    $PY -m trailercut.align_tune; $PY -m trailercut.rerank --eval; $PY -m trailercut.model_tune ;;
-  *) sed -n '2,17p' "$0"; exit 1 ;;
+  *) sed -n '2,/^set /p' "$0" | grep '^#'; exit 1 ;;
 esac
