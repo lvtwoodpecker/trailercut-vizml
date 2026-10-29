@@ -33,6 +33,22 @@ DIR = TRAILERS / "candidates"
 FORMAT = "best[height<=360][ext=mp4]/bv*[height<=360][ext=mp4]+ba[ext=m4a]/best[height<=360]"
 
 
+GONE = ("not available", "unavailable", "private", "removed", "terminated", "copyright")
+
+
+def mark_unavailable(cands):
+    """Carry unavailable videos from the download log into the candidate list (with the reason),
+    so later runs skip them without asking YouTube again."""
+    if not DOWNLOADS.exists():
+        return cands
+    log = pd.read_csv(DOWNLOADS)
+    gone = log[(log.status == "error") & log.error.str.lower().str.contains("|".join(GONE))]
+    reason = dict(zip(gone.youtube_id, gone.error.str.replace(r"^ERROR: \[youtube\] \S+: ", "", regex=True)))
+    cands["unavailable"] = cands.youtube_id.map(reason).fillna(cands.get("unavailable", pd.Series(index=cands.index, dtype=str)))
+    cands.to_csv(CANDS, index=False)
+    return cands
+
+
 def search(ids):
     status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
     rows = []
@@ -40,14 +56,17 @@ def search(ids):
         for rank, c in enumerate(c for c in candidates(i) if c["youtube_id"] != status[i]["youtube_id"]):
             rows.append(dict(imdb_id=i, rank=rank, **c))
         time.sleep(2)
-    pd.DataFrame(rows).to_csv(CANDS, index=False)
+    mark_unavailable(pd.DataFrame(rows))
     print(f"{len(rows)} candidates for {len({r['imdb_id'] for r in rows})} of {len(ids)} films -> {CANDS}")
 
 
-def download(sleep, per_film, cookies):
+def download(sleep, per_film, cookies, recheck=False):
     """Per film, walk down its ranked candidates until `per_film` of them downloaded. Unavailable
     videos (removed, region-locked) are skipped for good; bot-check errors are retried on the next run."""
-    cands = pd.read_csv(CANDS).sort_values(["imdb_id", "rank"])
+    cands = mark_unavailable(pd.read_csv(CANDS))
+    if not recheck:  # skip videos already known to be unavailable (removed, private, region-locked)
+        cands = cands[cands.unavailable.isna()]
+    cands = cands.sort_values(["imdb_id", "rank"])
     done = pd.read_csv(DOWNLOADS) if DOWNLOADS.exists() else pd.DataFrame(columns=["imdb_id", "youtube_id", "status", "error"])
     log = {r["youtube_id"]: r for r in done.to_dict("records")}
     DIR.mkdir(parents=True, exist_ok=True)
@@ -61,8 +80,8 @@ def download(sleep, per_film, cookies):
             if got >= per_film:
                 break
             prev = log.get(c.youtube_id)
-            if prev and (prev["status"] == "ok" or "not a bot" not in str(prev["error"])):
-                continue  # downloaded already, or permanently unavailable
+            if prev and prev["status"] == "ok":
+                continue
             out = DIR / f"{c.imdb_id}__{c.youtube_id}.mp4"
             try:
                 with yt_dlp.YoutubeDL(dict(opts, outtmpl=str(out.with_suffix(".%(ext)s")))) as y:
@@ -76,6 +95,8 @@ def download(sleep, per_film, cookies):
                 blocked = blocked + 1 if "not a bot" in msg else 0
                 print("error", i, msg[:80], flush=True)
             pd.DataFrame(log.values()).to_csv(DOWNLOADS, index=False)
+            if log[c.youtube_id]["status"] == "error" and any(k in log[c.youtube_id]["error"].lower() for k in GONE):
+                mark_unavailable(pd.read_csv(CANDS))
             if blocked >= 3:
                 print("YouTube is blocking (3 bot checks in a row); stopping. Rerun later, it resumes.")
                 return
@@ -135,6 +156,7 @@ def main():
     ap.add_argument("--sleep", type=float, default=30)
     ap.add_argument("--per-film", type=int, default=1, help="successful downloads wanted per film")
     ap.add_argument("--cookies-from-browser", default=None)
+    ap.add_argument("--recheck", action="store_true", help="also retry candidates marked unavailable (e.g. from another region)")
     a = ap.parse_args()
     if a.step == "search":
         audit = pd.read_csv(IDS.parent / "trailer_audit.csv")
@@ -142,7 +164,7 @@ def main():
         ids = a.ids or [i for i in audit[audit["swap"]].imdb_id if status.loc[i, "source"] != "search"]
         search(ids)
     elif a.step == "download":
-        download(a.sleep, a.per_film, a.cookies_from_browser)
+        download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)
     else:
         apply()
 
