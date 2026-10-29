@@ -33,14 +33,14 @@ import time
 import pandas as pd
 import yt_dlp
 
-from .paths import FEATURES, IDS, TRAILERS
+from .paths import FEATURES, IDS, IDS_DIR, TRAILERS
 from .recover import LOG, LOG_FIELDS, SKIP, backup, candidates, clear, run
 from .trailer_audit import yt_meta
 from .trailers import FIELDS, STATUS
 
 # --set swap: replacing flagged core trailers; --set expand: trailers for films new to the dataset
-CANDS = IDS.parent / "swap_candidates.csv"
-DOWNLOADS = IDS.parent / "swap_downloads.csv"
+CANDS = IDS_DIR / "swap_candidates.csv"
+DOWNLOADS = IDS_DIR / "swap_downloads.csv"
 DIR = TRAILERS / "candidates"
 FORMAT = "best[height<=360][ext=mp4]/bv*[height<=360][ext=mp4]+ba[ext=m4a]/best[height<=360]"
 
@@ -65,7 +65,7 @@ def mark_unavailable(cands):
 
 def prepare(sleep):
     """Pick first-choice candidates for films without a trailer yet, from metadata only."""
-    films = pd.read_csv(IDS.parent / "films_1100.csv", dtype=str).fillna("")
+    films = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).fillna("")
     have = {r["imdb_id"] for r in csv.DictReader(open(STATUS))}
     if CANDS.exists():  # resume: films already prepared in an earlier run
         have |= set(pd.read_csv(CANDS, dtype=str).imdb_id)
@@ -270,7 +270,7 @@ def sheet(per_page=8):
     log = log[log.accepted == "True"]
     cands = pd.read_csv(CANDS, dtype=str)
     films = [i for i in cands.imdb_id.unique() if i in set(log.imdb_id)]
-    old = {r["imdb_id"]: r for r in csv.DictReader(open(IDS.parent / "trailer_audit.csv"))}
+    old = {r["imdb_id"]: r for r in csv.DictReader(open(IDS_DIR / "trailer_audit.csv"))}
     out = CACHE / "sheets"
     out.mkdir(parents=True, exist_ok=True)
     W, H = 200, 112
@@ -315,11 +315,11 @@ def main():
     a = ap.parse_args()
     global CANDS, DOWNLOADS
     if a.set == "expand":
-        CANDS, DOWNLOADS = IDS.parent / "expand_candidates.csv", IDS.parent / "expand_downloads.csv"
+        CANDS, DOWNLOADS = IDS_DIR / "expand_candidates.csv", IDS_DIR / "expand_downloads.csv"
     if a.step == "prepare":
         prepare(sleep=2)
     elif a.step == "search":
-        audit = pd.read_csv(IDS.parent / "trailer_audit.csv")
+        audit = pd.read_csv(IDS_DIR / "trailer_audit.csv")
         status = pd.read_csv(STATUS).set_index("imdb_id")
         ids = a.ids or [i for i in audit[audit["swap"]].imdb_id if status.loc[i, "source"] != "search"]
         search(ids)

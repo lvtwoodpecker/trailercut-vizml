@@ -11,9 +11,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yt_dlp
 
-from .paths import IDS, TRAILERS
+from .paths import IDS, IDS_DIR, TRAILERS
 
-STATUS = IDS.parent / "trailer_status.csv"
+STATUS = IDS_DIR / "trailer_status.csv"
 FIELDS = ["imdb_id", "youtube_id", "status", "duration", "title", "error", "source"]
 
 
@@ -58,7 +58,9 @@ def main():
     a = ap.parse_args()
 
     TRAILERS.mkdir(parents=True, exist_ok=True)
-    rows = [r for r in csv.DictReader(open(IDS)) if r["youtube_id"]]  # films without a link go through `swap`
+    # the links in use (MovieNet's or a replacement); new films get theirs through `swap` first
+    rows = [r for r in csv.DictReader(open(STATUS))] if STATUS.exists() else \
+           [r for r in csv.DictReader(open(IDS)) if r["youtube_id"]]
     if a.limit:
         rows = rows[: a.limit]
 

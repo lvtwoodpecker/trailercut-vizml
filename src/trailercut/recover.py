@@ -29,10 +29,10 @@ from concurrent.futures import ThreadPoolExecutor
 import yt_dlp
 
 from . import movienet_io as mn
-from .paths import CACHE, CLIP, FEATURES, IDS, TRAILERS
+from .paths import CACHE, CLIP, FEATURES, IDS, IDS_DIR, TRAILERS
 from .trailers import FIELDS, STATUS, fetch
 
-LOG = IDS.parent / "trailer_recovery.csv"
+LOG = IDS_DIR / "trailer_recovery.csv"
 LOG_FIELDS = ["imdb_id", "rank", "youtube_id", "title", "channel", "duration", "match_share", "accepted"]
 SKIP = re.compile(r"fan.?made|unofficial|modern trailer|re-?cut|reaction|review|explained|scene|clip|ending|behind the|featurette|"
                   r"interview|honest|parody|recap|breakdown|easter egg|vs\.?|\bcast\b|"

@@ -20,7 +20,7 @@ from datetime import date
 import pandas as pd
 
 from . import movienet_io as mn
-from .paths import FEATURES, IDS, LABELS, ROOT
+from .paths import FEATURES, IDS, IDS_DIR, LABELS, ROOT
 
 OUT = ROOT / "data" / "release"
 
@@ -32,7 +32,7 @@ def stack(folder):
 
 
 def trailers():
-    ids = IDS.parent
+    ids = IDS_DIR
     status = pd.read_csv(ids / "trailer_status.csv", dtype=str)
     films = pd.read_csv(ids / "films_1100.csv", dtype=str).rename(columns={"youtube_id": "movienet_youtube_id"})
     audit = pd.read_csv(ids / "trailer_audit.csv", dtype=str)[["imdb_id", "flags", "span", "channel", "height"]]
@@ -111,11 +111,11 @@ def main():
     stack("alignment").to_parquet(OUT / "alignment.parquet", index=False)
     stack("dialogue_alignment").to_parquet(OUT / "dialogue_alignment.parquet", index=False)
     pd.read_csv(FEATURES / "av_sync.csv").to_csv(OUT / "av_sync.csv", index=False)
-    labels = []
-    for n, p in enumerate(sorted(LABELS.glob("gold_*.json")), start=1):  # labelers anonymized
-        g = json.loads(p.read_text())
-        labels += [dict(imdb_id=k.split(":")[0], trailer_shot=int(k.split(":")[1]), label=v, labeler=f"labeler_{n}")
-                   for k, v in g["labels"].items()]
+    from .label_eval import load_gold  # drops labels of trailers that were swapped since
+    gold = load_gold()
+    names = {n: f"labeler_{k}" for k, n in enumerate(sorted(gold.labeler.unique()), start=1)}  # anonymized
+    labels = [dict(imdb_id=k.split(":")[0], trailer_shot=int(k.split(":")[1]), label=v, labeler=names[l])
+              for k, v, l in zip(gold.key, gold.label, gold.labeler)]
     pd.DataFrame(labels).to_csv(OUT / "hand_labels.csv", index=False)
     (OUT / "README.md").write_text(CARD.format(n=len(t), checked=t.checked.iloc[0], n_labels=len(labels)))
     print(f"{len(t)} films, {int(t.changed.sum())} links changed from MovieNet's -> {OUT}")

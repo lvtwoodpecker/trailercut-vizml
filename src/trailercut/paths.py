@@ -12,7 +12,8 @@ CACHE = DATA / "cache"
 FEATURES = ROOT / "data" / "features"
 # all MovieNet films with keyframes (the original 293-film core set is marked in its `core` column);
 # TRAILERCUT_FILMS points at another list
-IDS = Path(os.environ.get("TRAILERCUT_FILMS", ROOT / "data" / "ids" / "films_1100.csv"))
+IDS_DIR = ROOT / "data" / "ids"  # status, audit, swap and recovery logs live here whatever the film list
+IDS = Path(os.environ.get("TRAILERCUT_FILMS", IDS_DIR / "films_1100.csv"))
 LABELS = ROOT / "labels"
 FIGURES = ROOT / "figures"
 

@@ -25,11 +25,11 @@ import pandas as pd
 import yt_dlp
 
 from . import movienet_io as mn
-from .paths import CACHE, FEATURES, IDS
+from .paths import CACHE, FEATURES, IDS, IDS_DIR
 
 META = CACHE / "yt_meta"
 HARD = {"not_trailer", "ad", "clip", "dub", "short"}
-OUT = IDS.parent / "trailer_audit.csv"
+OUT = IDS_DIR / "trailer_audit.csv"
 NOT_TRAILER = re.compile(r"tv spot|teaser|\bclip\b|\bscene\b|featurette|behind the|making of|blu-?ray|\bdvd\b|\bvhs\b|"
                          r"interview|review|reaction|fan.?made|music video|soundtrack|\bost\b|recap|\bending\b|promo", re.I)
 RERELEASE = re.compile(r"anniversary|re-?release|restor|remaster|\b4k\b|reissue|special edition", re.I)
@@ -98,7 +98,7 @@ def audit(row, meta):
 
 
 def main():
-    rows = list(csv.DictReader(open(IDS.parent / "trailer_status.csv")))
+    rows = list(csv.DictReader(open(IDS_DIR / "trailer_status.csv")))
     with ThreadPoolExecutor(4) as ex:
         metas = list(ex.map(lambda r: yt_meta(r["youtube_id"]), rows))
     out = pd.DataFrame([audit(r, m) for r, m in zip(rows, metas)]).sort_values(["n_flags", "imdb_id"], ascending=[False, True])

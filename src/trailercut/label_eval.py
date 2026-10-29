@@ -1,6 +1,8 @@
 """Score the aligner against hand labels and pick the match threshold.
 
-Reads labels/gold_*.json (from label_tool). For a threshold t, a trailer shot is "predicted matched"
+Reads labels/gold_*.json (from label_tool). Labels index shots of the trailer that was labeled
+(labels/label_trailers.csv records its youtube_id), so load_gold drops a film's labels once its
+trailer in trailer_status.csv differs. For a threshold t, a trailer shot is "predicted matched"
 if score >= t. Then
   precision = predicted-matched shots whose top-1 is the labeled film shot
   recall    = shots with a labeled source shot that are predicted matched with the right top-1
@@ -17,9 +19,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import cohen_kappa_score
 
-from .paths import FEATURES, FIGURES, IDS, LABELS
+from .paths import FEATURES, FIGURES, IDS, IDS_DIR, LABELS
 
-STATUS_CSV = IDS.parent / "trailer_status.csv"
+STATUS_CSV = IDS_DIR / "trailer_status.csv"
 
 
 def load_gold():
