@@ -5,8 +5,8 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] After the 77 core swaps: rebuild (`bash scripts/run_all.sh align audio rq1 rq2 viz`, plus the missed-cut re-split), then `swap sheet` (it reads the alignment CSVs, which are stale for swapped films until the rebuild) and skim the contact sheets
-- [ ] New films: when `swap prepare --set expand` finishes, `swap download --set expand` overnight (VPN), then `swap apply --set expand --batch`
+- [ ] After the 77 core swaps: `resplit` (running), then `python -m trailercut.embed trailer` and `bash scripts/run_all.sh align audio rq1 rq2 viz`, then `swap sheet` and skim the contact sheets
+- [ ] New films: `swap download --set expand` is running (798 first choices); then `swap apply --set expand --batch`, `embed film`, `resplit`, and the full rebuild
 
 - [ ] Finish the trailer swaps: candidates downloaded for all 83 searchable flagged films (`data/ids/swap_downloads.csv`); `bash scripts/curate.sh swap-apply` is running. Then commit the status and recovery logs, re-transcribe swapped trailers, rerun the audit, and rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz` plus `ebm`. Films whose candidates all fail (and Freddy vs. Jason, no candidates) keep their trailer
 - [ ] Re-split likely missed cuts (6.7% of trailer shots below the film keyframe-consistency floor) before the full rerun (`plan.md` E6)
@@ -54,6 +54,8 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-29: labels only count for the trailer that was labeled (`labels/label_trailers.csv`); Miami Vice's 71 labels dropped after its swap (641 left)
+- 2026-10-29: 77 flagged core trailers swapped for official theatrical ones (6 kept); first-choice trailers picked for 798 new films (349 MovieNet links, 449 search)
 - 2026-10-29: docs pass for the staged pipeline, `curate.sh`, EBM, shapes, diagnostics, case finder, audit and swaps
 - 2026-10-29: `run_all.sh` split into stages (`data prep align audio rq1 rq2 viz`, opt-in `ebm`); input-changing steps in `scripts/curate.sh`
 - 2026-10-29: swap candidates downloaded for 83 of 83 searchable flagged films, one at a time, over a different network after the bot check (`swap_downloads.csv`)

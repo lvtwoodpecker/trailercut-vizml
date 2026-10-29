@@ -69,7 +69,7 @@ cutoff can't remove them; trailer language makes no difference at 0.535; 6.7% of
 keyframes less consistent than 99% of MovieNet shots (likely missed cuts). Four MovieNet "trailers"
 were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were replaced.
 
-6. [ ] Re-split likely missed cuts (keyframe consistency below the film floor): rerun TransNetV2 with a lower threshold on those shots, check the effect on matching
+6. [~] Re-split likely missed cuts (keyframe consistency below the film floor; `resplit`, running; labeled trailers skipped): rerun TransNetV2 with a lower threshold on those shots, check the effect on matching
 7. [ ] Full rerun after the four replacements (transcripts, alignment, features, model, EBM, exports)
 
 ## F. Representative trailers (original theatrical, original language; rules only)
