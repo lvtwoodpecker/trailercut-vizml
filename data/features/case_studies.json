@@ -1,0 +1,274 @@
+{
+  "order": {
+    "column": "order_corr",
+    "n_trailers": 289,
+    "chronological": [
+      {
+        "imdb_id": "tt0093565",
+        "title": "Moonstruck (1987)",
+        "genre": "Comedy",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt0091042",
+        "title": "Ferris Bueller's Day Off (1986)",
+        "genre": "Comedy",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt0072684",
+        "title": "Barry Lyndon (1975)",
+        "genre": "Adventure",
+        "value": 0.937
+      },
+      {
+        "imdb_id": "tt0815236",
+        "title": "She's Out of My League (2010)",
+        "genre": "Comedy",
+        "value": 0.903
+      },
+      {
+        "imdb_id": "tt0061722",
+        "title": "The Graduate (1967)",
+        "genre": "Comedy",
+        "value": 0.886
+      }
+    ],
+    "shuffled": [
+      {
+        "imdb_id": "tt0080745",
+        "title": "Flash Gordon (1980)",
+        "genre": "Action",
+        "value": -0.376
+      },
+      {
+        "imdb_id": "tt0073440",
+        "title": "Nashville (1975)",
+        "genre": "Comedy",
+        "value": -0.309
+      },
+      {
+        "imdb_id": "tt0052357",
+        "title": "Vertigo (1958)",
+        "genre": "Mystery",
+        "value": -0.306
+      },
+      {
+        "imdb_id": "tt0128445",
+        "title": "Rushmore (1998)",
+        "genre": "Comedy",
+        "value": -0.24
+      },
+      {
+        "imdb_id": "tt0098724",
+        "title": "Sex, Lies, and Videotape (1989)",
+        "genre": "Drama",
+        "value": -0.233
+      }
+    ]
+  },
+  "ending": {
+    "column": "final_act_share",
+    "n_trailers": 289,
+    "most from the ending": [
+      {
+        "imdb_id": "tt0093565",
+        "title": "Moonstruck (1987)",
+        "genre": "Comedy",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt0080745",
+        "title": "Flash Gordon (1980)",
+        "genre": "Action",
+        "value": 0.579
+      },
+      {
+        "imdb_id": "tt0164052",
+        "title": "Hollow Man (2000)",
+        "genre": "Action",
+        "value": 0.562
+      },
+      {
+        "imdb_id": "tt0061722",
+        "title": "The Graduate (1967)",
+        "genre": "Comedy",
+        "value": 0.553
+      },
+      {
+        "imdb_id": "tt0329101",
+        "title": "Freddy vs. Jason (2003)",
+        "genre": "Action",
+        "value": 0.522
+      }
+    ],
+    "least from the ending": [
+      {
+        "imdb_id": "tt0063442",
+        "title": "Planet of the Apes (1968)",
+        "genre": "Adventure",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0109686",
+        "title": "Dumb and Dumber (1994)",
+        "genre": "Comedy",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0098724",
+        "title": "Sex, Lies, and Videotape (1989)",
+        "genre": "Drama",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0096320",
+        "title": "Twins (1988)",
+        "genre": "Comedy",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0091042",
+        "title": "Ferris Bueller's Day Off (1986)",
+        "genre": "Comedy",
+        "value": 0.0
+      }
+    ]
+  },
+  "sync": {
+    "column": "sync_rate",
+    "n_trailers": 142,
+    "sound over its own scene": [
+      {
+        "imdb_id": "tt0096320",
+        "title": "Twins (1988)",
+        "genre": "Comedy",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt1411238",
+        "title": "No Strings Attached (2011)",
+        "genre": "Comedy",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt0108330",
+        "title": "This Boy's Life (1993)",
+        "genre": "Biography",
+        "value": 1.0
+      },
+      {
+        "imdb_id": "tt0107808",
+        "title": "A Perfect World (1993)",
+        "genre": "Crime",
+        "value": 0.933
+      },
+      {
+        "imdb_id": "tt0065214",
+        "title": "The Wild Bunch (1969)",
+        "genre": "Action",
+        "value": 0.923
+      }
+    ],
+    "sound over other footage": [
+      {
+        "imdb_id": "tt0209958",
+        "title": "The Cell (2000)",
+        "genre": "Horror",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0213149",
+        "title": "Pearl Harbor (2001)",
+        "genre": "Action",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0120815",
+        "title": "Saving Private Ryan (1998)",
+        "genre": "Drama",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0947798",
+        "title": "Black Swan (2010)",
+        "genre": "Drama",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0113277",
+        "title": "Heat (1995)",
+        "genre": "Crime",
+        "value": 0.043
+      }
+    ]
+  },
+  "model": {
+    "column": "model_precision",
+    "n_trailers": 291,
+    "model agrees with the editor": [
+      {
+        "imdb_id": "tt0167404",
+        "title": "The Sixth Sense (1999)",
+        "genre": "Drama",
+        "value": 0.323
+      },
+      {
+        "imdb_id": "tt2488496",
+        "title": "Star Wars: Episode VII",
+        "genre": "Action",
+        "value": 0.3
+      },
+      {
+        "imdb_id": "tt0123755",
+        "title": "Cube (1997)",
+        "genre": "Drama",
+        "value": 0.3
+      },
+      {
+        "imdb_id": "tt1723811",
+        "title": "Shame (2011)",
+        "genre": "Drama",
+        "value": 0.289
+      },
+      {
+        "imdb_id": "tt0959337",
+        "title": "Revolutionary Road (2008)",
+        "genre": "Drama",
+        "value": 0.269
+      }
+    ],
+    "model misses": [
+      {
+        "imdb_id": "tt0098724",
+        "title": "Sex, Lies, and Videotape (1989)",
+        "genre": "Drama",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0080745",
+        "title": "Flash Gordon (1980)",
+        "genre": "Action",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0052357",
+        "title": "Vertigo (1958)",
+        "genre": "Mystery",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0083929",
+        "title": "Fast Times at Ridgemont High (1982)",
+        "genre": "Comedy",
+        "value": 0.0
+      },
+      {
+        "imdb_id": "tt0240772",
+        "title": "Ocean's Eleven (2001)",
+        "genre": "Crime",
+        "value": 0.0
+      }
+    ]
+  }
+}
