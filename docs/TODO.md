@@ -33,6 +33,8 @@ current block lives in `plan.md`.
 
 ## Maybe
 
+- Automatic synopsis-to-shot alignment for the ~520 extra films that have a written synopsis (819 of 1,100 keyframe films do): align paragraphs in order using subtitles and keyframes, scored against MovieNet's 293 human alignments. Only worth it for story-event / spoiler analysis; time position already covers what `synopsis_pos` adds to RQ1
+
 - Expand beyond the 293 core films (~800 MovieNet films have keyframes + trailer, but no synopsis alignment)
 - Letterboxd list as a filter for case studies
 - Film mode in `trailer_prep` for user-owned films outside MovieNet
