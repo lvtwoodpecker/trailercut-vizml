@@ -11,6 +11,7 @@
                                                    one video at a time into data/trailers/candidates/,
                                                    walking down each film's candidates past unavailable
                                                    ones; resumable; stops after repeated bot checks
+  python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed)
   python -m trailercut.swap apply                  for each film, try its downloaded candidates in rank
                                                    order with the usual checks (25% of shots match,
                                                    matched shots span 20% of the film); keep the old
@@ -194,9 +195,52 @@ def apply():
     print(f"swapped {n} films")
 
 
+def sheet(per_page=8):
+    """Contact sheets of the swapped films for a quick look: old vs new YouTube title, and the new
+    trailer's best-matching shots next to the film keyframes they matched. Written to cache/sheets/
+    (film frames, so never committed)."""
+    from PIL import Image, ImageDraw
+    from . import movienet_io as mn
+    from .paths import CACHE
+    log = pd.read_csv(LOG, dtype=str)
+    log = log[log.accepted == "True"]
+    cands = pd.read_csv(CANDS, dtype=str)
+    films = [i for i in cands.imdb_id.unique() if i in set(log.imdb_id)]
+    old = {r["imdb_id"]: r for r in csv.DictReader(open(IDS.parent / "trailer_audit.csv"))}
+    out = CACHE / "sheets"
+    out.mkdir(parents=True, exist_ok=True)
+    W, H = 200, 112
+    for p in range(0, len(films), per_page):
+        batch = films[p:p + per_page]
+        img = Image.new("RGB", (W * 8, (H + 30) * len(batch)), (20, 20, 20))
+        dr = ImageDraw.Draw(img)
+        for r, i in enumerate(batch):
+            y = r * (H + 30)
+            new = log[log.imdb_id == i].iloc[-1]
+            dr.text((2, y + 1), f"{mn.meta(i)['title'][:40]}  old: {old.get(i, {}).get('yt_title', '')[:45]}", fill=(200, 200, 200))
+            dr.text((2, y + 14), f"new: {new.title[:70]}  ({new.channel})", fill=(120, 200, 255))
+            al = pd.read_csv(FEATURES / "alignment" / f"{i}.csv") if (FEATURES / "alignment" / f"{i}.csv").exists() else None
+            if al is None:
+                continue
+            al = al[~al.blank].sort_values("score", ascending=False)
+            pick = []
+            for x in al.itertuples():
+                if all(abs(x.shot_idx - q.shot_idx) > 2 for q in pick):
+                    pick.append(x)
+                if len(pick) == 4:
+                    break
+            for k, x in enumerate(pick):
+                t = Image.open(CACHE / "trailer_frames" / i / mn.keyframe_name(x.shot_idx, 1)).convert("RGB").resize((W, H))
+                f = mn.open_image(mn.keyframe_paths(i, int(x.film_shot))[1]).convert("RGB").resize((W, H))
+                img.paste(t, (k * 2 * W, y + 28))
+                img.paste(f, (k * 2 * W + W, y + 28))
+        img.save(out / f"swaps_{p // per_page + 1:02d}.jpg", quality=80)
+    print(f"{len(films)} swapped films -> {out}")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=["prepare", "search", "download", "apply"])
+    ap.add_argument("step", choices=["prepare", "search", "download", "apply", "sheet"])
     ap.add_argument("--set", default="swap", choices=["swap", "expand"], help="which candidate list to work on")
     ap.add_argument("--ids", nargs="*", default=None)
     ap.add_argument("--sleep", type=float, default=30)
@@ -216,6 +260,8 @@ def main():
         search(ids)
     elif a.step == "download":
         download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)
+    elif a.step == "sheet":
+        sheet()
     else:
         apply()
 

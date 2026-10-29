@@ -9,6 +9,7 @@
 #   bash scripts/curate.sh swap-search       ranked replacement candidates for the audit's `swap` films
 #   bash scripts/curate.sh swap-download     download them slowly, one at a time (resumable)
 #   bash scripts/curate.sh swap-apply        check and swap in the downloaded candidates (resumable)
+#   bash scripts/curate.sh swap-sheet        contact sheets of the swaps to skim (cache/sheets/)
 #   (add --set expand to the swap-* steps to work on new films instead of flagged core ones)
 #   bash scripts/curate.sh labels            regenerate the hand-labeling page
 #   bash scripts/curate.sh tune              compare alignment and model variants against the labels
@@ -24,7 +25,8 @@ case "${1:-}" in
   swap-search)   shift; $PY -m trailercut.swap search "$@" ;;
   swap-download) shift; $PY -m trailercut.swap download "$@" ;;
   swap-apply)    shift; $PY -m trailercut.swap apply "$@" ;;
+  swap-sheet)    shift; $PY -m trailercut.swap sheet "$@" ;;
   labels)  $PY -m trailercut.label_tool --n 10 --seed 0 ;;
   tune)    $PY -m trailercut.align_tune; $PY -m trailercut.rerank --eval; $PY -m trailercut.model_tune ;;
-  *) sed -n '2,16p' "$0"; exit 1 ;;
+  *) sed -n '2,17p' "$0"; exit 1 ;;
 esac
