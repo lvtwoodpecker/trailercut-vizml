@@ -86,7 +86,10 @@ def backup(imdb_id, restore=False):
     if restore:
         for item in json.loads((keep / "_paths.json").read_text()):
             shutil.move(str(keep / Path(item).name), item)
+        shutil.rmtree(keep)
         return
+    if (keep / "_paths.json").exists():
+        return  # an interrupted run already holds the original here; don't overwrite it with a candidate
     keep.mkdir(parents=True, exist_ok=True)
     moved = [str(f) for f in trailer_files(imdb_id) if f.exists()]
     for f in moved:

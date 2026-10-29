@@ -11,6 +11,8 @@
                                                    one video at a time into data/trailers/candidates/,
                                                    walking down each film's candidates past unavailable
                                                    ones; resumable; stops after repeated bot checks
+  python -m trailercut.swap apply --batch          the same checks in rounds: shot detection and CLIP run
+                                                   once per round over all films (for hundreds of films)
   python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed)
   python -m trailercut.swap apply                  for each film, try its downloaded candidates in rank
                                                    order with the usual checks (25% of shots match,
@@ -201,6 +203,60 @@ def apply():
     print(f"swapped {n} films")
 
 
+def apply_batch():
+    """Same checks as apply(), in rounds: each undecided film's next downloaded candidate goes in
+    place, shot detection and CLIP run once over all of them, then every film is aligned and decided
+    (saved after each). Rejected films try their next candidate in the next round. For hundreds of
+    films; apply() reloads both models per film."""
+    from .align import align_one
+    cands = pd.read_csv(CANDS)
+    status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
+    meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
+    threshold = meta.get("impostor_threshold", meta["threshold"])
+    files = {p.stem.split("__")[1]: p for p in DIR.glob("*__*.mp4")}
+    n = 0
+    while True:
+        tried = pd.read_csv(LOG, dtype=str) if LOG.exists() else pd.DataFrame(columns=LOG_FIELDS)
+        batch = {}
+        for i, g in cands.groupby("imdb_id"):
+            if i in status and status[i]["youtube_id"] in set(g.youtube_id):
+                continue  # already swapped in
+            seen = set(tried[tried.imdb_id == i].youtube_id)
+            nxt = [c for c in g.sort_values("rank").itertuples() if c.youtube_id in files and c.youtube_id not in seen]
+            if nxt:
+                batch[i] = nxt[0]
+        if not batch:
+            break
+        print(f"round: {len(batch)} films", flush=True)
+        for i, c in batch.items():
+            backup(i)  # no-op if an interrupted run already holds the original
+            clear(i)
+            shutil.copyfile(files[c.youtube_id], TRAILERS / f"{i}.mp4")
+        run("trailercut.trailer_prep")
+        run("trailercut.embed", "trailer")
+        for i, c in batch.items():
+            try:
+                df = align_one(i, threshold)
+                pos = df.film_story_pos.dropna()
+                share = float(df.matched[~df.blank].mean())
+                span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
+            except Exception as e:  # e.g. the video failed shot detection
+                print(i, "check failed:", e)
+                share = span = 0.0
+            ok = share >= 0.25 and span >= 0.2
+            if ok:
+                status[i] = dict(imdb_id=i, youtube_id=c.youtube_id, status="ok", duration=c.duration,
+                                 title=c.title, error="", source=getattr(c, "source", "search"))
+                n += 1
+            else:
+                clear(i)
+                backup(i, restore=True)  # the old trailer, or nothing for a film that had none
+            save(status, [dict(imdb_id=i, rank=c.rank, youtube_id=c.youtube_id, title=c.title, channel=c.channel,
+                               duration=c.duration, match_share=share, accepted=ok)])
+            print(i, "swapped" if ok else "rejected", flush=True)
+    print(f"swapped {n} films")
+
+
 def sheet(per_page=8):
     """Contact sheets of the swapped films for a quick look: old vs new YouTube title, and the new
     trailer's best-matching shots next to the film keyframes they matched. Written to cache/sheets/
@@ -252,6 +308,7 @@ def main():
     ap.add_argument("--sleep", type=float, default=30)
     ap.add_argument("--per-film", type=int, default=1, help="successful downloads wanted per film")
     ap.add_argument("--cookies-from-browser", default=None)
+    ap.add_argument("--batch", action="store_true", help="apply: rounds over all films at once (for hundreds)")
     ap.add_argument("--recheck", action="store_true", help="also retry candidates marked unavailable (e.g. from another region)")
     a = ap.parse_args()
     global CANDS, DOWNLOADS
@@ -268,6 +325,8 @@ def main():
         download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)
     elif a.step == "sheet":
         sheet()
+    elif a.batch:
+        apply_batch()
     else:
         apply()
 

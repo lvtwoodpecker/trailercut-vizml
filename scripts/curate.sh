@@ -8,7 +8,7 @@
 #   bash scripts/curate.sh swap-prepare --set expand   first-choice trailers for new films (metadata only)
 #   bash scripts/curate.sh swap-search       ranked replacement candidates for the audit's `swap` films
 #   bash scripts/curate.sh swap-download     download them slowly, one at a time (resumable)
-#   bash scripts/curate.sh swap-apply        check and swap in the downloaded candidates (resumable)
+#   bash scripts/curate.sh swap-apply        check and swap in the downloaded candidates (resumable; --batch for hundreds)
 #   bash scripts/curate.sh swap-sheet        contact sheets of the swaps to skim (cache/sheets/)
 #   (add --set expand to the swap-* steps to work on new films instead of flagged core ones)
 #   bash scripts/curate.sh labels            regenerate the hand-labeling page
