@@ -1,5 +1,10 @@
 """Replace trailers in three resumable steps, so YouTube's rate limits only slow the middle one.
 
+  python -m trailercut.swap prepare --set expand   new films (data/ids/films_1100.csv, not yet in the
+                                                   status log): keep MovieNet's link as first choice if
+                                                   its metadata looks like a clean trailer, otherwise
+                                                   search; nothing is downloaded
+
   python -m trailercut.swap search [--ids ...]     ranked candidates -> data/ids/swap_candidates.csv
                                                    (default ids: `swap` rows of data/ids/trailer_audit.csv)
   python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
@@ -24,9 +29,11 @@ import pandas as pd
 import yt_dlp
 
 from .paths import FEATURES, IDS, TRAILERS
-from .recover import LOG, LOG_FIELDS, backup, candidates, clear, run
+from .recover import LOG, LOG_FIELDS, SKIP, backup, candidates, clear, run
+from .trailer_audit import yt_meta
 from .trailers import FIELDS, STATUS
 
+# --set swap: replacing flagged core trailers; --set expand: trailers for films new to the dataset
 CANDS = IDS.parent / "swap_candidates.csv"
 DOWNLOADS = IDS.parent / "swap_downloads.csv"
 DIR = TRAILERS / "candidates"
@@ -47,6 +54,31 @@ def mark_unavailable(cands):
     cands["unavailable"] = cands.youtube_id.map(reason).fillna(cands.get("unavailable", pd.Series(index=cands.index, dtype=str)))
     cands.to_csv(CANDS, index=False)
     return cands
+
+
+def prepare(sleep):
+    """Pick first-choice candidates for films without a trailer yet, from metadata only."""
+    films = pd.read_csv(IDS.parent / "films_1100.csv", dtype=str).fillna("")
+    have = {r["imdb_id"] for r in csv.DictReader(open(STATUS))}
+    rows = []
+    for f in films[~films.imdb_id.isin(have)].itertuples():
+        clean = False
+        if f.youtube_id:
+            m = yt_meta(f.youtube_id)
+            time.sleep(1)  # metadata requests count toward YouTube's rate limit too
+            t, d = m.get("title") or "", m.get("duration") or 0
+            clean = "error" not in m and not SKIP.search(t) and 60 <= d <= 240
+            if clean:
+                rows.append(dict(imdb_id=f.imdb_id, rank=0, youtube_id=f.youtube_id, title=t,
+                                 channel=m.get("channel") or "", duration=d, source="movienet"))
+        if not clean:  # dead link, flagged title, odd length, or no link: search
+            for rank, c in enumerate(candidates(f.imdb_id), start=1):
+                rows.append(dict(imdb_id=f.imdb_id, rank=rank, **c, source="search"))
+            time.sleep(sleep)
+    mark_unavailable(pd.DataFrame(rows))
+    d = pd.DataFrame(rows)
+    print(f"{d.imdb_id.nunique()} films: {(d['rank'] == 0).sum()} keep MovieNet's link, "
+          f"{d[d['rank'] > 0].imdb_id.nunique()} need a search pick -> {CANDS}")
 
 
 def search(ids):
@@ -130,7 +162,7 @@ def apply():
                             duration=c.duration, match_share=share, accepted=accepted))
             if accepted:
                 status[i] = dict(imdb_id=i, youtube_id=c.youtube_id, status="ok", duration=c.duration,
-                                 title=c.title, error="", source="search")
+                                 title=c.title, error="", source=getattr(c, "source", "search"))
                 break
             clear(i)
         if not accepted:
@@ -151,14 +183,20 @@ def apply():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=["search", "download", "apply"])
+    ap.add_argument("step", choices=["prepare", "search", "download", "apply"])
+    ap.add_argument("--set", default="swap", choices=["swap", "expand"], help="which candidate list to work on")
     ap.add_argument("--ids", nargs="*", default=None)
     ap.add_argument("--sleep", type=float, default=30)
     ap.add_argument("--per-film", type=int, default=1, help="successful downloads wanted per film")
     ap.add_argument("--cookies-from-browser", default=None)
     ap.add_argument("--recheck", action="store_true", help="also retry candidates marked unavailable (e.g. from another region)")
     a = ap.parse_args()
-    if a.step == "search":
+    global CANDS, DOWNLOADS
+    if a.set == "expand":
+        CANDS, DOWNLOADS = IDS.parent / "expand_candidates.csv", IDS.parent / "expand_downloads.csv"
+    if a.step == "prepare":
+        prepare(sleep=2)
+    elif a.step == "search":
         audit = pd.read_csv(IDS.parent / "trailer_audit.csv")
         status = pd.read_csv(STATUS).set_index("imdb_id")
         ids = a.ids or [i for i in audit[audit["swap"]].imdb_id if status.loc[i, "source"] != "search"]
