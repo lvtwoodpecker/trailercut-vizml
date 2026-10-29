@@ -86,7 +86,7 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
         id=imdb_id, title=m["title"], year=m["year"], genres=m["genres"],
         duration=r(al.t_end.max(), 2),
         curves=curves.get(imdb_id),
-        # [t_start, t_end, matched, film_shot or -1, score, blank, film shot placed by dialogue or -1]
+        # [t_start, t_end, matched, film_shot or -1, score, blank]
         shots=[[r(s.t_start, 2), r(s.t_end, 2), int(s.matched), int(s.film_shot) if s.matched else -1,
                 r(s.score), int(s.blank)] for s in al.itertuples()],
     )
@@ -113,16 +113,6 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
         film["detail"] = {int(i): [[r(f[c].values[i]), r(raw[c].values[i])] for c in feats] for i in sorted(pick)}
     out["film"] = film
     out["speech"] = speech(imdb_id, runtime)
-    # shots the picture matcher left unmatched, but whose spoken line was found in the film's subtitles,
-    # get placed at that line's film moment (marked separately so the view can show the difference)
-    starts = f.t_start.values
-    for sh in out["shots"]:
-        mid = (sh[0] + sh[1]) / 2
-        line = next((d for d in out["speech"] if d[2] and d[0] <= mid < d[1]), None)
-        placed = -1
-        if not sh[2] and not sh[5] and line is not None:
-            placed = int(max(0, np.searchsorted(starts, line[3] * runtime, side="right") - 1))
-        sh.append(placed)
     return out
 
 
