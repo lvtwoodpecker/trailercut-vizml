@@ -71,3 +71,12 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 
 6. [ ] Re-split likely missed cuts (keyframe consistency below the film floor): rerun TransNetV2 with a lower threshold on those shots, check the effect on matching
 7. [ ] Full rerun after the four replacements (transcripts, alignment, features, model, EBM, exports)
+
+## F. Representative trailers (original theatrical, original language; rules only)
+
+1. [x] `trailer_audit`: flags from YouTube metadata, transcript and alignment; hard flags (not a trailer, ad, clip, dub, under 60 s) mean swap, soft ones (re-release, low resolution, over 240 s) don't
+2. [x] `recover` search: "official trailer" query, rejects dubs/teasers/TV spots/re-releases by title, official titles and 90 to 180 s first
+3. [ ] Swap the 88 hard-flagged trailers with `recover --ids` (running; films with no passing candidate keep their trailer)
+4. [ ] Contact sheet of every swap to skim before the rerun
+5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
+6. [ ] Re-split likely missed cuts (section E6), then one full rerun (E7), then rerun the EBM
