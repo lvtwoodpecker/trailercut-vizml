@@ -8,16 +8,27 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   search hits that align to the film. 45 of the 49 are from the 1990s on, so newer films lean more on
   replacements. A replacement may be a re-release, anniversary or international cut, not the original
   theatrical trailer (tracked in `source`). The 3 weakest replacements and the 15 lowest-match trailers
-  were checked by eye and are all the right film (`trailer_review.csv`). Scarface's working TV spot was
-  also replaced, by an HD trailer.
+  were checked by eye and are all the right film (`trailer_review.csv`). Six working links were also
+  replaced: Scarface's TV spot, four scene clips and Mulholland Drive's German dub.
+- **YouTube rate limits and region locks.** Bulk downloads trip YouTube's bot check, so swaps run one
+  video at a time with pauses and can take several sessions. Some candidates are unavailable in one
+  region and fine in another, so which trailer a film ends up with can depend on where the download
+  ran (`unavailable` in the candidate lists records the reason).
 - **One trailer per film.** Films often have a teaser, several trailers and TV spots. We see one,
   usually whichever MovieNet's authors found, so "what the trailer used" means "what this trailer used".
+- **Missed cuts in trailer shots.** TransNetV2 misses some cuts (fast flashes, dissolves). 6.7% of
+  trailer shots have keyframes less alike than 99% of MovieNet film shots (`alignment_diagnostics.json`),
+  so they likely span two shots; such a shot gets one match for two pieces of footage.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
   look like any of the 3 keyframes and goes unmatched. This also limits strict visual matching: SSCD
   copy detection did worse than CLIP (top pick right 71% vs 93%).
 - **Foreign and dubbed trailers.** Some trailers are German, Spanish, French or other versions
   (`trailer_review.csv`). Dubbed audio can't match the film's subtitles, so their `lines_found` and
   `sync_rate` read as zero or missing, not as "no film dialogue".
+- **Dub detection needs the audio.** Titles often don't say a trailer is dubbed, so the audit's `dub`
+  flag comes from Whisper's language guess. A new trailer can only be checked for a dub after it is
+  downloaded and transcribed, and the guess compares against the language of the film's first
+  production country, which is wrong for some co-productions.
 - **Core set bias.** Films with synopsis alignment are mostly popular English-language films. Results
   don't say much about other cinemas.
 

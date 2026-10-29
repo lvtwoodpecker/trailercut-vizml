@@ -6,9 +6,10 @@ Code paths are under `src/trailercut/`. Numbers are from the 293-trailer run wit
 ## Data
 
 **Core set = 293 films.** Films with MovieNet keyframes, synopsis-to-shot alignment and a trailer link.
-The synopsis alignment is what lets us place a shot in the story (act, synopsis paragraph), so films
-without it are left out even though ~800 have keyframes and a trailer. Expanding to those is possible
-on the cluster but loses the story features.
+The synopsis alignment places a shot in the story (synopsis paragraph). The next step is all 1,100
+keyframe films (`data/ids/films_1100.csv`, 993 with a MovieNet trailer link): time position in the film
+covers what `synopsis_pos` adds, so new films get no synopsis feature (NaN) and we don't build an
+automatic synopsis alignment for them.
 
 **Store IDs and features, not media.** The repo has YouTube IDs, an availability log
 (`data/ids/trailer_status.csv`) and extracted features. Videos, keyframes and embeddings are
@@ -19,8 +20,9 @@ model predictions and SHAP) are also gitignored.
 **Trailers at 360p.** CLIP sees 224 px and TransNetV2 sees 48x27, so higher resolution only costs disk.
 
 **Dead links are replaced only if they align** (`recover.py`). Search YouTube for "Title (year)
-trailer", drop fan edits, reviews, clips and anything outside 45 to 300 s, then accept a candidate
-only if at least 25% of its shots match that film's keyframes. Title filtering alone isn't enough:
+official trailer", drop fan edits, reviews, clips, dubs (title in another language), teasers, TV
+spots, re-releases and anything outside 45 to 300 s, try official/theatrical titles and 90 to 180 s
+videos first, then accept a candidate only if at least 25% of its shots match that film's keyframes. Title filtering alone isn't enough:
 the 2nd search hit for *The Godfather Part II* is the *Godfather* anniversary trailer. Real trailers
 have a median match share of ~58% and a wrong film should sit near the 5% false-match rate, so 25%
 separates them with room on both sides. This needs the 5% impostor cutoff, not the label-picked one
@@ -28,10 +30,42 @@ separates them with room on both sides. This needs the 5% impostor cutoff, not t
 `impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
 
+**A replacement must also cover the film** (`--min-span 0.2`). A scene clip of the right film aligns
+perfectly but only to one stretch of it, so the 25% check passes it. The matched shots' story
+positions (10th to 90th percentile) must span at least 20% of the film. The four MovieNet "trailers"
+that were scene clips spanned 1% to 3%; every other trailer spans at least 30% (median 71%,
+`trailer_audit.csv`), so 20% sits between them.
+
 **`recover --ids` replaces a working trailer.** For a link that plays but is the wrong kind of video
 (Scarface's was a VHS-quality TV spot with 0% of shots matched at the impostor cutoff). The old link is
 never re-picked, its files are moved to `cache/replaced/{id}/` first, and they are put back if no
 candidate passes the 25% check, so a failed search can't leave a film without a trailer.
+
+**Trailer audit: rules only, hard vs soft flags** (`trailer_audit.py`). We want the film's original
+theatrical trailer in its original language. Each trailer gets flags from its YouTube metadata
+(fetched without downloading), its transcript and its alignment, all from fixed rules so the audit
+reruns the same way. Hard flags mean the video isn't what we study and should be swapped: not a
+trailer by its title, a home-video ad, a scene clip, a dub, or under 60 s (TV spots, teasers). Soft
+flags (re-release title, under 360p, over 240 s) mean swap only if a better candidate exists. A dub
+needs Whisper to be confident (p 0.8+) over 15+ s of speech. What we give up: rules can miss what a
+person would catch (a re-cut with a clean title). TODO(why): why 240 s as the upper length bound and
+p 0.8 / 15 s for dubs.
+
+**Swaps in three steps: search, slow download, apply** (`swap.py`). Swapping 80+ trailers in one
+`recover --ids` run hit YouTube's bot check. Splitting it means only the download step talks to
+YouTube in bulk, and it can go slowly: one video at a time, a pause between requests (30 s default),
+a stop after 3 bot checks in a row, and resume on the next run. Unavailable videos (removed, private,
+region-locked) are written into the candidate list with the reason so later runs skip them without
+asking YouTube again (`--recheck` retries them, e.g. from another region). Download walks down each
+film's ranked candidates until one works. `apply` checks candidates in rank order with the same 25%
+match and 20% span rules and keeps the old trailer if none passes.
+
+**New films: metadata first** (`swap prepare --set expand`). For films new to the dataset, MovieNet's
+own link stays the first choice when its YouTube metadata looks like a clean trailer (alive, title
+passes the filter, 60 to 240 s); only dead, flagged or missing links get a search. Nothing is
+downloaded in `prepare`, and `download` fetches one pick per film by default. This keeps requests to
+YouTube low (metadata requests count toward the rate limit too, so they are paced) and leaves no pile
+of unused candidate videos on disk.
 
 **Low-match trailers were checked by eye** (`data/ids/trailer_review.csv`). The 15 lowest-match
 trailers and the 3 weakest search replacements are all the right film. Low match comes from foreign
@@ -91,8 +125,8 @@ the margin to the best shot outside ±3 neighbors is saved as a confidence signa
 sampled across decades, each shot labeled against its top-5 candidates (710 usable shots, one labeler
 so far; 2 trailers are meant to be labeled by both of us for Cohen's kappa). The 0.74 impostor cutoff
 had precision 0.90 but recall 0.60: it threw away 40% of real matches, which become false negatives in
-the RQ1 labels. The best-F1 cutoff, 0.535, gives precision 0.85 and recall 0.91. `run_all.sh` re-runs
-`align --threshold` with `best_f1.threshold` from `alignment_eval.json` once labels exist. What we
+the RQ1 labels. The best-F1 cutoff, 0.535, gives precision 0.85 and recall 0.91. The `align` stage of
+`run_all.sh` re-runs `align --threshold` with `best_f1.threshold` from `alignment_eval.json` once labels exist. What we
 give up: 77% of impostor scores clear 0.535, so the null no longer limits matches against the wrong
 film, and the labels show most "same scene" and many "not in film" shots get matched too (see
 `limitations.md`). The null's pass rate at `T` is still saved as `fpr`.
@@ -211,6 +245,15 @@ whether these near misses hide a better model. Random gets the same tolerance, b
 also makes random hits more likely (at ±3, 19% of shots are near a used shot vs 3.8% exact); lift over
 that base rate is the fair comparison. Result: lift drops as k grows, so near misses are not the story.
 
+**EBM for the report's feature curves** (`model_ebm.py`). An explainable boosting machine learns one
+curve per feature and adds them up, so the curves are the model, not an approximation of it after the
+fact like SHAP on LightGBM. No pairwise interactions, so each effect is one curve. Same readable
+features, folds and metrics as LightGBM: lift 2.83 vs 2.88 (`model_ebm.json`), close enough that we
+use its curves to explain trailerness. LightGBM stays the main model (it also takes the CLIP block);
+`figures/model_shapes.png` shows its binned SHAP for the same features. Curves
+are drawn as odds multipliers on one shared log scale, clipped to where 98% of shots fall, since the
+outermost bins hold a handful of shots and swing. It takes ~30 min, so it is an opt-in stage.
+
 **Headline metric: per-film precision at trailer length, reported as lift over random.** Pooled AP
 mixes films with different base rates (trailer length vs film shot count), so films with many used
 shots dominate it. Per-film precision at trailer length asks each film the editor's question, and lift
@@ -316,6 +359,15 @@ numbers after a rerun.
 
 **Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
 get together, next to the single-feature lifts.
+
+## Pipeline structure
+
+**Staged rebuild vs curation.** `scripts/run_all.sh` only rebuilds outputs from the current inputs, in
+named stages (`data prep align audio rq1 rq2 viz`, plus opt-in `ebm`), so a change downstream reruns
+just the stages after it. Steps that change the inputs (dead-link recovery, the trailer audit and swaps,
+label pages, variant comparisons against the labels) live in `scripts/curate.sh` and are run on purpose:
+they change what every later number is computed from, and the trailer steps are slow under YouTube's
+rate limits, so a full rebuild never triggers them.
 
 ## Dropped from the proposal
 

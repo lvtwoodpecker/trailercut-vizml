@@ -45,3 +45,12 @@
 | sound link | in the Trailer View, the curve from the current spoken line to the film moment it comes from; one at a time |
 | SSCD | a copy-detection image model (Pizzi et al. 2022); tried as a re-ranker for CLIP's candidates, not used |
 | backbone tag | which CLIP model made the embeddings: `b32`, `l14`, `h14` |
+| EBM | explainable boosting machine: a glass-box model that learns one curve per feature and adds them; its curves are the explanation (`model_ebm.py`) |
+| shape plot | how one feature moves the odds of a shot making the trailer, as a multiplier on a log scale (EBM curve or binned SHAP) |
+| trailer audit | rule-based check that a trailer is the original theatrical trailer in the original language (`trailer_audit.csv`) |
+| hard / soft flag | audit flags. Hard (`not_trailer`, `ad`, `clip`, `dub`, `short`): swap the trailer. Soft (`rerelease`, `low_res`, `long`): swap only if a better candidate exists |
+| scene clip | a YouTube upload of one scene posing as a trailer; it aligns well but only to a sliver of the film |
+| span | 10th to 90th percentile of a trailer's matched story positions; under 0.2 means a scene clip |
+| swap | replacing a working trailer with a better candidate (`swap.py`, `recover --ids`) |
+| keyframe consistency | the lowest cosine between a shot's 3 keyframes; low = the keyframes show different things |
+| missed cut | a trailer shot whose keyframe consistency is below what 99% of MovieNet film shots reach; likely two shots TransNetV2 merged |

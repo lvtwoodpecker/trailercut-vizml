@@ -3,6 +3,43 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-29: EBM, feature shapes, alignment diagnostics, case studies
+
+Same 293 films, CLIP ViT-B/32, threshold 0.535. These were computed before the full rerun after the
+four scene-clip replacements and Mulholland Drive's dub swap: the alignment, model and trailer tables
+still come from the old trailers for those 5 films, so numbers will shift slightly after the rerun.
+
+**EBM vs LightGBM** [`model_ebm.json`]: glass-box EBM on the readable features, same folds.
+- lift at trailer length 2.83 vs 2.88 for LightGBM on the same features
+- AP 0.067, AP per film 0.088, precision at trailer length 0.107, length-adjusted AP 0.063
+
+**Feature shapes** [`model_ebm.json` curves, `figures/ebm_shapes.png`, `figures/model_shapes.png`]
+EBM curves as odds multipliers. LightGBM's binned SHAP (`model_shapes.png`, no committed numbers)
+points the same way for position, shot length and visual change; shot width and words spoken stay near 1x.
+- position in film: about 1.1x to 1.2x in the first quarter, 0.95x at the middle, 0.8x in the last 10%
+- shot length: about 0.87x under 2 s, rising to 1.35x around 11 s
+- visual change inside the shot: from 0.74x (static) to 1.2x
+- the most important curve is `c_scream` (up with the score); `c_creature`, `c_night` and `c_blood` go down
+- importance order (mean absolute score): scream, shot length, visual change, position, creature, night
+
+Read: early shots, long shots, shots that change a lot and shots CLIP sees as screaming get picked
+more; late shots and shots CLIP sees as creatures, night or blood get picked less.
+
+**Alignment diagnostics** [`alignment_diagnostics.json`, `figures/alignment_diagnostics.png`]
+- median match score by hand label: right shot 0.77 (97% above 0.535), same scene other shot 0.73 (97%), wrong shot 0.71 (81%), not in film 0.52 (40%)
+- so wrong and same-scene matches score close to right ones; the cutoff can't separate them
+- median per-trailer match rate: English 0.93 (208 trailers), other language 0.93 (78), no speech 0.95 (3); language makes no difference
+- keyframe consistency floor (1% of MovieNet film shots fall below it): 0.41; 6.7% of 22,313 trailer shots fall below it, likely missed cuts
+
+**Case studies** [`case_studies.json`]: top and bottom 5 trailers per angle.
+- order (289 trailers with 15+ matched shots): most chronological Moonstruck and Ferris Bueller (1.0), Barry Lyndon 0.94; most shuffled Flash Gordon -0.38, Nashville -0.31, Vertigo -0.31
+- ending: most from the last quarter Moonstruck (1.0), Flash Gordon 0.58, Hollow Man 0.56; none from it: Planet of the Apes, Dumb and Dumber, Twins, ...
+- sync (142 trailers with 5+ paired lines): Twins, No Strings Attached, This Boy's Life at 1.0; The Cell, Pearl Harbor, Saving Private Ryan, Black Swan at 0.0
+- model (291 trailers): best per-film precision The Sixth Sense 0.32, Star Wars: Episode VII 0.30, Cube 0.30; 0.0 for Sex, Lies, and Videotape, Flash Gordon, Vertigo, ...
+
+Moonstruck and Ferris Bueller top the order and ending lists because their old "trailers" were scene
+clips; rerun before using these lists.
+
 ## 2026-10-28: trailer sound, sync rate, SSCD rerank, Scarface replaced
 
 Same 293 films, CLIP ViT-B/32, threshold 0.535 and edge filter as the entry below. New: Whisper
