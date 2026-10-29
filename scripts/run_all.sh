@@ -33,6 +33,9 @@ $PY -m trailercut.film_features
 $PY -m trailercut.model                      # RQ1: grouped CV, baselines, ablations, SHAP
 $PY -m trailercut.model_eval                 # same predictions scored with ±k shot tolerance
 $PY -m trailercut.model_figures              # PR curves, ablation, tolerance figures
+$PY -m trailercut.model_ebm                  # glass-box model; curves for the report (slow)
+$PY -m trailercut.case_studies
+$PY -m trailercut.align_diagnostics
 $PY -m trailercut.trailer_asr                # Whisper transcripts (skips done ones)
 $PY -m trailercut.dialogue_align             # trailer lines -> film subtitles
 $PY -m trailercut.av_sync                    # speech features, sound vs picture sync
