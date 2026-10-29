@@ -15,3 +15,7 @@ tt0075148,right film,studio logo matched (dropped from the model by the edge fil
 tt0379786,right film,recovered by search; matches correct
 tt0120655,right film,recovered by search; matches correct
 tt0264395,right film,recovered by search; matches correct
+tt0093565,replaced,MovieNet link was an 84 s scene clip (matched shots spanned 1% of the film); replaced 2026-10-29 by the official trailer
+tt0088944,replaced,MovieNet link was a scene clip (span 2% of the film); replaced 2026-10-29 by the official trailer
+tt0091042,replaced,MovieNet link was a scene clip (span 2% of the film); replaced 2026-10-29 by the official trailer
+tt0183649,replaced,MovieNet link was a scene clip (span 3% of the film); replaced 2026-10-29 by the official trailer
