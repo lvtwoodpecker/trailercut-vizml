@@ -51,6 +51,8 @@ GONE = ("not available", "unavailable", "private", "removed", "terminated", "cop
 def mark_unavailable(cands):
     """Carry unavailable videos from the download log into the candidate list (with the reason),
     so later runs skip them without asking YouTube again."""
+    if "unavailable" not in cands:
+        cands["unavailable"] = pd.Series(dtype=str, index=cands.index)
     if not DOWNLOADS.exists():
         return cands
     log = pd.read_csv(DOWNLOADS)
