@@ -32,7 +32,12 @@ from .trailers import FIELDS, STATUS, fetch
 LOG = IDS.parent / "trailer_recovery.csv"
 LOG_FIELDS = ["imdb_id", "rank", "youtube_id", "title", "channel", "duration", "match_share", "accepted"]
 SKIP = re.compile(r"fan.?made|unofficial|modern trailer|re-?cut|reaction|review|explained|scene|clip|ending|behind the|featurette|"
-                  r"interview|honest|parody|recap|breakdown|easter egg|vs\.?|\bcast\b", re.I)
+                  r"interview|honest|parody|recap|breakdown|easter egg|vs\.?|\bcast\b|"
+                  # not the original theatrical trailer in the original language
+                  r"teaser|tv spot|blu-?ray|\bdvd\b|\bvhs\b|anniversary|re-?release|restor|remaster|"
+                  r"german|deutsch|español|espanol|castellano|latino|\bvf\b|vostfr|français|bande.annonce|italiano|"
+                  r"dublado|legendado|subtitulado|magyar|türkçe|русск|ελληνικ", re.I)
+OFFICIAL = re.compile(r"official|theatrical", re.I)
 
 
 def norm(s):
@@ -42,7 +47,7 @@ def norm(s):
 def candidates(imdb_id, n=10):
     m = mn.meta(imdb_id)
     title = re.sub(r"\s*\(\d{4}.*", "", m["title"])
-    query = f"{title} ({m['year']}) trailer" if m["year"] else f"{title} trailer"
+    query = f"{title} ({m['year']}) official trailer" if m["year"] else f"{title} official trailer"
     try:
         with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "extract_flat": True}) as ydl:
             res = ydl.extract_info(f"ytsearch{n}:{query}", download=False)
@@ -57,7 +62,8 @@ def candidates(imdb_id, n=10):
         if SKIP.search(t) or not 45 <= d <= 300 or not all(w in norm(t) for w in key):
             continue
         out.append(dict(youtube_id=e["id"], title=t, channel=e.get("channel") or "", duration=d))
-    return out
+    # official / theatrical titles first, then trailers of typical length; otherwise keep search order
+    return sorted(out, key=lambda c: (not OFFICIAL.search(c["title"]), not 90 <= c["duration"] <= 180))
 
 
 def trailer_files(imdb_id):
