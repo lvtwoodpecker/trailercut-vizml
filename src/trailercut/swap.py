@@ -17,7 +17,9 @@
                                                    trailer if none passes
 
 Candidates come from recover.candidates (official titles first; dubs, teasers, TV spots and
-re-releases rejected by title). Download log: data/ids/swap_downloads.csv.
+re-releases rejected by title). Download log: data/ids/swap_downloads.csv. With --set expand, every
+step uses data/ids/expand_candidates.csv and expand_downloads.csv instead. Videos found unavailable
+are marked in the candidate list's `unavailable` column and skipped; download --recheck retries them.
 """
 import argparse
 import csv

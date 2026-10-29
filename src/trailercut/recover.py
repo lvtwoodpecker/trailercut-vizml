@@ -1,9 +1,12 @@
 """Find replacement trailers for core films whose MovieNet YouTube link is dead.
 
-For each film: search YouTube for "<title> (<year>) trailer", drop obvious non-trailers (clips,
-reviews, fan edits, wrong length), then try candidates in search order. A candidate is accepted
-only if enough of its shots align to that film's MovieNet keyframes, which catches wrong films
-(sequels, remakes, a different film with the same title) that title matching can't.
+For each film: search YouTube for "<title> (<year>) official trailer", drop non-trailers by title
+(clips, reviews, fan edits, dubs, teasers, TV spots, re-releases) and wrong lengths, put official or
+theatrical titles and 90 to 180 s videos first, then try candidates in that order. A candidate is
+accepted only if enough of its shots align to that film's MovieNet keyframes, which catches wrong films
+(sequels, remakes, a different film with the same title) that title matching can't, and if the matched
+shots span enough of the film, which catches scene clips. --ids replaces working trailers too (old
+files kept in cache/replaced/{id}/ and restored if no candidate passes).
 
 Searched trailers can be re-release or anniversary cuts, so every row records where it came from.
 
@@ -11,7 +14,7 @@ Outputs
   data/ids/trailer_status.csv    replaced rows get the new youtube_id and source=search
   data/ids/trailer_recovery.csv  every candidate tried, with its match share
 
-  python -m trailercut.recover [--tries 3] [--min-match 0.25]
+  python -m trailercut.recover [--tries 3] [--min-match 0.25] [--min-span 0.2] [--ids ID ...]
 """
 import argparse
 import csv
