@@ -28,6 +28,15 @@ separates them with room on both sides. This needs the 5% impostor cutoff, not t
 `impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
 
+**`recover --ids` replaces a working trailer.** For a link that plays but is the wrong kind of video
+(Scarface's was a VHS-quality TV spot with 0% of shots matched at the impostor cutoff). The old link is
+never re-picked, its files are moved to `cache/replaced/{id}/` first, and they are put back if no
+candidate passes the 25% check, so a failed search can't leave a film without a trailer.
+
+**Low-match trailers were checked by eye** (`data/ids/trailer_review.csv`). The 15 lowest-match
+trailers and the 3 weakest search replacements are all the right film. Low match comes from foreign
+versions, TV spots, dark films and logos or credits, so they stay in the corpus.
+
 **Keyframes as one zip per film** (`movienet.py --pack`). ~880 files instead of ~1.3M JPEGs, which
 matters for inode quotas on the cluster. Readers accept either a folder or `path.zip::member` refs.
 
@@ -102,6 +111,39 @@ relative path from `data/`, which broke with per-film keyframe zips (`--pack`) a
 candidates into gitignored `labels/img/`, so the page works from any data layout and the folder can be
 handed to a labeler as is.
 
+## Sound alignment (`trailer_asr.py`, `dialogue_align.py`, `av_sync.py`)
+
+**Whisper on the trailer audio, word timestamps.** Trailer dialogue is cut from the film's soundtrack,
+so a transcribed line can be looked up in the film's subtitles and placed in the film without looking
+at pixels. faster-whisper `small` with voice activity detection, which skips music-only stretches; it
+runs locally (~13 s per trailer), so it isn't on the cluster. Transcripts are copyrighted text and stay
+in the gitignored cache; the committed `dialogue_alignment/*.csv` hold times and scores only.
+
+**Fuzzy match to subtitle lines and runs of 2 to 3 lines.** Subtitles split sentences, so runs of
+lines are candidates too; fuzzy scoring keeps small transcription errors from breaking a match. A
+segment counts as found only with at least 3 words (short lines like "Get in here!" occur all over a
+film), a score of at least 90, and a margin of at least 10 over the best match more than 30 s away
+from it. These were set by reading matches on a few trailers, not tuned: real lines score 90 or more, while a line like "That's right, there's more" scored 84 against an unrelated subtitle; narration scores around 55 to 65.
+
+**Sync rate.** For each found line over a matched picture, is the picture's film shot within 30 s of
+the line's film time? Yes means the line plays over its own scene; no means it was laid over other
+footage (voice-over, montage). Lines over unmatched pictures (title cards, new footage) aren't
+counted. Per trailer: `speech_share`, `words_per_min`, `lines_found`, `sync_rate`. 30 s stands in for "the same scene"; it was not tuned.
+
+**Dialogue is not fused into shot matching.** The idea was to use a line's film time to fix or fill
+in picture matches. Against the hand labels, a found line is within 30 s of the labeled source shot
+only 59% of the time (93 labeled shots under a found line), far below the picture matcher's precision
+(0.85). About half of trailer dialogue plays over a different scene, so the sound says little about
+where the picture comes from. Dropped; dialogue stays a separate signal (sync rate, the sound track in
+the Trailer View).
+
+**Copy detection (SSCD) as a re-ranker: dropped** (`rerank.py`). CLIP matches what a frame shows, so
+a look-alike shot elsewhere in the film can outscore the true source. SSCD is trained to find the same
+image after crops, color edits and overlays, so it re-scored CLIP's top 20. On the hand labels it is
+worse than CLIP alone (top pick right 71% vs 93%, best F1 0.71 vs 0.88), a CLIP + SSCD blend is too
+(0.74), and SSCD as an accept/reject gate gave no F1 gain. With only 3 keyframes per film shot,
+stricter visual matching doesn't help.
+
 ## Readable features
 
 **Zero-shot concepts instead of raw embedding dimensions** (`concepts.py`). Shot scale uses MovieNet's
@@ -111,7 +153,8 @@ handed to a labeler as is.
 
 **Dialogue from film subtitles.** VADER sentiment and word rate of subtitles overlapping each film
 shot. For trailer-level dialogue this is a proxy (it reads what the film says under the matched shots,
-not what the trailer plays); Whisper on trailer audio would replace it.
+not what the trailer plays). The RQ2 "speech" group (below) is measured on the trailer's own audio;
+the film-side dialogue features stay for RQ1, where the shot is a film shot.
 
 **`visual_change` = 1 - cos(first, last keyframe).** A cheap stand-in for motion without optical flow.
 
@@ -175,7 +218,8 @@ makes it comparable across tolerances. Pooled AP stays in the tables as a second
 
 ## RQ2 clustering (`cluster.py`)
 
-**Features per trailer in 5 groups:** pacing, audio, story sampling, dialogue, visual. Clustered on
+**Features per trailer in 6 groups:** pacing, audio, story sampling, dialogue, visual, speech (from
+`av_sync.csv`; dropped when that file is missing). Clustered on
 all features and on each group alone, so we can tell which modality drives any structure.
 
 **k-means with k = 2..8 by silhouette, checked against HDBSCAN.** k-means for interpretable centroids;
@@ -186,9 +230,10 @@ HDBSCAN as a check on whether density-based structure exists at all.
 **Genre/era with a baseline:** NMI with primary genre and decade, compared against the 95th percentile
 of NMI with shuffled labels. Without the null, any NMI looks like agreement.
 
-**Current read** (threshold 0.535): clusters are stable (ARI 0.89 to 0.94) but weakly separated
-(silhouette 0.11 to 0.31). Genre NMI beats the null for all, story, dialogue and visual, and stays
-small (largest 0.105, dialogue); pacing clusters follow decade. Next step: regress out genre and
+**Current read** (threshold 0.535): clusters are stable (ARI 0.79 to 0.94) but weakly separated
+(silhouette 0.10 to 0.31). Genre NMI beats the null for all, story, dialogue, visual and (barely)
+speech, and stays small (largest 0.103, dialogue); pacing and speech clusters follow decade. The
+speech group's k = 8 sits at the edge of the search range with a flat silhouette, so it isn't a real k. Next step: regress out genre and
 decade and re-cluster the residuals; if structure stays weak, report continuous axes instead of types.
 
 ## Trailer View (`viz/index.html`, `viewer_export.py`)
@@ -226,6 +271,25 @@ side, large enough to compare. Arrow keys step through matched shots and Esc unl
 `viz/data/` or hosted; on a machine without the data the page still works, just without pictures.
 The paths are fixed to `data/` and loose JPEGs, so they ignore `TRAILERCUT_DATA` and `--pack` zips
 (unlike the label tool, which copies its images).
+
+**Playable trailer with a custom player.** The trailer plays above the timeline and the current shot
+drives the same highlight as hover. No native control bar: a play/pause button, the time, a CC
+toggle, click the video to play/pause, and drag the trailer strip or sound track to scrub. Trailers
+are AV1, VP9 or H.264 in MP4, so Safari can't play all of them; Chrome and Firefox can.
+The native controls look different in every browser and duplicate the timeline; with our own controls the trailer strip itself is the seek bar.
+
+**Captions from the transcript, on by default** (`viz/data/{id}.vtt`). Whisper can merge ~30 s of
+speech into one segment, so `viewer_export` splits cues at about 6 s, 12 words or a pause over 1.5 s,
+using the word timestamps.
+
+**One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
+it, tinted violet where a line was found in the film's dialogue. One sound link at a time runs from the
+current or hovered line to its film moment; picture links are drawn only in the main chart. A "Sound
+vs picture" panel plots each found line's film time against its picture's film time and counts lines
+within 30 s. Drawing every sound link next to every picture link was too crowded to read, so sound shows on demand and the sync panel carries the overview.
+
+**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
+subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
 
 ## RQ1 page (`viz/rq1.html`, `rq1_export.py`)
 

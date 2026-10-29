@@ -6,7 +6,7 @@
 | shot | a continuous run of frames between two cuts. Film shots come from MovieNet; trailer shots from TransNetV2 |
 | keyframe | one of the 3 frames sampled per shot (MovieNet's for films; 25/50/75% for trailers) |
 | story position | where a film shot falls in the film: shot midpoint over runtime, 0 (start) to 1 (end) |
-| act | story position split 1/4, 1/2, 1/4 into setup, middle, ending |
+| act | story position split 1/4, 1/2, 1/4 into setup, middle, ending (used as a feature; no longer labeled in the views) |
 | synopsis position | which paragraph of the MovieNet synopsis covers the shot, scaled 0 to 1 |
 | alignment | matching each trailer shot to the film shot it was cut from |
 | match / no match | a trailer shot is matched if its best score clears the threshold and it isn't blank |
@@ -39,4 +39,9 @@
 | match share | fraction of a trailer's non-blank shots that are matched; used to verify recovered trailers |
 | source | where a trailer link came from: `movienet` or `search` |
 | movie barcode | the film drawn as a strip of its shots, each filled with the average color of its middle keyframe and as wide as its share of runtime (Trailer View) |
+| speech segment | one Whisper segment of the trailer transcript, with word timestamps |
+| found line | a trailer speech segment matched to the film's subtitles (3+ words, score 90+, margin 10+) |
+| sync rate | of a trailer's found lines over a matched picture, the share whose film time is within 30 s of the picture's film shot; high = lines play over their own scene, low = voice-over or montage |
+| sound link | in the Trailer View, the curve from the current spoken line to the film moment it comes from; one at a time |
+| SSCD | a copy-detection image model (Pizzi et al. 2022); tried as a re-ranker for CLIP's candidates, not used |
 | backbone tag | which CLIP model made the embeddings: `b32`, `l14`, `h14` |
