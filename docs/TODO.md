@@ -5,11 +5,6 @@ current block lives in `plan.md`.
 
 ## Now
 
-**Data**
-
-**Docs and submission**
-- [ ] Refresh the numbers in the project update draft (293 trailers, cutoff 0.535) before submitting
-
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
 - [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters follow genre (NMI 0.103 vs 0.033 null); the speech group follows decade and its k = 8 is at the edge of the search range
@@ -46,6 +41,7 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-29: project update draft refreshed with the final numbers (local, not committed)
 - 2026-10-28: docs pass for the sound work, Trailer View player and Scarface replacement
 - 2026-10-28: dialogue anchors checked against the hand labels: 59% within 30 s of the labeled shot (`av_sync.json`)
 - 2026-10-28: sound vs picture sync rate per trailer (`av_sync.py`, `figures/av_sync.png`): pooled 0.51, median 0.50 over 167 trailers with 3+ lines
