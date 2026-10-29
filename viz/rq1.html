@@ -51,6 +51,8 @@ svg { display: block; overflow: visible; }
   border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; z-index: 10;
   font-variant-numeric: tabular-nums; }
 .note { color: var(--muted); font-size: 12px; }
+.ebm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 16px; }
+.ebm-grid h3 { font-size: 13px; font-weight: 600; margin: 4px 0 0; }
 </style>
 </head>
 <body>
@@ -65,6 +67,12 @@ svg { display: block; overflow: visible; }
     <h2>Can a model pick the trailer's shots?</h2>
     <p class="sub">Model picks vs random picks, per film.</p>
     <svg id="models"></svg>
+  </div>
+
+  <div class="card" id="ebm-card">
+    <h2>Effect of each feature</h2>
+    <p class="sub" id="ebm-sub"></p>
+    <div id="ebm" class="ebm-grid"></div>
   </div>
 
   <div class="card">
@@ -174,10 +182,38 @@ function models(rows, best) {
 const label = n => ({ random: "random picks", position_only: "story position only", length_only: "shot length only",
   clip_only: "CLIP look only", readable: "named features (no CLIP)", full: "named features + CLIP" }[n] || n);
 
+// glass-box model (EBM): odds of making the trailer as one feature changes, others held fixed
+function ebm(curves, lift) {
+  const box = d3.select("#ebm").html("");
+  if (!curves) { d3.select("#ebm-card").style("display", "none"); return; }
+  d3.select("#ebm-sub").text(`Odds of making the trailer, from an interpretable model (${times(lift)} lift, about the same as the black-box model).`);
+  const Y = [0.55, 2.3], ticks = [0.6, 0.8, 1, 1.25, 1.6, 2];
+  curves.forEach(c => {
+    const cell = box.append("div");
+    cell.append("h3").text(c.name);
+    const w = cell.node().clientWidth || 260, H = 150, m = { l: 34, r: 8, t: 6, b: 22 };
+    const svg = cell.append("svg").attr("width", w).attr("height", H);
+    const x = d3.scaleLinear(d3.extent(c.x), [m.l, w - m.r]), y = d3.scaleLog(Y, [H - m.b, m.t]).clamp(true);
+    ticks.forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(t)).attr("y2", y(t)));
+    const pts = c.x.map((v, i) => [v, c.y[i]]);
+    svg.append("path").attr("fill", "none").attr("stroke", "var(--pos)").attr("stroke-width", 2)
+      .attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1])).curve(d3.curveStepAfter)(pts));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(4).tickSizeOuter(0));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(ticks).tickFormat(t => `${t}×`).tickSizeOuter(0));
+    svg.append("rect").attr("class", "hit").attr("x", m.l).attr("width", w - m.l - m.r).attr("y", m.t).attr("height", H - m.t - m.b)
+      .on("mousemove", ev => {
+        const v = x.invert(d3.pointer(ev)[0]), k = Math.max(0, d3.bisectRight(c.x, v) - 1);
+        showTip(ev, `${c.name} ${d3.format(".3~g")(c.x[k])}: ${times(c.y[k])}`);
+      })
+      .on("mouseleave", hideTip);
+  });
+}
+
 d3.json("data/rq1.json").then(D => {
   d3.select("#lede").text(`How often each kind of shot makes the trailer, vs the average shot. ${D.n_films} films. Grey: no clear difference.`);
   const draw = () => {
     if (D.models) models(D.models, D.best_model);
+    ebm(D.ebm, D.ebm_lift);
     story(D.story);
     for (const k of ["scale", "length", "distinct", "dialogue"]) { dotPlot(k, D[k]); sub(k + "-sub", D[k]); }
     dotPlot("content", D.content, 120);

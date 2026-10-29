@@ -19,6 +19,8 @@ from .model import load
 from .paths import FEATURES, ROOT
 
 OUT = ROOT / "viz" / "data" / "rq1.json"
+EBM_LABEL = {"story_pos": "position in film", "shot_len": "shot length (s)", "visual_change": "visual change",
+             "dlg_rate": "words per second", "scale_width": "shot width", "dlg_words": "words spoken"}
 SCALES = {"scale_ecu": "extreme close-up", "scale_cu": "close-up", "scale_ms": "medium", "scale_fs": "full", "scale_ls": "long"}
 
 
@@ -78,6 +80,20 @@ def main():
     if ev.exists():
         k0 = json.loads(ev.read_text())["k0"]
         out["models"] = [dict(name=n, lift=k0[n]["lift"]) for n in ["random", "position_only", "length_only", "clip_only", "readable", "full"]]
+    ebm = FEATURES / "model_ebm.json"
+    if ebm.exists():  # glass-box curves: odds of making the trailer as each feature changes
+        e = json.loads(ebm.read_text())
+        top = sorted(e["curves"], key=lambda n: -e["curves"][n]["importance"])[:6]
+        out["ebm"] = []
+        for name in top:
+            c = e["curves"][name]
+            edges, score = np.array(c["x"], dtype=float), np.exp(c["score"])
+            lo, hi = df[name].quantile([0.01, 0.99])
+            keep = (edges[:-1] >= lo) & (edges[:-1] <= hi)
+            out["ebm"].append(dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")),
+                                   x=[round(float(v), 4) for v in edges[:-1][keep]],
+                                   y=[round(float(v), 4) for v in score[keep]]))
+        out["ebm_lift"] = e["metrics"]["lift"]
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, allow_nan=False))
     print("->", OUT)
