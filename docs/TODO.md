@@ -5,26 +5,14 @@ current block lives in `plan.md`.
 
 ## Now
 
-**Audio alignment** (`plan.md` section A)
-- [ ] Check dialogue anchors against the hand labels
-- [ ] Sound/picture sync rate per trailer: RQ2 features + one figure
-- [ ] Trailer dialogue features from the transcripts (speech share, words per minute, share of lines found in the film) to replace the subtitle proxy
-- [ ] Fuse dialogue into shot matching, only if it beats the current matching on the labels
-
-**Trailer View**
-- [ ] Custom player: drop the native control bar; the trailer strip is the scrubber (click/drag to seek), small play/pause button, our own caption overlay (on by default, toggle), space plays, ← → step. The `<video>` element only shows the picture
-- [ ] Split long caption cues (Whisper merges up to ~35 s, e.g. Rebel 0:01 to 0:36) into chunks of at most ~6 s or 12 words using the word timestamps
-
 **Data**
-- [ ] Replace Scarface (tt0086250, VHS-quality TV spot): add `recover --ids` to re-search one film (see `data/ids/trailer_review.csv`)
 
 **Docs and submission**
-- [ ] Doc-keeper pass for everything since 47614fd: playable view, sound track, sync panel, captions, terse labels, `trailer_asr`, `dialogue_align`, `rerank` (negative result), `model_figures`, `trailer_review.csv`; README browser note (trailers are AV1/VP9/H.264: use Chrome or Firefox)
 - [ ] Refresh the numbers in the project update draft (293 trailers, cutoff 0.535) before submitting
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
-- [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters now follow genre (NMI 0.105 vs 0.033 null); add sync features once they exist
+- [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters follow genre (NMI 0.103 vs 0.033 null); the speech group follows decade and its k = 8 is at the edge of the search range
 - [ ] Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
 - [ ] D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
@@ -50,13 +38,23 @@ current block lives in `plan.md`.
 
 ## Dropped
 
+- Fusing dialogue into shot matching: a found line is within 30 s of the hand-labeled source shot only 59% of the time (93 shots), well below the picture matcher's precision
+
 - Keypoint verification of CLIP's top 5: copy detection (SSCD) already showed stricter visual matching doesn't help with 3 keyframes per film shot
 - Whisper on the cluster: it runs locally (~13 s per trailer)
 - Temporal smoothing of the alignment: lower F1 than raw matching on the labels
 
 ## Done
 
-- 2026-10-28: all 293 trailers transcribed; dialogue alignment: 2,368 of 8,273 speech segments (29%) found in the film, 187 trailers with at least one
+- 2026-10-28: docs pass for the sound work, Trailer View player and Scarface replacement
+- 2026-10-28: dialogue anchors checked against the hand labels: 59% within 30 s of the labeled shot (`av_sync.json`)
+- 2026-10-28: sound vs picture sync rate per trailer (`av_sync.py`, `figures/av_sync.png`): pooled 0.51, median 0.50 over 167 trailers with 3+ lines
+- 2026-10-28: trailer speech features (`speech_share`, `words_per_min`, `lines_found`, `sync_rate`) as the RQ2 "speech" group
+- 2026-10-28: Trailer View custom player: no native controls, play/pause button, time, CC toggle, drag the strip or sound track to scrub
+- 2026-10-28: caption cues split at ~6 s, 12 words or pauses using the word timestamps
+- 2026-10-28: `recover --ids`; Scarface's TV spot replaced by an HD trailer (64% of shots match at the impostor cutoff vs 0%)
+
+- 2026-10-28: all 293 trailers transcribed; dialogue alignment: 2,399 of 8,330 speech segments (29%) found in the film, 188 trailers with at least one
 - 2026-10-28: Trailer View: playable trailer with timeline following it, one sound track (loudness, film dialogue in violet, one sound link at a time), sound vs picture panel, captions on the video (`.vtt`), terse labels, no act labels
 - 2026-10-28: `trailer_asr` (Whisper) and `dialogue_align` (trailer lines to film subtitles)
 - 2026-10-28: SSCD copy-detection re-ranking and gate evaluated against the labels (`rerank.py`): worse than or equal to CLIP, not used
