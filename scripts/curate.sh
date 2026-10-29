@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Steps that change the inputs, run on purpose (not part of run_all.sh). After any of them, rebuild
+# with: bash scripts/run_all.sh prep align audio rq1 rq2 viz
+#
+#   bash scripts/curate.sh recover           replace dead trailer links (search + alignment check)
+#   bash scripts/curate.sh audit             flag trailers that aren't the original theatrical trailer
+#   bash scripts/curate.sh swap ID [ID ...]  replace those films' trailers (keeps the old one if nothing passes)
+#   bash scripts/curate.sh labels            regenerate the hand-labeling page
+#   bash scripts/curate.sh tune              compare alignment and model variants against the labels
+set -euo pipefail
+cd "$(dirname "$0")/.."
+PY=.venv/bin/python
+
+case "${1:-}" in
+  recover) $PY -m trailercut.recover ;;
+  audit)   $PY -m trailercut.trailer_audit ;;
+  swap)    shift; $PY -m trailercut.recover --ids "$@" ;;
+  labels)  $PY -m trailercut.label_tool --n 10 --seed 0 ;;
+  tune)    $PY -m trailercut.align_tune; $PY -m trailercut.rerank --eval; $PY -m trailercut.model_tune ;;
+  *) sed -n '2,10p' "$0"; exit 1 ;;
+esac
