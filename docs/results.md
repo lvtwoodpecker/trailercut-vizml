@@ -3,6 +3,89 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-28: trailer sound, sync rate, SSCD rerank, Scarface replaced
+
+Same 293 films, CLIP ViT-B/32, threshold 0.535 and edge filter as the entry below. New: Whisper
+transcripts of every trailer, trailer lines matched to film subtitles, a sound vs picture sync rate,
+and a "speech" feature group for RQ2. Scarface (tt0086250) now uses an HD theatrical trailer instead
+of a VHS TV spot, so alignment, model and clusters were rerun.
+
+**Dialogue alignment** [`dialogue_alignment/*.csv`]
+- 8,330 Whisper speech segments over 293 trailers; 2,399 (29%) found in the film's subtitles
+- 188 trailers have at least one found line
+- a segment counts only with 3+ words, fuzzy score 90+ and a 10 point margin over the best match more than 30 s away
+
+**Sound vs picture** [`av_sync.json`, `av_sync.csv`, `figures/av_sync.png`]
+- 2,287 found lines play over a matched picture; 51% of them (pooled) are within 30 s of the picture's film moment
+- median sync rate 0.50 over the 167 trailers with 3+ such lines
+- median trailer: speech over 53% of its length, 96 words per minute
+
+Read: about half of the film dialogue in a trailer plays over a different scene (voice-over, montage).
+
+**Dialogue anchors vs hand labels** [`av_sync.json`]: 93 labeled shots have a found line playing
+over them. For 59% the line's film time is within 30 s of the labeled source shot. Too loose to
+correct or fill in picture matches, so dialogue is not fused into shot matching.
+
+**SSCD copy-detection rerank** [`rerank_eval.json`]: CLIP's top 20 per trailer shot re-scored with
+SSCD, on the labeled trailers.
+
+| scorer | threshold | precision | recall | F1 | top pick right, no threshold |
+|---|---|---|---|---|---|
+| CLIP (used) | 0.535 | 0.854 | 0.905 | 0.879 | 93% |
+| SSCD | 0.365 | 0.752 | 0.671 | 0.709 | 71% |
+| CLIP + SSCD | 0.955 | 0.751 | 0.722 | 0.736 | 76% |
+
+SSCD as an accept/reject gate on CLIP's pick gave no F1 gain (in-session, not saved).
+
+**Alignment** [`summary.json`, alignment CSVs]
+- 22,095 trailer shots, 1.8% blank, 91% matched; per trailer median 91%, IQR 87% to 95%
+- Scarface: 97% matched (64% at the impostor cutoff, vs 0% for the old TV spot, `trailer_review.csv`)
+- lowest is still *A Few Good Men* (tt0104257) at 42%, a TV spot
+
+**Trailer review** [`trailer_review.csv`]: the 15 lowest-match trailers and the 3 weakest
+recovered ones were checked by eye. All are the right film. Low match comes from foreign versions
+(dubbed audio, burned-in subtitles), TV spots, dark films where shots look alike, and logos or end
+credits matched to film shots.
+
+**Story sampling** [`summary.json`]: 33% of matched shots from the first quarter, 18% from the last;
+median trailer takes 16% of its matched shots from the final act.
+
+**RQ1** [`model_report.json`, `model_eval.json`]: 464,373 film shots, 3.8% positive.
+
+| model | AP | precision at trailer length | lift k=0 | lift ±1 | lift ±3 | lift ±5 |
+|---|---|---|---|---|---|---|
+| random | 0.038 | 0.043 | 1.13 | 1.10 | 1.10 | 1.11 |
+| position only | 0.042 | 0.046 | 1.22 | 1.21 | 1.17 | 1.14 |
+| length only | 0.049 | 0.070 | 1.85 | 1.43 | 1.28 | 1.19 |
+| CLIP only | 0.064 | 0.105 | 2.77 | 1.96 | 1.60 | 1.45 |
+| readable | 0.069 | 0.109 | 2.88 | 1.98 | 1.63 | 1.47 |
+| full | 0.076 | 0.122 | 3.22 | 2.15 | 1.71 | 1.54 |
+
+Lift lost when one group is dropped from the full model (precision at trailer length over the
+positive rate): CLIP 0.35, editing 0.22, position 0.09, dialogue 0.03, content 0.02, scale 0.00.
+SHAP mean |value| by group: CLIP 0.30, editing 0.22, position 0.19, content 0.10, dialogue 0.07,
+scale 0.05. Figures: `model_pr.png`, `model_ablation.png`, `model_tolerance.png`.
+
+Read: with the new Scarface trailer, exact-shot lifts moved by at most 0.06 (position only); same picture as below.
+
+**Clustering** [`cluster_report.json`]
+
+| features | k | silhouette | bootstrap ARI | genre NMI (null 95%) | decade NMI (null 95%) |
+|---|---|---|---|---|---|
+| all | 2 | 0.105 | 0.88 | 0.069 (0.022) | 0.024 (0.022) |
+| pacing | 2 | 0.312 | 0.92 | 0.020 (0.026) | 0.079 (0.021) |
+| audio | 2 | 0.260 | 0.92 | 0.017 (0.025) | 0.013 (0.022) |
+| story | 3 | 0.243 | 0.91 | 0.043 (0.033) | 0.041 (0.033) |
+| dialogue | 3 | 0.283 | 0.89 | 0.103 (0.033) | 0.023 (0.032) |
+| visual | 2 | 0.232 | 0.94 | 0.051 (0.024) | 0.024 (0.021) |
+| speech (new) | 8 | 0.291 | 0.79 | 0.072 (0.069) | 0.079 (0.061) |
+
+HDBSCAN: 2 clusters on dialogue (65% noise) and speech (45% noise), none elsewhere.
+
+Read: the speech group picks k = 8, the top of the search range, with silhouette almost flat
+(0.27 to 0.29 for k = 2 to 8), so the k isn't meaningful. It follows decade (0.079 vs 0.061) more
+than genre (0.072 vs 0.069). Adding it to "all" (56 features) leaves all clusters as weak as before.
+
 ## 2026-10-28: label-picked threshold (0.535), logo/credit edges dropped
 
 Same 293 trailers and CLIP ViT-B/32 as the entry below. Two changes: the match threshold now comes

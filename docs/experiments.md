@@ -27,3 +27,7 @@ tries them again by accident. The reasoning behind what we kept is in `design.md
 | 2026-10-28 | Alignment smoothing v1: Viterbi with a penalty on jumps between distant film shots | dropped real matches, 32 to 23 on *The Shining* (in-session) | no |
 | 2026-10-28 | Alignment smoothing v2: Viterbi with a bonus for consecutive matches within `tau` film shots, no jump penalty | best F1 0.846 vs 0.879 for raw best match, against the hand labels (`align_tune.json`) | no, `align.smooth` kept but unused |
 | 2026-10-28 | Match threshold from hand labels (best F1) instead of the 5% impostor cutoff | 0.535: precision 0.85, recall 0.91 vs 0.90 and 0.60 at 0.74 (`alignment_eval.json`); 77% of impostor scores now pass | yes, rerun everything downstream at 0.535 |
+| 2026-10-28 | SSCD copy detection re-ranking CLIP's top 20 per trailer shot, and a CLIP + SSCD blend | best F1 0.709 (SSCD) and 0.736 (blend) vs 0.879 for CLIP; top pick right 71% and 76% vs 93% (`rerank_eval.json`) | no |
+| 2026-10-28 | SSCD as an accept/reject gate on CLIP's pick | no F1 gain over CLIP alone (in-session, not saved) | no |
+| 2026-10-28 | Dialogue anchors as a check on picture matches: found trailer line vs the labeled source shot | within 30 s for 59% of 93 labeled shots under a found line (`av_sync.json`) | no fusion into shot matching; sync rate kept as a feature |
+| 2026-10-28 | `recover --ids` on Scarface (VHS-quality TV spot) | HD theatrical trailer: 64% of shots match at the impostor cutoff vs 0% (`trailer_review.csv`) | yes |
