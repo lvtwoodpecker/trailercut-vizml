@@ -9,19 +9,52 @@ steps that haven't produced a committed output so far.
 **`core_films_293.csv`** (C): the 293 core films.
 `imdb_id`, `youtube_id` (MovieNet's original trailer link).
 
+**`films_1100.csv`** (C): all 1,100 MovieNet films with keyframes. `imdb_id`, `youtube_id` (MovieNet's
+trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0).
+
 **`trailer_status.csv`** (C): one row per core film.
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
 `title` (YouTube title), `error` (first line of the yt-dlp error, up to 200 chars), `source` (`movienet`
 or `search`). `duration` and `title` are empty when the video was already on disk. All 293 rows are `ok`
-(243 `movienet`, 50 `search`: 49 dead links plus Scarface, replaced with `recover --ids`).
+(238 `movienet`, 55 `search`: 49 dead links, plus Scarface, four scene clips and Mulholland Drive's dub,
+replaced with `recover --ids`).
 
-**`trailer_recovery.csv`** (C): every search candidate tried for a dead link or a film passed to `recover --ids`, appended across runs (56 rows for 50 films, 50 accepted; Scarface's row is a replacement of a working link).
+**`trailer_recovery.csv`** (C): every candidate tried by `recover` (dead links, `--ids`) or `swap apply`, appended across runs (318 rows for 138 films, 55 accepted).
 `imdb_id`, `rank` (search order among filtered results, 0-based), `youtube_id`, `title`, `channel`,
 `duration` (s, from search results), `match_share` (fraction of non-blank shots matched to the film,
-empty if download or alignment failed), `accepted` (`match_share` at least `--min-match`, default 0.25).
+empty if download or alignment failed; `recover` sets it to 0 when the matched shots span under
+`--min-span`, default 0.2, of the film), `accepted` (`match_share` at least `--min-match`, default
+0.25, and for `swap apply` a span of at least 0.2).
 
 **`trailer_review.csv`** (C): eye check of low-match and recovered trailers. `imdb_id`, `verdict`
 (`right film` or `replaced`), `reason` (free text: foreign version, TV spot, dark film, ...; may be empty).
+
+**`trailer_audit.csv`** (C, `trailer_audit`): one row per trailer in use, most flags first.
+`imdb_id`, `film` (MovieNet title), `youtube_id`, `source`, `yt_title` (YouTube title, or the title
+logged at download if YouTube refused the metadata request), `channel`, `duration` (s), `height`
+(best available picture height, px), `language` (Whisper's guess), `expected_language` (from the
+film's first production country; empty if not in the lookup), `span` (10th to 90th percentile of
+matched shots' `film_story_pos`), `flags` (space-separated, below), `n_flags`, `swap` (any hard flag).
+Hard flags: `not_trailer` (title says TV spot, teaser, clip, scene, featurette, Blu-ray, review, ...),
+`ad` (transcript sells a home-video edition), `clip` (span under 0.2), `dub` (confident spoken language,
+p at least 0.8 with over 15 s of speech, differs from the expected one), `short` (under 60 s). Soft
+flags: `rerelease` (anniversary, restoration, 4K, ... or a year in the title 3+ years from the film's),
+`low_res` (under 360p), `long` (over 240 s). The committed file was written before the alignment was
+rerun for the four replaced scene clips, so their rows still show the old `span` and `clip` flag.
+
+**`swap_candidates.csv`** (C, `swap search`): ranked replacement candidates for the audit's `swap` films
+whose link is still MovieNet's. `imdb_id`, `rank` (0 = first choice: official/theatrical titles,
+then 90 to 180 s, then search order), `youtube_id`, `title`, `channel`, `duration` (s, from search),
+`unavailable` (YouTube's reason when a download showed the video is gone, private or region-locked;
+empty otherwise; `download --recheck` retries these). 551 candidates for 83 films.
+
+**`swap_downloads.csv`** (C, `swap download`): one row per video attempted. `imdb_id`, `youtube_id`,
+`status` (`ok` / `error`), `error` (first line of the yt-dlp error). Bot-check errors are retried on
+the next run. The committed log has 83 films downloaded.
+
+**`expand_candidates.csv`**, **`expand_downloads.csv`** (`swap --set expand`; not written yet): same
+columns for films new to the dataset, plus `source` (`movienet` for MovieNet's own link kept as rank 0,
+`search` for search picks ranked from 1).
 
 ## Trailer shots (`data/features/trailer_shots/{imdb_id}.csv`, C)
 
@@ -53,7 +86,7 @@ without `source` means `impostor_null`. The committed file is `manual`, threshol
 
 **`align_tune.json`** (C): raw vs smoothed matching scored against the hand labels (`align_tune`).
 `n` (labeled shots, `u` dropped), `trailers`, `current` (raw at the threshold in
-`alignment_threshold.json` when it ran; in `run_all.sh` order that is the impostor cutoff), `best`
+`alignment_threshold.json` when it ran: the label-picked cutoff if `align --threshold` ran last), `best`
 (`raw`, `smooth`: the best-F1 row of each), `grid` (every row). Each row: `method` (`raw` / `smooth`),
 `threshold`, `lam`, `tau` (smooth only), `precision`, `recall`, `f1`, `near_precision` (a match within
 ±3 film shots of the labeled source counts), `n_pred` (shots predicted matched).
@@ -77,6 +110,13 @@ when there are none), `n_lines_paired` (those lines; `sync_rate`'s denominator).
 lines), `median_speech_share`, `median_words_per_min`, `sync_seconds` (30), `labels`
 (`labeled_shots_under_found_line`, `line_within_sync_of_labeled_shot`: share of those where the line's
 film time is within 30 s of the labeled source shot).
+
+**`alignment_diagnostics.json`** (C, `align_diagnostics`): `threshold` (cutoff in use), `labels` (per
+hand-label kind `right shot`, `wrong shot`, `same scene, other shot`, `not in film`: `n`,
+`median_score`, `above_cutoff` share), `language` (per trailer group `English`, `other language`,
+`no speech` from Whisper: `trailers`, `median_match` rate), `cuts` (`film_floor_1pct`: keyframe
+consistency, the lowest cosine between a shot's 3 keyframes, that only 1% of MovieNet film shots fall
+below; `trailer_shots`; `trailer_below_floor`: share of trailer shots below it, likely missed cuts).
 
 **`rerank_eval.json`** (C): `clip`, `sscd`, `blend` (CLIP + SSCD), each with `best_f1` (`threshold`,
 `precision`, `recall`, `f1`, `near_precision`, `n_pred`, as in `align_tune.json`) and
@@ -126,6 +166,11 @@ within ±k, averaged) and `lift` (`prec_at_k / base_rate`). `k0` is the exact-sh
 learning`, `rank, smaller trees`. The committed file was computed at threshold 0.74, before the
 re-alignment at 0.535.
 
+**`model_ebm.json`** (C, `model_ebm`): `metrics` (out of fold, same folds as `model.py`: `ap`, `ap_film`,
+`r_prec`, `ap_lenadj`, `lift` = `r_prec` over the positive rate), `lightgbm_readable_lift` (the
+`readable` lift at k0 from `model_eval.json`), `curves` (per readable feature, from a fit on all films:
+`x` bin edges, `score` per bin in log-odds, `importance` = mean absolute score).
+
 **`model_shap.parquet`** (G): `imdb_id`, `shot_idx`, one out-of-fold SHAP column per readable
 feature, `clip` (sum over the CLIP PCs), `bias`. Values are in log-odds; a row sums to the full
 model's log-odds for that shot.
@@ -146,6 +191,12 @@ One row per trailer. Ids: `imdb_id`, `title`, `year`, `decade`, `genres`, `prima
 **`trailer_curves.json`** (C): object keyed by IMDb ID; each has `rms_db` (100 values, dB relative to
 the loudest frame, interpolated over trailer time) and `cuts` (100 counts of shots whose midpoint falls
 in each bin).
+
+**`case_studies.json`** (C, `case_studies`): one object per angle: `order` (`order_corr`), `ending`
+(`final_act_share`), `sync` (`sync_rate`), `model` (`model_precision`: per-film precision of the
+`full` model at trailer length). Each has `column`, `n_trailers` (trailers with enough data: 15+
+matched shots, 5+ paired lines, or 10+ used shots for `model`) and two lists of the top and bottom
+`--n` (default 5) trailers, each `imdb_id`, `title`, `genre`, `value`.
 
 ## Clusters
 
@@ -213,7 +264,11 @@ films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` fr
 `trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `trailer_audio/{id}.wav` (mono 22,050 Hz),
 `trailer_asr/{id}.json` (`trailer_asr`: `language`, `language_p`, `segments` with `start`, `end`,
 `text`, `words` [{`start`, `end`, `word`, `p`}]), `models/` (SSCD weights for `rerank`),
-`replaced/{id}/` (a trailer's old files while `recover --ids` replaces it, plus `_paths.json`),
+`replaced/{id}/` (a trailer's old files while `recover --ids` or `swap apply` replaces it, plus `_paths.json`),
+`yt_meta/{youtube_id}.json` (`trailer_audit`: `title`, `channel`, `duration`, `height`; failed
+requests aren't cached),
 `concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
 `shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
 while the shot counts match).
+
+Swap downloads go to `$TRAILERCUT_DATA/trailers/candidates/{id}__{youtube_id}.mp4` (G).

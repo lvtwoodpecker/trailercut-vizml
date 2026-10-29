@@ -14,9 +14,10 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 | path | what |
 |---|---|
 | `src/trailercut/` | one module per pipeline step, each runnable with `python -m trailercut.<step>` |
-| `scripts/run_all.sh` | every step in order |
+| `scripts/run_all.sh` | rebuild outputs from the inputs, in stages (`data prep align audio rq1 rq2 viz`, opt-in `ebm`) |
+| `scripts/curate.sh` | steps that change the inputs: dead links, trailer audit and swaps, label page, tuning against the labels |
 | `hpc/` | Slurm jobs for the heavy steps |
-| `data/ids/` | film list, trailer availability and recovery logs |
+| `data/ids/` | film lists, trailer availability, recovery, audit and swap logs |
 | `data/features/` | everything the analysis and views read |
 | `labels/` | labeling tool, sample, gold labels |
 | `figures/` | generated figures |
@@ -28,9 +29,20 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 1. New module `src/trailercut/<step>.py` with a top docstring: what it does, outputs, CLI usage.
 2. Skip work that's already done, so reruns are cheap.
 3. Paths from `trailercut.paths` only; never hardcode `data/`.
-4. Add it to `scripts/run_all.sh`, `docs/pipeline.md` and the README pipeline table.
+4. Add it to the right stage of `scripts/run_all.sh` (or to `scripts/curate.sh` if it changes the
+   inputs: trailer links, labels), `docs/pipeline.md` and the README pipeline table.
 5. New output files go in `docs/data_dictionary.md`, and either the committed list in the README or
    `.gitignore`.
+
+## Rebuild vs curate
+
+- `bash scripts/run_all.sh` (or named stages, e.g. `bash scripts/run_all.sh rq1 viz`) only recomputes
+  from the current inputs. Run it after code changes; name the stages from the one you touched onward.
+- `bash scripts/curate.sh <step>` changes the inputs (which trailer a film uses, the labels). Run it on
+  purpose, commit the changed logs in `data/ids/`, then rebuild with
+  `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
+- YouTube steps (`recover`, `audit`, `swap-*`) are rate-limited: run swaps as `swap-search`,
+  `swap-download` (resumable; rerun later if it stops on bot checks), `swap-apply`.
 
 ## What gets committed
 

@@ -8,7 +8,7 @@ We hand-check the aligner on 10 trailers to pick the final match threshold and m
 1. Make sure you have the film keyframes (loose JPEGs or `--pack` zips) and trailer frames for the
    sampled films locally, under `TRAILERCUT_DATA` if set. `label_tool` copies the images it needs into
    `labels/img/` (gitignored); the page loads them from there. Nothing is uploaded.
-2. `python -m trailercut.label_tool --n 10 --seed 0` (already run; the 10 sampled IMDb IDs are in
+2. `python -m trailercut.label_tool --n 10 --seed 0`, or `bash scripts/curate.sh labels` (already run; the 10 sampled IMDb IDs are in
    `labels/label_sample.json`). Sampling is round-robin over decades. Same seed and same set of
    aligned trailers = same sample, so everyone labels from the same page (the 293-trailer set gives the
    same 10 films as the earlier 244 set).
@@ -76,5 +76,5 @@ under ~0.7, we go through the disagreements together and tighten these rules bef
 `data/features/alignment_eval.json` (`kappa`, `kappa_n`, `n`, `label_mix`, `top1_acc_when_source`,
 `best_f1`, `precision_0.9` = lowest threshold with precision at least 0.9, `impostor_threshold`).
 `scripts/run_all.sh` then re-runs `align --threshold` with `best_f1.threshold` and everything after
-it. `python -m trailercut.align_tune` scores raw vs smoothed matching against the same labels
+it. `python -m trailercut.align_tune` (part of `bash scripts/curate.sh tune`) scores raw vs smoothed matching against the same labels
 (`align_tune.json`). Current result: best F1 at 0.535 (see `results.md`).
