@@ -5,6 +5,8 @@ current block lives in `plan.md`.
 
 ## Now
 
+- [ ] Doc pass: `run_all.sh` is now staged (`bash scripts/run_all.sh rq1 viz`), input-changing steps moved to `scripts/curate.sh`; update README, pipeline.md, workflow.md
+
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
 - [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters follow genre (NMI 0.103 vs 0.033 null); the speech group follows decade and its k = 8 is at the edge of the search range
