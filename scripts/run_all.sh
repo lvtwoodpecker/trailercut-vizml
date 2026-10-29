@@ -2,7 +2,8 @@
 # Rebuild every output from the inputs, one stage after another (nothing runs in parallel).
 #   bash scripts/run_all.sh              all stages
 #   bash scripts/run_all.sh rq1 viz      only these stages, in the order given
-# Stages: data prep align audio rq1 rq2 viz, plus "ebm" (slow, ~30 min; not in the default run).
+# Stages: data prep align audio rq1 viz by default. Opt-in only: "rq2" (trailer features, clustering,
+# case studies) and "ebm" (slow, ~30 min).
 # Download, shot, embedding and transcription steps skip finished films/trailers; the rest recompute.
 # Changing the inputs (dead links, trailer swaps, labels) is separate: see scripts/curate.sh.
 set -euo pipefail
@@ -43,12 +44,12 @@ rq1() {    # which film shots make the trailer
   $PY -m trailercut.model
   $PY -m trailercut.model_eval
   $PY -m trailercut.model_figures
+  $PY -m trailercut.figures                # data funnel, alignment and story figures
 }
 
-rq2() {    # trailer features and clusters
+rq2() {    # trailer features and clusters (opt-in)
   $PY -m trailercut.trailer_features
   $PY -m trailercut.cluster
-  $PY -m trailercut.figures
   $PY -m trailercut.case_studies
 }
 
@@ -62,7 +63,7 @@ ebm() {    # glass-box model for the report's curves
 }
 
 stages=("$@")
-[ ${#stages[@]} -eq 0 ] && stages=(data prep align audio rq1 rq2 viz)
+[ ${#stages[@]} -eq 0 ] && stages=(data prep align audio rq1 viz)
 for s in "${stages[@]}"; do
   echo "== $s"
   "$s"

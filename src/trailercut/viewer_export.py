@@ -63,6 +63,26 @@ def shot_colors(imdb_id, n_film, n_trailer):
     return c
 
 
+def curve(imdb_id):
+    """Loudness (dB) and cut counts on a 100-bin grid over the trailer, for the sound track and strip.
+    Cached in cache/curves/, keyed on the shot table so a re-split or swap recomputes it."""
+    from .trailer_features import GRID, audio
+    shots_csv = FEATURES / "trailer_shots" / f"{imdb_id}.csv"
+    path = CACHE / "curves" / f"{imdb_id}.json"
+    stamp = shots_csv.stat().st_mtime
+    if path.exists():
+        c = json.loads(path.read_text())
+        if c.get("stamp") == stamp:
+            return c
+    sh = pd.read_csv(shots_csv)
+    _, rms = audio(imdb_id, sh.t_end.max())
+    c = dict(rms_db=np.round(rms, 2).tolist(),
+             cuts=np.histogram(sh.trailer_pos, bins=GRID, range=(0, 1))[0].tolist(), stamp=stamp)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(c))
+    return c
+
+
 def load_model_outputs():
     preds, shap = FEATURES / "model_preds.parquet", FEATURES / "model_shap.parquet"
     if not preds.exists() or not shap.exists():
@@ -154,7 +174,7 @@ def main():
     ap.add_argument("--detail", type=int, default=60, help="top-ranked film shots per film with feature detail")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    curves = json.loads((FEATURES / "trailer_curves.json").read_text())
+    curves = {}  # computed here (cached per trailer), so the views don't depend on the RQ2 feature step
     films = pd.read_parquet(FEATURES / "film_shots.parquet")
     preds, shap = load_model_outputs()
     if preds is not None:
@@ -165,6 +185,7 @@ def main():
         shap = (*shap_groups(shap), shap)
     index = []
     for i in tqdm(sorted(films.imdb_id.unique())):
+        curves[i] = curve(i)
         d = trailer_json(i, curves, films, preds, shap, a.detail)
         (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":"), allow_nan=False))
         vtt(i)
