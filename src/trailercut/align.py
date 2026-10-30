@@ -5,7 +5,7 @@ cosine over n's 3 keyframes, then average. A shot is only matched if its best sc
 threshold. Without --threshold that is the impostor cutoff: the 95th percentile of best scores when
 the same trailer shot is matched against a *different* film (so ~5% of non-source shots would pass).
 A 1% cutoff rejects many correct matches in the 0.72-0.79 range. run_all.sh then re-runs with the
-best-F1 cutoff from the hand labels (0.535 now).
+best-F1 cutoff from the hand labels.
 
 Blank shots (fades, black frames) match blank shots in any film and inflate the null tail.
 Shots whose keyframes look like a solid black/white/grey frame are flagged on both sides:
