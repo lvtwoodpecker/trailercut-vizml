@@ -6,7 +6,8 @@
                                                    search; nothing is downloaded
 
   python -m trailercut.swap search [--ids ...]     ranked candidates -> data/ids/swap_candidates.csv
-                                                   (default ids: `swap` rows of data/ids/trailer_audit.csv)
+                                                   (default ids: the audit's `swap` rows, overridden by
+                                                   labels/audit_review_*.json verdicts)
   python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
                                                    one video at a time into data/trailers/candidates/,
                                                    walking down each film's candidates past unavailable
@@ -337,9 +338,9 @@ def main():
     if a.step == "prepare":
         prepare(sleep=2)
     elif a.step == "search":
-        audit = pd.read_csv(IDS_DIR / "trailer_audit.csv")
+        from .audit_review import decisions  # the audit's swap flags, overridden by verdicts from its review page
         status = pd.read_csv(STATUS).set_index("imdb_id")
-        ids = a.ids or [i for i in audit[audit["swap"]].imdb_id if status.loc[i, "source"] != "search"]
+        ids = a.ids or [i for i in decisions() if status.loc[i, "source"] != "search"]
         search(ids)
     elif a.step == "download":
         download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)

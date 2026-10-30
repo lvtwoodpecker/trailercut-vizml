@@ -4,6 +4,7 @@
 #
 #   bash scripts/curate.sh recover           replace dead trailer links (search + alignment check)
 #   bash scripts/curate.sh audit             flag trailers that aren't the original theatrical trailer
+#   bash scripts/curate.sh audit-review      page to confirm or overrule the audit's flags (labels/audit_review.html)
 #   bash scripts/curate.sh swap ID [ID ...]  replace those films' trailers (keeps the old one if nothing passes)
 #   bash scripts/curate.sh swap-prepare --set expand   first-choice trailers for new films (metadata only)
 #   bash scripts/curate.sh swap-search       ranked replacement candidates for the audit's `swap` films
@@ -24,6 +25,7 @@ PY=.venv/bin/python
 case "${1:-}" in
   recover) $PY -m trailercut.recover ;;
   audit)   $PY -m trailercut.trailer_audit ;;
+  audit-review) $PY -m trailercut.audit_review ;;
   swap)    shift; $PY -m trailercut.recover --ids "$@" ;;
   swap-prepare)  shift; $PY -m trailercut.swap prepare "$@" ;;
   swap-search)   shift; $PY -m trailercut.swap search "$@" ;;
