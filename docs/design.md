@@ -306,7 +306,7 @@ that base rate is the fair comparison. Result: lift drops as k grows, so near mi
 **EBM for the report's feature curves** (`model_ebm.py`). An explainable boosting machine learns one
 curve per feature and adds them up, so the curves are the model, not an approximation of it after the
 fact like SHAP on LightGBM. No pairwise interactions, so each effect is one curve. Same readable
-features, folds and metrics as LightGBM: lift 2.83 vs 2.88 (`model_ebm.json`), close enough that we
+features, folds and metrics as LightGBM: lift 2.74 vs 2.82 (`model_ebm.json`), close enough that we
 use its curves to explain trailerness. LightGBM stays the main model (it also takes the CLIP block);
 `figures/model_shapes.png` shows its binned SHAP for the same features. Curves
 are drawn as odds multipliers on one shared log scale, clipped to where 98% of shots fall, since the

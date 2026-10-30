@@ -76,7 +76,7 @@ current block lives in `plan.md`.
 - 2026-10-29: trailer audit with hard and soft flags (`trailer_audit.csv`); stricter `recover` search (official trailers first; dubs, teasers, TV spots, re-releases rejected)
 - 2026-10-29: Mulholland Drive's German dub replaced by the official trailer
 - 2026-10-29: `recover --min-span 0.2`; four scene clips replaced (Moonstruck, Commando, Ferris Bueller, Phone Booth)
-- 2026-10-29: EBM glass-box model (`model_ebm.py`): lift 2.83 vs 2.88 for LightGBM on the same features; `figures/ebm_shapes.png`
+- 2026-10-29: EBM glass-box model (`model_ebm.py`): lift 2.74 vs 2.82 for LightGBM on the same features; `figures/ebm_shapes.png`
 - 2026-10-29: shape plots from binned SHAP (`figures/model_shapes.png`)
 - 2026-10-29: case finder (`case_studies.py`, `case_studies.json`)
 - 2026-10-29: alignment diagnostics (`align_diagnostics.py`): score by label type, match rate by language, likely missed cuts

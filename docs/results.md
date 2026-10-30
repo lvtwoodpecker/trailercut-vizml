@@ -79,7 +79,7 @@ four scene-clip replacements and Mulholland Drive's dub swap: the alignment, mod
 still come from the old trailers for those 5 films, so numbers will shift slightly after the rerun.
 
 **EBM vs LightGBM** [`model_ebm.json`]: glass-box EBM on the readable features, same folds.
-- lift at trailer length 2.83 vs 2.88 for LightGBM on the same features
+- lift at trailer length 2.74 vs 2.82 for LightGBM on the same features
 - AP 0.067, AP per film 0.088, precision at trailer length 0.107, length-adjusted AP 0.063
 
 **Feature shapes** [`model_ebm.json` curves, `figures/ebm_shapes.png`, `figures/model_shapes.png`]
