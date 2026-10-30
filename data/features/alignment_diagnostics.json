@@ -1,44 +1,44 @@
 {
-  "threshold": 0.535,
+  "threshold": 0.515,
   "labels": {
     "not in film": {
-      "n": 67,
-      "median_score": 0.5156,
-      "above_cutoff": 0.40298507462686567
+      "n": 54,
+      "median_score": 0.47185,
+      "above_cutoff": 0.42592592592592593
     },
     "right shot": {
-      "n": 560,
-      "median_score": 0.77145,
-      "above_cutoff": 0.9714285714285714
+      "n": 518,
+      "median_score": 0.773,
+      "above_cutoff": 0.9787644787644788
     },
     "same scene, other shot": {
-      "n": 38,
-      "median_score": 0.72555,
-      "above_cutoff": 0.9736842105263158
+      "n": 27,
+      "median_score": 0.7255,
+      "above_cutoff": 0.9629629629629629
     },
     "wrong shot": {
-      "n": 36,
-      "median_score": 0.7057,
-      "above_cutoff": 0.8055555555555556
+      "n": 31,
+      "median_score": 0.7142,
+      "above_cutoff": 0.8387096774193549
     }
   },
   "language": {
     "English": {
-      "trailers": 208,
-      "median_match": 0.9304295220810648
+      "trailers": 194,
+      "median_match": 0.9421381542238589
     },
     "other language": {
-      "trailers": 78,
-      "median_match": 0.9297887323943662
+      "trailers": 14,
+      "median_match": 0.9234693877551021
     },
     "no speech": {
       "trailers": 3,
-      "median_match": 0.9459459459459459
+      "median_match": 0.9466666666666667
     }
   },
   "cuts": {
     "film_floor_1pct": 0.4077000319957733,
-    "trailer_shots": 22313,
-    "trailer_below_floor": 0.06659794738493255
+    "trailer_shots": 24188,
+    "trailer_below_floor": 0.03390110798743178
   }
 }

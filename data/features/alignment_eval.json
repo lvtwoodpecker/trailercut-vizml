@@ -1,20 +1,20 @@
 {
-  "n": 710,
+  "n": 639,
   "label_mix": {
-    "film shot": 601,
-    "n": 71,
-    "s": 38
+    "film shot": 554,
+    "n": 58,
+    "s": 27
   },
-  "top1_acc_when_source": 0.9384359400998337,
+  "top1_acc_when_source": 0.9422382671480144,
   "best_f1": {
-    "threshold": 0.535,
-    "precision": 0.8540031397174255,
-    "recall": 0.9051580698835274,
-    "f1": 0.8788368336025849
+    "threshold": 0.515,
+    "precision": 0.8711340206185567,
+    "recall": 0.9151624548736462,
+    "f1": 0.8926056338028169
   },
   "precision_0.9": {
-    "threshold": 0.74,
-    "recall": 0.6006655574043261
+    "threshold": 0.635,
+    "recall": 0.8447653429602888
   },
-  "impostor_threshold": 0.7397140860557556
+  "impostor_threshold": 0.7461047768592834
 }
