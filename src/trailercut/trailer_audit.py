@@ -9,8 +9,9 @@ the transcript and the alignment:
   low_res       best available picture under 360p (VHS-era uploads)
   clip          matched shots span under 20% of the film
   dub           confident spoken language differs from the film's (from its first production country)
+  subtitled     title says burned-in subtitles or a foreign-market upload (subtitulado, legendado, VOSTFR, Sub.KOR, ...)
 
-Hard flags (not_trailer, ad, clip, dub, short) mean replace; soft ones (rerelease, low_res, long)
+Hard flags (not_trailer, ad, clip, dub, subtitled, short) mean replace; soft ones (rerelease, low_res, long)
 mean replace only if a better candidate exists. `swap` column marks the hard cases.
 Writes data/ids/trailer_audit.csv (committed). Metadata is cached in cache/yt_meta/.
 
@@ -28,11 +29,13 @@ from . import movienet_io as mn
 from .paths import CACHE, FEATURES, IDS, IDS_DIR
 
 META = CACHE / "yt_meta"
-HARD = {"not_trailer", "ad", "clip", "dub", "short"}
+HARD = {"not_trailer", "ad", "clip", "dub", "subtitled", "short"}
 OUT = IDS_DIR / "trailer_audit.csv"
 NOT_TRAILER = re.compile(r"tv spot|teaser|\bclip\b|\bscene\b|featurette|behind the|making of|blu-?ray|\bdvd\b|\bvhs\b|"
                          r"interview|review|reaction|fan.?made|music video|soundtrack|\bost\b|recap|\bending\b|promo", re.I)
 RERELEASE = re.compile(r"anniversary|re-?release|restor|remaster|\b4k\b|reissue|special edition", re.I)
+SUBTITLED = re.compile(r"subtitulad|legendad|vostfr|\bvost\b|untertitel|sottotitol|ondertitel|napisy|字幕|자막|"
+                       r"\bsub(s|bed|titled)?\b|sub\.|español|espanol|castellano|latino|bande.annonce", re.I)
 AD = re.compile(r"blu-?ray|\bdvd\b|collector|special edition|own it|available now on|on video", re.I)
 LANG = {"USA": "en", "UK": "en", "Canada": "en", "Australia": "en", "Ireland": "en", "New Zealand": "en",
         "France": "fr", "Germany": "de", "West Germany": "de", "Italy": "it", "Spain": "es", "Mexico": "es",
@@ -62,6 +65,8 @@ def audit(row, meta):
     # fall back to what was logged at download time when YouTube refuses the metadata request
     title = meta.get("title") or row.get("title") or ""
     flags = []
+    if SUBTITLED.search(title):
+        flags.append("subtitled")
     if NOT_TRAILER.search(title):
         flags.append("not_trailer")
     year_re = r"\b(19[2-9]\d|20[0-2]\d)\b"

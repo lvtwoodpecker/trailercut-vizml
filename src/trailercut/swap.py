@@ -11,14 +11,15 @@
                                                    one video at a time into data/trailers/candidates/,
                                                    walking down each film's candidates past unavailable
                                                    ones; resumable; stops after repeated bot checks
-  python -m trailercut.swap apply --batch          the same checks in rounds: shot detection and CLIP run
+  python -m trailercut.swap apply --batch [--retry] the same checks in rounds: shot detection and CLIP run
                                                    once per round over all films (for hundreds of films)
   python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed;
                                                    curate.sh runs trailercut.swap_review instead)
   python -m trailercut.swap apply                  for each film, try its downloaded candidates in rank
-                                                   order with the usual checks (25% of shots match,
-                                                   matched shots span 20% of the film); keep the old
-                                                   trailer if none passes
+                                                   order with the usual checks (matched shots span 20%
+                                                   of the film, and 25% of shots match or most shots
+                                                   match this film better than other films: check());
+                                                   keep the old trailer if none passes
 
 Candidates come from recover.candidates (official titles first; dubs, teasers, TV spots and
 re-releases rejected by title). Download log: data/ids/swap_downloads.csv. With --set expand, every
@@ -99,7 +100,7 @@ def search(ids):
     status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
     rows = []
     for i in ids:
-        for rank, c in enumerate(c for c in candidates(i) if c["youtube_id"] != status[i]["youtube_id"]):
+        for rank, c in enumerate(c for c in candidates(i, n=20) if c["youtube_id"] != status[i]["youtube_id"]):
             rows.append(dict(imdb_id=i, rank=rank, **c))
         time.sleep(2)
     mark_unavailable(pd.DataFrame(rows))
@@ -149,6 +150,38 @@ def download(sleep, per_film, cookies, recheck=False):
             time.sleep(sleep)
 
 
+BEATS = 0.45
+
+
+def beats_others(i, n=5):
+    """Share of a trailer's non-blank shots that match film i clearly (by 0.02) better than any of n random
+    other films. Some real trailers have few shots above the impostor cutoff (dark, grainy, heavily graded)
+    yet match their own film far better than other films; another film's trailer rarely does. On the core
+    set: 5% of real trailers are under 0.48, 1% of wrong pairings over 0.58."""
+    import numpy as np
+    from .align import BLANK, best_scores, blankness, load
+    from .paths import CLIP
+    T = load("trailer", i)
+    T = T[blankness(T) <= BLANK]
+    if len(T) == 0:
+        return 0.0
+    pool = sorted(p.stem for p in (CLIP / "film").glob("*.npy") if p.stem != i)
+    others = np.random.default_rng(int(i[2:])).choice(pool, n, replace=False)
+    own = best_scores(T, load("film", i)).numpy()
+    best_other = np.max([best_scores(T, load("film", j)).numpy() for j in others], 0)
+    return float((own > best_other + 0.02).mean())
+
+
+def check(i, df):
+    """A candidate passes if its matched shots span 20% of the film and either 25% of its shots clear the
+    impostor cutoff or (for trailers that match weakly overall) it beats other films on BEATS of its shots."""
+    pos = df.film_story_pos.dropna()
+    share = float(df.matched[~df.blank].mean())
+    span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
+    ok = span >= 0.2 and (share >= 0.25 or beats_others(i) >= BEATS)
+    return share, span, ok
+
+
 def save(status, rows):
     """Write the status log and append to the recovery log; called after every film so an interrupted
     run loses at most the film in progress."""
@@ -185,11 +218,7 @@ def apply():
             shutil.copyfile(files[c.youtube_id], TRAILERS / f"{i}.mp4")
             run("trailercut.trailer_prep")
             run("trailercut.embed", "trailer")
-            df = align_one(i, threshold)
-            pos = df.film_story_pos.dropna()
-            share = float(df.matched[~df.blank].mean())
-            span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
-            accepted = share >= 0.25 and span >= 0.2
+            share, span, accepted = check(i, align_one(i, threshold))
             rows.append(dict(imdb_id=i, rank=c.rank, youtube_id=c.youtube_id, title=c.title, channel=c.channel,
                              duration=c.duration, match_share=share, accepted=accepted))
             if accepted:
@@ -206,7 +235,7 @@ def apply():
     print(f"swapped {n} films")
 
 
-def apply_batch():
+def apply_batch(retry=False):
     """Same checks as apply(), in rounds: each undecided film's next downloaded candidate goes in
     place, shot detection and CLIP run once over all of them, then every film is aligned and decided
     (saved after each). Rejected films try their next candidate in the next round. For hundreds of
@@ -217,9 +246,12 @@ def apply_batch():
     meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
     threshold = meta.get("impostor_threshold", meta["threshold"])
     files = {p.stem.split("__")[1]: p for p in DIR.glob("*__*.mp4")}
+    start = len(pd.read_csv(LOG, dtype=str)) if LOG.exists() else 0
     n = 0
     while True:
         tried = pd.read_csv(LOG, dtype=str) if LOG.exists() else pd.DataFrame(columns=LOG_FIELDS)
+        if retry:  # only this run's tries count, so earlier rejects get judged again
+            tried = tried.iloc[start:]
         batch = {}
         for i, g in cands.groupby("imdb_id"):
             if i in status and status[i]["youtube_id"] in set(g.youtube_id):
@@ -239,14 +271,10 @@ def apply_batch():
         run("trailercut.embed", "trailer")
         for i, c in batch.items():
             try:
-                df = align_one(i, threshold)
-                pos = df.film_story_pos.dropna()
-                share = float(df.matched[~df.blank].mean())
-                span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
+                share, span, ok = check(i, align_one(i, threshold))
             except Exception as e:  # e.g. the video failed shot detection
                 print(i, "check failed:", e)
-                share = span = 0.0
-            ok = share >= 0.25 and span >= 0.2
+                share, span, ok = 0.0, 0.0, False
             if ok:
                 status[i] = dict(imdb_id=i, youtube_id=c.youtube_id, status="ok", duration=c.duration,
                                  title=c.title, error="", source=getattr(c, "source", "search"))
@@ -312,6 +340,7 @@ def main():
     ap.add_argument("--per-film", type=int, default=1, help="successful downloads wanted per film")
     ap.add_argument("--cookies-from-browser", default=None)
     ap.add_argument("--batch", action="store_true", help="apply: rounds over all films at once (for hundreds)")
+    ap.add_argument("--retry", action="store_true", help="apply --batch: judge candidates rejected in earlier runs again")
     ap.add_argument("--recheck", action="store_true", help="also retry candidates marked unavailable (e.g. from another region)")
     a = ap.parse_args()
     global CANDS, DOWNLOADS
@@ -329,7 +358,7 @@ def main():
     elif a.step == "sheet":
         sheet()
     elif a.batch:
-        apply_batch()
+        apply_batch(a.retry)
     else:
         apply()
 

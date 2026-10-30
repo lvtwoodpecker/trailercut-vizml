@@ -39,7 +39,7 @@ SKIP = re.compile(r"fan.?made|unofficial|modern trailer|re-?cut|reaction|review|
                   # not the original theatrical trailer in the original language
                   r"teaser|tv spot|blu-?ray|\bdvd\b|\bvhs\b|anniversary|re-?release|restor|remaster|"
                   r"german|deutsch|español|espanol|castellano|latino|\bvf\b|vostfr|français|bande.annonce|italiano|"
-                  r"dublado|legendado|subtitulado|magyar|türkçe|русск|ελληνικ", re.I)
+                  r"dublado|legendado|subtitulado|untertitel|sottotitol|\bsub(s|titled)?\b|sub\.|자막|字幕|magyar|türkçe|русск|ελληνικ", re.I)
 OFFICIAL = re.compile(r"official|theatrical", re.I)
 
 
@@ -62,7 +62,8 @@ def candidates(imdb_id, n=10):
     out = []
     for e in res.get("entries") or []:
         t, d = e.get("title") or "", e.get("duration") or 0
-        if SKIP.search(t) or not 45 <= d <= 300 or not all(w in norm(t) for w in key):
+        # the film's own title doesn't count against it ("Freddy vs. Jason", "Scene of the Crime")
+        if SKIP.search(re.sub(re.escape(title), "", t, flags=re.I)) or not 45 <= d <= 300 or not all(w in norm(t) for w in key):
             continue
         out.append(dict(youtube_id=e["id"], title=t, channel=e.get("channel") or "", duration=d))
     # official / theatrical titles first, then trailers of typical length; otherwise keep search order
