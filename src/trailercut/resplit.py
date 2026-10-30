@@ -2,7 +2,7 @@
 
 A shot is suspect when its 3 keyframes disagree more than 99% of MovieNet's film shots ever do
 (align_diagnostics: lowest keyframe cosine below the film floor). For each trailer with suspect shots,
-TransNetV2's per-frame cut probabilities are recomputed and each suspect shot is split once, at its
+TransNetV2's per-frame cut probabilities are read from cache/transnet/ (computed once per video) and each suspect shot is split once, at its
 most likely frame, if that probability is at least MIN_P (the default cutoff is 0.5) and both halves
 are at least MIN_FRAMES long. The trailer's shot table and keyframes are rewritten and its CLIP
 embedding removed, so `embed trailer` and everything after picks up the new shots.
@@ -26,7 +26,7 @@ from transnetv2_pytorch import TransNetV2
 from .align import load
 from .align_diagnostics import consistency
 from .paths import CACHE, CLIP, FEATURES, IDS_DIR, LABELS, TRAILERS
-from .trailer_prep import FRAMES_DIR, SHOTS_DIR, extract_keyframes, probe, read_frames
+from .trailer_prep import FRAMES_DIR, SHOTS_DIR, cut_probs, extract_keyframes, probe
 
 LOG = FEATURES / "resplit_log.csv"
 MIN_P, MIN_FRAMES = 0.1, 6
@@ -100,9 +100,7 @@ def main():
     for i, suspect in tqdm(todo):
         path = TRAILERS / f"{i}.mp4"
         fps, _, _ = probe(path)
-        frames = torch.from_numpy(read_frames(path, 48, 27).copy())
-        single, _ = model.predict_frames(frames, quiet=True)
-        prob = single.numpy().ravel()
+        prob = cut_probs(model, path)  # cached per video after the first run
         sh = pd.read_csv(SHOTS_DIR / f"{i}.csv")
         cuts, rows = [], []
         for k in suspect:
@@ -115,7 +113,7 @@ def main():
                 cuts.append(f)
                 rows.append(dict(imdb_id=i, youtube_id=now.get(i), shot_idx=int(k), split_frame=f, prob=round(float(prob[f]), 3)))
         if cuts:
-            rewrite(i, sh, cuts, fps, len(frames))
+            rewrite(i, sh, cuts, fps, len(prob))
         # log even when nothing split, so a rerun skips this trailer
         out = pd.DataFrame(rows or [dict(imdb_id=i, youtube_id=now.get(i), shot_idx=-1, split_frame=-1, prob=np.nan)])
         if LOG.exists():  # line up with the log's columns (older logs have no youtube_id)
