@@ -39,7 +39,9 @@ film's first production country; empty if not in the lookup), `span` (10th to 90
 matched shots' `film_story_pos`), `flags` (space-separated, below), `n_flags`, `swap` (any hard flag).
 Hard flags: `not_trailer` (title says TV spot, teaser, clip, scene, featurette, Blu-ray, review, ...),
 `ad` (transcript sells a home-video edition), `clip` (span under 0.2), `dub` (confident spoken language,
-p at least 0.8 with over 15 s of speech, differs from the expected one), `short` (under 60 s). Soft
+p at least 0.8 with over 15 s of speech, differs from the expected one), `subtitled` (title says
+burned-in subtitles or a foreign-market upload: subtitulado, legendado, VOSTFR, Sub.KOR, español, ...),
+`short` (under 60 s). Soft
 flags: `rerelease` (anniversary, restoration, 4K, ... or a year in the title 3+ years from the film's),
 `low_res` (under 360p), `long` (over 240 s). The committed file was written before the alignment was
 rerun for the four replaced scene clips, so their rows still show the old `span` and `clip` flag.

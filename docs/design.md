@@ -25,7 +25,8 @@ model predictions and SHAP) are also gitignored.
 **Trailers at 360p.** CLIP sees 224 px and TransNetV2 sees 48x27, so higher resolution only costs disk.
 
 **Dead links are replaced only if they align** (`recover.py`). Search YouTube for "Title (year)
-official trailer", drop fan edits, reviews, clips, dubs (title in another language), teasers, TV
+official trailer", drop fan edits, reviews, clips, dubs (title in another language), subtitled
+uploads (sub, subs, subtitled, untertitel, sottotitol, Korean and Chinese subtitle words), teasers, TV
 spots, re-releases and anything outside 45 to 300 s, try official/theatrical titles and 90 to 180 s
 videos first, then accept a candidate only if at least 25% of its shots match that film's keyframes. Title filtering alone isn't enough:
 the 2nd search hit for *The Godfather Part II* is the *Godfather* anniversary trailer. Real trailers
@@ -34,6 +35,8 @@ separates them with room on both sides. This needs the 5% impostor cutoff, not t
 (at 0.515, 83% of impostor scores still clear it), so `align` always saves
 `impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
+The film's own title is removed before the title filter runs: *Freddy vs. Jason* got zero candidates
+because `vs.` tripped it. YouTube is asked for 20 results (it was 10), since the filter throws many out.
 
 **A replacement must also cover the film** (`--min-span 0.2`). A scene clip of the right film aligns
 perfectly but only to one stretch of it, so the 25% check passes it. The matched shots' story
@@ -50,14 +53,18 @@ candidate passes the 25% check, so a failed search can't leave a film without a 
 theatrical trailer in its original language. Each trailer gets flags from its YouTube metadata
 (fetched without downloading), its transcript and its alignment, all from fixed rules so the audit
 reruns the same way. Hard flags mean the video isn't what we study and should be swapped: not a
-trailer by its title, a home-video ad, a scene clip, a dub, or under 60 s (TV spots, teasers). Soft
+trailer by its title, a home-video ad, a scene clip, a dub, a subtitled or foreign-market upload by
+its title (subtitulado, legendado, VOSTFR, Sub.KOR, español, ...), or under 60 s (TV spots, teasers). Soft
 flags (re-release title, under 360p, over 240 s) mean swap only if a better candidate exists. A dub
 needs Whisper to be confident (p 0.8+) over 15+ s of speech. What we give up: rules can miss what a
 person would catch (a re-cut with a clean title). The cutoffs are judgment calls, not tuned: theatrical
 trailers mostly run 1.5 to 3 minutes, so 240 s leaves room for long ones while catching extended
 previews and featurettes (as a soft flag, since some official trailers do run longer). For dubs,
 Whisper's language guess is unreliable on a few words or on music, so a trailer is only flagged when
-Whisper is at least 80% sure and has 15+ s of speech to go on.
+Whisper is at least 80% sure and has 15+ s of speech to go on. The `subtitled` flag came from
+*12 Years a Slave*, whose link was the English trailer with Spanish subtitles: Whisper hears English,
+so the `dub` flag can't catch burned-in subtitles. Six core titles had it (12 Years a Slave, Big, The
+Usual Suspects, Star Trek, The Avengers, The Ides of March); Twelve Monkeys' is a real Spanish dub.
 
 **Swaps in three steps: search, slow download, apply** (`swap.py`). Swapping 80+ trailers in one
 `recover --ids` run hit YouTube's bot check. Splitting it means only the download step talks to
@@ -65,8 +72,22 @@ YouTube in bulk, and it can go slowly: one video at a time, a pause between requ
 a stop after 3 bot checks in a row, and resume on the next run. Unavailable videos (removed, private,
 region-locked) are written into the candidate list with the reason so later runs skip them without
 asking YouTube again (`--recheck` retries them, e.g. from another region). Download walks down each
-film's ranked candidates until one works. `apply` checks candidates in rank order with the same 25%
-match and 20% span rules and keeps the old trailer if none passes.
+film's ranked candidates until one works. `apply` checks candidates in rank order (`swap.check`) and
+keeps the old trailer if none passes.
+
+**Swap check: span, then share or beats other films** (`swap.check`). A candidate passes if its
+matched shots span 20% of the film and either 25% of its shots clear the impostor cutoff or it beats
+other films on at least 45% of its non-blank shots (`beats_others`: share of shots that match this
+film by more than 0.02 better than any of 5 random other films). The 25% rule alone rejected some
+real trailers that match weakly overall (dark, grainy, heavily graded): the current *Bourne Identity*
+link has 10% of shots at the impostor cutoff, and 17 of 293 current core trailers are under 25%
+(in-session). Such trailers still match their own film far better than other films; another film's
+trailer rarely does. On the core, 5% of real trailers score under 0.48 on `beats_others` and 1% of
+wrong pairings over 0.58, so 0.45 sits below nearly all real trailers. What we give up: a wrong film
+with a similar look (same series, same era) could beat 5 random films; the span rule and the review
+page are the backstop. `TODO(why):` the 0.02 margin and 5 other films were not tuned. `apply --batch
+--retry` judges candidates rejected in earlier runs again, so films rejected under the old rule get a
+second look.
 
 **Batch apply for hundreds of films** (`swap apply --batch`). Plain `apply` runs `trailer_prep` and
 `embed trailer` per candidate, which reloads TransNetV2 and CLIP every time; fine for 80 films, slow
@@ -149,6 +170,11 @@ that number can't tell us whether the cuts are real. A by-eye check of a sample 
 answer) is the independent measure, and the `sim` cutoff for `apply` is picked from it. Real shots
 that change a lot (fast pans, flashes) also get cut, which is why a cutoff is needed at all. What we
 give up: cuts above the cutoff stay unapplied, and hand-labeled trailers are skipped as in `resplit`.
+The check found no cutoff to pick: of 48 sampled cuts with a verdict, 77% were real, and the share
+stays flat around 80% at every `sim` cutoff (83% at 0.5, 79% at 0.7, 80% at 0.9;
+`labels/split_review_ced.json`). `sim` doesn't separate real cuts from fake ones, so every proposal is
+applied (`--max-sim 1.0`). What we give up: about 1 in 5 applied cuts splits a real shot in two,
+and both halves likely match the same film shot.
 `TODO(why):` MAX_DEPTH 3 and the 6-frame minimum were not tuned.
 
 ## CLIP

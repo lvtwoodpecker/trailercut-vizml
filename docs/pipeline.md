@@ -82,7 +82,7 @@ MovieNet (HF mirror)                    YouTube
 | `swap-prepare` | `trailercut.swap prepare --set expand` | `films_1100.csv`, status log, YouTube metadata and search (no download) | `expand_candidates.csv`, appended per film (resumes) |
 | `swap-search` | `trailercut.swap search` | `trailer_audit.csv` (`swap` rows whose link is still MovieNet's), status log, YouTube search | `swap_candidates.csv` |
 | `swap-download` | `trailercut.swap download [--sleep 30] [--per-film 1] [--recheck]` | `swap_candidates.csv`, `swap_downloads.csv` | `data/trailers/candidates/{id}__{youtube_id}.mp4`, `swap_downloads.csv`, `unavailable` column of `swap_candidates.csv` |
-| `swap-apply` | `trailercut.swap apply [--batch]` | candidates, downloaded videos, `impostor_threshold`, `trailer_recovery.csv` (to skip decided films) | swapped trailers (runs `trailer_prep` and `embed trailer`), status and recovery logs saved after every film |
+| `swap-apply` | `trailercut.swap apply [--batch [--retry]]` | candidates, downloaded videos, `impostor_threshold`, `trailer_recovery.csv` (to skip decided films) | swapped trailers (runs `trailer_prep` and `embed trailer`), status and recovery logs saved after every film |
 | `swap-review` | `trailercut.swap_review` | status log (`source=search`, `status=ok`), film list (MovieNet's old link), YouTube metadata cache and candidate logs, alignment, trailer and film keyframes | `labels/swap_review.html`, `labels/swap_img/{id}/` (not committed); run after the rebuild so the alignment is the new trailer's. The page's Export gives `swap_review_<name>.json` for `labels/` |
 | `split-propose` | `trailercut.resplit_clip propose [--core]` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, embeddings, videos and keyframes, status log, `labels/label_trailers.csv` | `split_proposals.csv`, appended per trailer (resumes); changes no shots |
 | `split-review` | `trailercut.resplit_clip review [--n 50]` | `split_proposals.csv`, trailer videos | `labels/split_review.html`, `labels/split_img/` (not committed); a sample of `--n` proposed cuts spread evenly over `sim`, shown shuffled. The page's Export gives `split_review_<name>.json` for `labels/` |
@@ -102,8 +102,9 @@ link as rank 0 when its YouTube metadata looks like a clean trailer (alive, titl
 
 `swap apply --batch` is for hundreds of films: each round puts every undecided film's next downloaded
 candidate in place, runs `trailer_prep` and `embed trailer` once over all of them, then aligns and
-decides each film. Rejected films try their next candidate in the next round. Plain `apply` runs both
-per film. Both keep the original trailer in `cache/replaced/{id}/` while a film is undecided; the
+decides each film. Rejected films try their next candidate in the next round. `--retry` ignores
+earlier runs' rejections and judges those candidates again (after a change to the check). Plain
+`apply` runs both per film. Both keep the original trailer in `cache/replaced/{id}/` while a film is undecided; the
 backup is written once (a resumed run doesn't overwrite it with a candidate) and removed after it is
 restored.
 

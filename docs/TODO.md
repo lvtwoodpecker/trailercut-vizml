@@ -6,14 +6,15 @@ current block lives in `plan.md`.
 ## Now
 
 - [ ] Review the 132 replaced core trailers on the swap review page (`curate.sh swap-review`), export the verdicts to `labels/`
-- [ ] Split review: when `split-propose` finishes on the core, open `labels/split_review.html` (`curate.sh split-review`), label the sample, export the verdicts to `labels/`, read `split-report`, pick `--max-sim`, then `split-apply`, `embed trailer` and the rebuild (`align audio rq1 viz`, `ebm`)
+- [ ] `split-apply --max-sim 1.0` on the core (all 919 proposed cuts; running overnight), then `embed trailer` and the rebuild (`align audio rq1 viz`, `ebm`)
+- [ ] Swap retry on 12 core films (`swap apply --batch --retry`, running overnight): the 6 `subtitled` ones, Twelve Monkeys (Spanish dub), Bourne Identity, Hitchhiker's Guide, Ocean's Twelve, Buried, Freddy vs. Jason; check the results on the swap review page, then transcribe the swapped trailers. The Wizard of Oz is left out on purpose: a swap would drop its ~70 hand labels
 - [ ] New films: `swap apply --set expand --batch` (running); rerun it once at the end to pick up the two late downloads (Rio Bravo, The Theory of Everything)
 - [ ] New films: Whisper (`audio`), `resplit`, `embed trailer`, then rebuild (`align audio rq1 viz`, `ebm`)
 - [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
-- [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
+- [ ] Rerun `trailer_audit` after the rerun (also writes the new `subtitled` flag): the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
@@ -55,6 +56,9 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-30: split review: 48 verdicts (`labels/split_review_ced.json`), 77% real cuts, flat at about 80% for every `sim` cutoff, so all proposals get applied (`--max-sim 1.0`)
+- 2026-10-30: audit `subtitled` hard flag; swap check accepts weak matches that beat 5 random other films (`beats_others` 0.45); `swap apply --batch --retry`; swap search asks for 20 results; `recover` title filter ignores the film's own title and rejects subtitled uploads
+- 2026-10-30: `run_all.sh align` reuses the last label cutoff
 - 2026-10-29: EBM rerun on the rebuilt core: lift 2.74 vs 2.82 for LightGBM; `rq1_export` rerun
 - 2026-10-29: `align_diagnostics` rerun: language split covers all 293 trailers; 3.4% of 24,188 trailer shots below the film floor
 - 2026-10-29: second split pass with CLIP (`resplit_clip.py`, `curate.sh split-*`): propose, review page, report, apply; `resplit.rewrite` takes any number of cuts per shot

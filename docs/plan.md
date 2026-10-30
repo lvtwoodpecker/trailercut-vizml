@@ -72,7 +72,7 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 
 6. [x] Re-split likely missed cuts (keyframe consistency below the film floor; `resplit`; labeled trailers skipped): split each at TransNetV2's most likely cut frame (probability at least 0.1). Core: 1,225 shots split in 242 of 259 checked trailers; shots below the floor 6.7% to 3.4% after the rebuild
 7. [x] Full rerun after the replacements and swaps: transcripts, alignment, model, figures, diagnostics, EBM and RQ1 page curves done for the core
-8. [~] Second split pass with CLIP for shots still below the floor (`resplit_clip`): propose (running on the core), review a sample by eye, pick the `sim` cutoff, apply, rebuild
+8. [~] Second split pass with CLIP for shots still below the floor (`resplit_clip`): proposed on the core (919 cuts) and a sample of 48 checked by eye: 77% real, flat at about 80% for every `sim` cutoff, so no cutoff; apply all (`--max-sim 1.0`, running), then rebuild
 
 ## F. Representative trailers (original theatrical, original language; rules only)
 
@@ -81,6 +81,7 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 3. [x] Swap the hard-flagged trailers: bulk `recover --ids` was blocked by YouTube; the three-step `swap` (search, slow download, apply): 77 swapped, 6 kept
 4. [~] Check every swap by eye: contact sheets (`swap sheet`) were hard to read, replaced by the review page (`curate.sh swap-review`, built); review the 132 replaced trailers on it
 5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
+7. [~] `subtitled` hard flag (title says burned-in subtitles or a foreign-market upload) and a looser swap check (pass weak matches that beat other films); retry on 12 core films with new candidates (`swap apply --batch --retry`, running). The Wizard of Oz stays: a swap would drop its ~70 hand labels
 6. [x] Re-split likely missed cuts (section E6), one full rerun (E7, core) and the EBM rerun
 
 ## G. Dataset release and expansion

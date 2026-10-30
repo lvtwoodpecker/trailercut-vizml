@@ -3,6 +3,16 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-30: CLIP split review
+
+**Split proposals** [`split_proposals.csv`, `labels/split_review_ced.json`]
+- 919 proposed cuts in the core trailers
+- 50 sampled by eye, spread over `sim`: 37 real cuts, 11 same shot, 2 unsure (77% real of 48)
+- real share by `sim` cutoff: 83% of 23 at 0.5, 79% of 34 at 0.7, 80% of 44 at 0.9, 77% of 48 at 1.0
+
+Read: `sim` doesn't separate real from fake cuts, so all proposals are applied. Alignment numbers
+after the apply and rebuild come in the next entry.
+
 ## 2026-10-29: core rebuild after the swaps and the re-split
 
 Same 293 core films, CLIP ViT-B/32. The trailers are the ones after the 77 audit swaps, and likely

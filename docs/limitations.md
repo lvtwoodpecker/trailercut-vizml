@@ -24,14 +24,18 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   (6.7% before; `alignment_diagnostics.json`), so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
   splits each such shot at most once, so a shot hiding two missed cuts stays partly merged, and
   hand-labeled trailers are not re-split. A second pass with CLIP (`resplit_clip`) proposes more cuts
-  but is not applied yet; once it is, the below-floor share drops partly by construction (CLIP both
-  flags and cuts), so only the by-eye check says how many of its cuts are real.
+  and is being applied in full; the below-floor share then drops partly by construction (CLIP both
+  flags and cuts). By eye, 77% of 48 sampled cuts are real at every `sim` cutoff, so about 1 in 5
+  applied cuts splits a real shot.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
   look like any of the 3 keyframes and goes unmatched. This also limits strict visual matching: SSCD
   copy detection did worse than CLIP (top pick right 71% vs 93%).
 - **Foreign and dubbed trailers.** Some trailers are German, Spanish, French or other versions
   (`trailer_review.csv`). Dubbed audio can't match the film's subtitles, so their `lines_found` and
   `sync_rate` read as zero or missing, not as "no film dialogue".
+- **Subtitles are caught by title only.** Burned-in subtitles over English audio pass the `dub` check,
+  so the `subtitled` flag reads the YouTube title. An upload with subtitles and a clean English title
+  goes unflagged.
 - **Dub detection needs the audio.** Titles often don't say a trailer is dubbed, so the audit's `dub`
   flag comes from Whisper's language guess. A new trailer can only be checked for a dub after it is
   downloaded and transcribed, and the guess compares against the language of the film's first

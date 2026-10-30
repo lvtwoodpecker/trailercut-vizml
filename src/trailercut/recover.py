@@ -1,7 +1,8 @@
 """Find replacement trailers for core films whose MovieNet YouTube link is dead.
 
 For each film: search YouTube for "<title> (<year>) official trailer", drop non-trailers by title
-(clips, reviews, fan edits, dubs, teasers, TV spots, re-releases) and wrong lengths, put official or
+(clips, reviews, fan edits, dubs, subtitled uploads, teasers, TV spots, re-releases; the film's own
+title is ignored, so "Freddy vs. Jason" isn't dropped) and wrong lengths, put official or
 theatrical titles and 90 to 180 s videos first, then try candidates in that order. A candidate is
 accepted only if enough of its shots align to that film's MovieNet keyframes, which catches wrong films
 (sequels, remakes, a different film with the same title) that title matching can't, and if the matched

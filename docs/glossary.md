@@ -48,7 +48,7 @@
 | EBM | explainable boosting machine: a glass-box model that learns one curve per feature and adds them; its curves are the explanation (`model_ebm.py`) |
 | shape plot | how one feature moves the odds of a shot making the trailer, as a multiplier on a log scale (EBM curve or binned SHAP) |
 | trailer audit | rule-based check that a trailer is the original theatrical trailer in the original language (`trailer_audit.csv`) |
-| hard / soft flag | audit flags. Hard (`not_trailer`, `ad`, `clip`, `dub`, `short`): swap the trailer. Soft (`rerelease`, `low_res`, `long`): swap only if a better candidate exists |
+| hard / soft flag | audit flags. Hard (`not_trailer`, `ad`, `clip`, `dub`, `subtitled`, `short`): swap the trailer. Soft (`rerelease`, `low_res`, `long`): swap only if a better candidate exists |
 | scene clip | a YouTube upload of one scene posing as a trailer; it aligns well but only to a sliver of the film |
 | span | 10th to 90th percentile of a trailer's matched story positions; under 0.2 means a scene clip |
 | swap | replacing a working trailer with a better candidate (`swap.py`, `recover --ids`) |
@@ -59,4 +59,5 @@
 | glued shot | a trailer shot still below the keyframe consistency floor after re-split |
 | split review | checking a sample of CLIP's proposed cuts inside glued shots by eye on `labels/split_review.html`: real cut, same shot or unsure (`resplit_clip.py`, `curate.sh split-review`) |
 | batch apply | `swap apply --batch`: swap checks in rounds, one shot detection and CLIP pass per round over all undecided films |
+| beats others | swap check for weakly matching trailers: share of a trailer's non-blank shots that match its film by more than 0.02 better than any of 5 random other films (`swap.beats_others`, pass at 0.45) |
 | expand set | films new to the dataset (not in the 293 core set), handled by `swap --set expand` |
