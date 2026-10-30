@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Rebuild every output from the inputs, one stage after another (nothing runs in parallel).
-#   bash scripts/run_all.sh              all stages
-#   bash scripts/run_all.sh rq1 viz      only these stages, in the order given
-# Stages: data prep align audio rq1 viz by default. Opt-in only: "rq2" (trailer features, clustering,
-# case studies) and "ebm" (slow, ~30 min).
+# The pipeline's stages in their recommended order. Nothing runs unless you name it:
+#   bash scripts/run_all.sh              list the stages
+#   bash scripts/run_all.sh rq1 viz      run only these, in the order given
+#
+#   data   MovieNet files, keyframes, trailer videos           (network; hours the first time)
+#   prep   trailer shots, keyframes, audio; CLIP embeddings    (hours the first time, then only new items)
+#   align  trailer shot -> film shot, cutoff from hand labels  (minutes)
+#   audio  Whisper transcripts, dialogue alignment, sync       (minutes per new trailer)
+#   rq1    trailerness model, evaluation, figures              (~30 min)
+#   viz    data for the D3 pages                                (minutes)
+#   rq2    trailer features, clustering, case studies          (RQ2; minutes)
+#   ebm    glass-box model for the report's curves             (~30 min)
 # Download, shot, embedding and transcription steps skip finished films/trailers; the rest recompute.
 # Changing the inputs (dead links, trailer swaps, labels) is separate: see scripts/curate.sh.
 set -euo pipefail
@@ -63,7 +70,7 @@ ebm() {    # glass-box model for the report's curves
 }
 
 stages=("$@")
-[ ${#stages[@]} -eq 0 ] && stages=(data prep align audio rq1 viz)
+if [ ${#stages[@]} -eq 0 ]; then sed -n '2,/^set /p' "$0" | grep '^#'; exit 0; fi
 for s in "${stages[@]}"; do
   echo "== $s"
   "$s"
