@@ -32,10 +32,12 @@ prep() {   # trailer shots, keyframes, audio; CLIP embeddings
 }
 
 align() {  # picture alignment, with the cutoff picked from the hand labels once they exist
-  $PY -m trailercut.align
+  # reuse the last label cutoff; a second pass only if the labels now pick a different one
+  best() { $PY -c 'import json; print(json.load(open("data/features/alignment_eval.json"))["best_f1"]["threshold"])'; }
+  if [ -f data/features/alignment_eval.json ]; then t=$(best); $PY -m trailercut.align --threshold "$t"; else t=""; $PY -m trailercut.align; fi
   if ls labels/gold_*.json >/dev/null 2>&1; then
     $PY -m trailercut.label_eval
-    $PY -m trailercut.align --threshold "$($PY -c 'import json; print(json.load(open("data/features/alignment_eval.json"))["best_f1"]["threshold"])')"
+    [ "$(best)" = "$t" ] || $PY -m trailercut.align --threshold "$(best)"
   fi
   $PY -m trailercut.align_diagnostics
 }
