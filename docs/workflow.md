@@ -14,7 +14,7 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 | path | what |
 |---|---|
 | `src/trailercut/` | one module per pipeline step, each runnable with `python -m trailercut.<step>` |
-| `scripts/run_all.sh` | rebuild outputs from the inputs, in stages (`data prep align audio rq1 rq2 viz`, opt-in `ebm`) |
+| `scripts/run_all.sh` | menu of rebuild stages; runs only the ones named (`data prep align audio rq1 viz`, opt-in `rq2` and `ebm`); no arguments lists them |
 | `scripts/curate.sh` | steps that change the inputs: dead links, trailer audit and swaps, label page, tuning against the labels |
 | `hpc/` | Slurm jobs for the heavy steps |
 | `data/ids/` | film lists, trailer availability, recovery, audit and swap logs |
@@ -38,11 +38,11 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 
 ## Rebuild vs curate
 
-- `bash scripts/run_all.sh` (or named stages, e.g. `bash scripts/run_all.sh rq1 viz`) only recomputes
-  from the current inputs. Run it after code changes; name the stages from the one you touched onward.
+- `bash scripts/run_all.sh <stages>` (e.g. `bash scripts/run_all.sh rq1 viz`) only recomputes from the
+  current inputs; with no stages it just lists them. Run it after code changes; name the stages from the one you touched onward.
 - `bash scripts/curate.sh <step>` changes the inputs (which trailer a film uses, the labels). Run it on
   purpose, commit the changed logs in `data/ids/`, then rebuild with
-  `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
+  `bash scripts/run_all.sh prep align audio rq1 viz` (plus `rq2` and `ebm` when needed).
 - YouTube steps (`recover`, `audit`, `swap-*`) are rate-limited: run swaps as `swap-search`,
   `swap-download` (resumable; rerun later if it stops on bot checks), `swap-apply` (resumable;
   `--batch` for hundreds of films). Add `--set expand` for films new to the dataset.

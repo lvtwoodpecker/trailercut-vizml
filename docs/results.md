@@ -3,6 +3,62 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-29: core rebuild after the swaps and the re-split
+
+Same 293 core films, CLIP ViT-B/32. The trailers are the ones after the 77 audit swaps, and likely
+missed cuts were re-split, then `align`, `audio` and `rq1` were rerun. The EBM and the RQ2
+stage (`rq2`) were not rerun, so `model_ebm.json`, `trailers.parquet`, `cluster_report.json` and
+`case_studies.json` are still from the old trailers.
+
+**Re-split** [`resplit_log.csv`]
+- 259 trailers with likely missed cuts checked (hand-labeled trailers skipped)
+- 1,225 shots split in 242 of them; 17 had nothing to split
+- median TransNetV2 cut probability at the split: 0.39 (the floor is 0.1, TransNetV2's own cutoff 0.5)
+- after the rebuild, 3.4% of 24,188 trailer shots are below the keyframe consistency floor (0.41), vs 6.7% of 22,313 before; the swaps changed the trailers too, so this isn't the re-split alone [`alignment_diagnostics.json`]
+
+**Corpus and alignment** [`summary.json`]
+- median trailer 138 s, 82 shots, 1.17 s per shot
+- 24,188 trailer shots, 2.3% blank, 91% matched; per trailer median 92%
+
+**Alignment vs hand labels** [`alignment_eval.json`, `alignment_threshold.json`]
+- 639 labels used (554 with a source shot, 27 same scene, 58 not in film); Miami Vice's dropped after its swap
+- when a source shot exists, the top-1 is right 94% of the time
+- best-F1 cutoff 0.515 (was 0.535): precision 0.87, recall 0.92, F1 0.89
+- lowest cutoff with precision at least 0.9: 0.635 (recall 0.84)
+- impostor 5% cutoff 0.746 (was 0.740); 83% of impostor scores clear 0.515
+
+**Alignment diagnostics** [`alignment_diagnostics.json`]
+- median score by hand label: right shot 0.77 (98% above 0.515), same scene other shot 0.73 (96%), wrong shot 0.71 (84%), not in film 0.47 (43%)
+- median per-trailer match rate: English 0.94 (194 trailers), other language 0.92 (14), no speech 0.95 (3); only 211 trailers have a Whisper language in this file
+
+**Story sampling** [`summary.json`]: 33% of matched shots from the first quarter, 18% from the last;
+median trailer takes 17% of its matched shots from the final act.
+
+**Sound vs picture** [`av_sync.json`]
+- 247 trailers with at least one found line; 3,152 found lines play over a matched picture, 51% of them (pooled) within 30 s of the picture's film moment
+- median sync rate 0.50 over the 221 trailers with 3+ such lines
+- median trailer: speech over 53% of its length, 92 words per minute
+- dialogue anchors vs hand labels: 93 labeled shots under a found line, 59% within 30 s
+
+**RQ1** [`model_report.json`, `model_eval.json`]: 464,373 film shots, 4.1% positive.
+
+| model | AP | precision at trailer length | lift k=0 | lift ±1 | lift ±3 | lift ±5 |
+|---|---|---|---|---|---|---|
+| random | 0.042 | 0.046 | 1.12 | 1.11 | 1.09 | 1.09 |
+| position only | 0.046 | 0.056 | 1.34 | 1.27 | 1.22 | 1.20 |
+| length only | 0.054 | 0.076 | 1.83 | 1.41 | 1.27 | 1.19 |
+| CLIP only | 0.070 | 0.112 | 2.70 | 1.90 | 1.57 | 1.43 |
+| readable | 0.076 | 0.117 | 2.82 | 1.99 | 1.62 | 1.46 |
+| full | 0.083 | 0.131 | 3.15 | 2.14 | 1.70 | 1.52 |
+
+Base rate (share of shots within ±k of a used shot): 0.041, 0.107, 0.211, 0.295.
+Precision at trailer length lost when one group is dropped from the full model: CLIP 0.014, editing
+0.011, position 0.006, scale 0.005, dialogue 0.005, content 0.003. SHAP mean |value| by group: CLIP
+0.28, editing 0.22, position 0.19, content 0.10, dialogue 0.07, scale 0.05.
+
+Read: more trailer shots match and the positive rate rose (3.8% to 4.1%), so compare lifts. The full
+model's exact-shot lift is 3.15x (3.22x before); the order of the models and groups is unchanged.
+
 ## 2026-10-29: trailer swaps and new-film trailer picks
 
 Data only; nothing downstream has been rerun on the swapped trailers yet.
@@ -11,7 +67,7 @@ Data only; nothing downstream has been rerun on the swapped trailers yet.
 - 77 of the 83 flagged core films with downloaded candidates got an official theatrical trailer; 6 kept their old one
 - core trailers by source: 161 MovieNet links, 132 search picks (49 dead links, 6 earlier `recover --ids` swaps, 77 audit swaps)
 - recovery log: 401 candidates tried for 138 films, 132 accepted
-- labels: Miami Vice's trailer was swapped, so its 71 hand labels drop out; 641 remain over 9 trailers
+- labels: Miami Vice's trailer was swapped, so its 71 hand labels drop out; 641 remain over 9 trailers (639 usable, 2 are "unsure")
 
 **New films** [`expand_candidates.csv`]
 - 798 new films have a first-choice trailer from metadata: 349 keep MovieNet's link, 449 have a search pick

@@ -57,11 +57,12 @@ the next run. The committed log has 83 films downloaded.
 **`expand_candidates.csv`** (C, `swap prepare --set expand`): first-choice trailers for films new to the
 dataset, same columns as `swap_candidates.csv` plus `source` (`movienet` for MovieNet's own link kept
 as rank 0, `search` for search picks ranked from 1). Appended per film. The committed file has 798
-films: 349 keep MovieNet's link, 449 have a search pick. It has no `unavailable` column yet; `swap`
-adds it once a download log exists.
+films: 349 keep MovieNet's link, 449 have a search pick. Rio Bravo and The Theory of Everything, whose picks
+all failed to download, got a wider re-search (20 results) appended.
+`unavailable` is filled once downloads have run.
 
-**`expand_downloads.csv`** (`swap download --set expand`; not committed yet): same columns as
-`swap_downloads.csv`.
+**`expand_downloads.csv`** (C, `swap download --set expand`): same columns as `swap_downloads.csv`.
+The committed log has a downloaded pick for all 798 new films.
 
 ## Trailer shots (`data/features/trailer_shots/{imdb_id}.csv`, C)
 
@@ -125,7 +126,7 @@ hand-label kind `right shot`, `wrong shot`, `same scene, other shot`, `not in fi
 consistency, the lowest cosine between a shot's 3 keyframes, that only 1% of MovieNet film shots fall
 below; `trailer_shots`; `trailer_below_floor`: share of trailer shots below it, likely missed cuts).
 
-**`resplit_log.csv`** (C, `resplit`; not committed yet): appended per trailer. `imdb_id`, `shot_idx`
+**`resplit_log.csv`** (C, `resplit`): appended per trailer. `imdb_id`, `shot_idx`
 (the shot that was split, numbered as before the split; -1 for a trailer checked with nothing to
 split), `split_frame` (first frame of the second half), `prob` (TransNetV2's cut probability there;
 empty for -1 rows).
@@ -200,7 +201,7 @@ One row per trailer. Ids: `imdb_id`, `title`, `year`, `decade`, `genres`, `prima
 | visual | means over trailer shots: `scale_width_mean`, `c_<concept>_mean` for the 20 concepts (e.g. `c_gun_mean`) |
 | speech | copied from `av_sync.csv`: `speech_share`, `words_per_min`, `lines_found`, `sync_rate` (only when that file exists) |
 
-**`trailer_curves.json`** (C): object keyed by IMDb ID; each has `rms_db` (100 values, dB relative to
+**`trailer_curves.json`** (C, `trailer_features`; the views no longer read it, see `cache/curves/`): object keyed by IMDb ID; each has `rms_db` (100 values, dB relative to
 the loudest frame, interpolated over trailer time) and `cuts` (100 counts of shots whose midpoint falls
 in each bin).
 
@@ -237,6 +238,12 @@ Miami Vice's 71 labels, after its swap). Add a row when labeling a new film. **`
 `u`. **`labels/label_tool.html`** (G): the page, with each shot's top-5 candidates embedded.
 **`labels/img/{id}/`** (G): images the page shows, copied by `label_tool`: `t_shot_XXXX_img_{0,1,2}.jpg`
 (trailer keyframes) and `f_shot_XXXX_img_1.jpg` (film candidates, re-saved as JPEG).
+**`labels/swap_review.html`** (G, `swap_review`): the swap review page, with every replaced trailer
+(`source=search`) embedded: `id`, `film`, `old` (MovieNet link's YouTube title, "dead link" or "no
+MovieNet link"), `old_url`, `new`, `channel`, `url`, and 8 `pairs` (`t`, `f` image paths, `time` in
+the trailer in s, `pos` story position of the film shot). **`labels/swap_img/{id}/`** (G): `t_XXXX.jpg`
+(trailer keyframe of shot XXXX) and `f_XXXX.jpg` (matched film keyframe). **`labels/swap_review_<name>.json`**
+(Export from the page): `{reviewer, verdicts}`, verdicts keyed by IMDb ID: `g` good, `b` bad, `u` unsure.
 
 ## Trailer View data (`viz/data/`, G)
 
@@ -251,7 +258,7 @@ Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written 
 |---|---|
 | `id`, `title`, `year`, `genres`, `duration` | ids; `duration` = end of the last trailer shot (s) |
 | `speech` | one list per transcript segment: `[t_start, t_end, matched (0/1), film position of the matched line (0 to 1) or null, text, words as [start, end, word]]`; empty without a transcript |
-| `curves` | that trailer's entry from `trailer_curves.json` (`rms_db`, `cuts`) |
+| `curves` | `rms_db`, `cuts` as in `trailer_curves.json`, computed by `viewer_export` (cached in `cache/curves/`) |
 | `shots` | one list per trailer shot: `[t_start, t_end, matched (0/1), film_shot or -1, score, blank (0/1)]` |
 | `shot_colors` | average color (`#rrggbb`) of each trailer shot's middle keyframe |
 | `film.runtime` | film runtime (s, end of the last film shot) |
@@ -271,7 +278,9 @@ or a pause over 1.5 s. Written only when the transcript exists.
 `rel_distinct`), `dialogue` (has / no dialogue), `content` (per concept, shots in the film's top 10%
 for it). Each row: `level`, `lift` (pick rate over the overall pick rate), `lo`, `hi` (95% interval,
 films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` from `model_eval.json`
-`k0`.
+`k0`. Only if `model_ebm.json` exists: `ebm`, the 6 EBM curves with the highest importance, each `name`
+(readable label), `x` (bin edges), `y` (odds multiplier, exp of the score), cut to the feature's 1st to
+99th percentile; `ebm_lift` (the EBM's lift).
 
 ## Caches (G, under `$TRAILERCUT_DATA/cache/`)
 
@@ -284,9 +293,11 @@ films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` fr
 requests aren't cached),
 `concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
 `shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
-while the shot counts match), `sheets/swaps_NN.jpg` (`swap sheet`: per swapped film, old and new
-YouTube title and the new trailer's 4 best-matching shots next to the film keyframes they matched;
-film frames, so never committed).
+while the shot counts match), `curves/{id}.json` (`viewer_export`: `rms_db`, `cuts` as in
+`trailer_curves.json`, plus `stamp`, the trailer shot table's modification time; recomputed when it
+changes), `sheets/swaps_NN.jpg` (`swap sheet`, no longer run by `curate.sh`: per swapped film, old
+and new YouTube title and the new trailer's 4 best-matching shots next to the film keyframes they
+matched; film frames, so never committed).
 
 Swap downloads go to `$TRAILERCUT_DATA/trailers/candidates/{id}__{youtube_id}.mp4` (G).
 
@@ -296,7 +307,7 @@ Links and annotations only, to upload as a dataset. Not written to the repo.
 
 | file | what |
 |---|---|
-| `trailers.csv` | one row per film in the status log: `imdb_id`, `title_film`, `core`, `movienet_youtube_id`, `youtube_id` (in use), `changed`, `source`, `status`, `youtube_title`, `channel`, `duration`, `height`, `flags`, `match_share` (non-blank shots matched), `span`, `review_note` (from `trailer_review.csv`), `checked` (build date) |
+| `trailers.csv` | one row per film with a working trailer (`status=ok`), only the link in use: `imdb_id`, `film` (MovieNet title), `year`, `url` (YouTube link), `title`, `channel`, `duration_s` (YouTube metadata, from `cache/yt_meta/` and the candidate logs, falling back to the status log), `trailer_shots`, `match_share` (non-blank shots matched), `film_span` (10th to 90th percentile of matched shots' story position), `checked` (build date). Which links replaced MovieNet's, and why, stays in `data/ids/` and is not released |
 | `trailer_shots.parquet`, `alignment.parquet`, `dialogue_alignment.parquet` | the per-trailer CSVs stacked, with an `imdb_id` column |
 | `av_sync.csv` | copy of `data/features/av_sync.csv` |
 | `hand_labels.csv` | `imdb_id`, `trailer_shot`, `label`, `labeler` (`labeler_1`, ... by file order, names removed) |

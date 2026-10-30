@@ -13,6 +13,7 @@ Builds on Argaw et al., *Towards Automated Movie Trailer Generation* (CVPR 2024)
 Nothing copyrighted is committed. The repo holds YouTube IDs, download scripts and extracted features;
 raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in gitignored `data/` folders and are rebuilt by the scripts.
 The dataset release (`python -m trailercut.release`, links and annotations only) is written to gitignored `data/release/`.
+Its `trailers.csv` has one row per film with only the trailer link in use: `imdb_id`, `film`, `year`, `url`, YouTube `title`, `channel`, `duration_s`, and how well it matches the film (`trailer_shots`, `match_share`, `film_span`), plus the `checked` date. Which links replaced MovieNet's and why stays in `data/ids/`.
 
 | committed | what |
 |---|---|
@@ -39,7 +40,7 @@ The dataset release (`python -m trailercut.release`, links and annotations only)
 | `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
-| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated page and `labels/img/` are not committed |
+| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`) and their images (`labels/img/`, `labels/swap_img/`) are not committed |
 | `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
 
 ## Setup
@@ -56,12 +57,14 @@ CLIP backbone (`b32` default, `l14`, `h14`).
 ## Pipeline
 
 ```bash
-bash scripts/run_all.sh                # all stages: data prep align audio rq1 rq2 viz
-bash scripts/run_all.sh rq1 viz        # only these stages, in the order given
-bash scripts/run_all.sh ebm            # opt-in, slow (~30 min): the glass-box model
+bash scripts/run_all.sh                # lists the stages, runs nothing
+bash scripts/run_all.sh rq1 viz        # runs only these stages, in the order given
+bash scripts/run_all.sh rq2            # RQ2: trailer features, clustering, case studies
+bash scripts/run_all.sh ebm            # slow (~30 min): the glass-box model
 ```
-Stages run one after another. Download, shot, embedding and transcription steps skip finished films
-and trailers; the rest recompute. `label_eval` and the label-picked re-alignment run inside `align`
+Nothing runs unless you name it. The listed order is `data prep align audio rq1 viz`, then `rq2` and
+`ebm`, which only run when named. Stages run one after another. Download, shot, embedding and
+transcription steps skip finished films and trailers; the rest recompute. `label_eval` and the label-picked re-alignment run inside `align`
 when `labels/gold_*.json` exist. Steps that change the inputs (dead links, trailer swaps, labels) are
 not in `run_all.sh`; they live in `scripts/curate.sh` (below).
 
@@ -82,13 +85,13 @@ not in `run_all.sh`; they live in `scripts/curate.sh` (below).
 | rq1 | RQ1 model | `trailercut.model` | LightGBM, folds grouped by film, baselines + ablations, out-of-fold TreeSHAP; logo/credit shots (first and last 1% of each film) left out |
 | rq1 | tolerance eval | `trailercut.model_eval` | rescores the saved out-of-fold predictions counting a pick as a hit within ±k film shots; random gets the same tolerance |
 | rq1 | RQ1 figures | `trailercut.model_figures` | PR curves, ablation, tolerance, and feature shapes (binned SHAP as an odds multiplier) |
-| rq2 | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts, speech |
-| rq2 | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
-| rq2 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth |
-| rq2 | case finder | `trailercut.case_studies` | trailers at the extremes of order, ending share, sync and model hits |
-| viz | Trailer View data | `trailercut.viewer_export` | one JSON per trailer in `viz/data/` (gitignored) plus average shot colors for the movie barcode |
-| viz | RQ1 page data | `trailercut.rq1_export` | pick-rate lifts with film-bootstrap intervals, `viz/data/rq1.json` (gitignored) |
-| ebm | glass-box model | `trailercut.model_ebm` | explainable boosting machine on the readable features, same folds; one curve per feature (`--plot-only` redraws the figure) |
+| rq1 | figures | `trailercut.figures` | data funnel, score distributions, alignment plots, story depth, `summary.json` |
+| rq2 (opt-in) | RQ2 table | `trailercut.trailer_features` | pacing, audio (librosa), story sampling, dialogue, visual concepts, speech |
+| rq2 (opt-in) | clustering | `trailercut.cluster` | k-means + HDBSCAN, bootstrap stability, NMI vs genre/decade against a permutation null |
+| rq2 (opt-in) | case finder | `trailercut.case_studies` | trailers at the extremes of order, ending share, sync and model hits |
+| viz | Trailer View data | `trailercut.viewer_export` | one JSON per trailer in `viz/data/` (gitignored), average shot colors for the movie barcode, and the loudness/cut curves (computed here, cached in `cache/curves/`) |
+| viz | RQ1 page data | `trailercut.rq1_export` | pick-rate lifts with film-bootstrap intervals, plus the 6 most important EBM curves if `model_ebm.json` exists; `viz/data/rq1.json` (gitignored) |
+| ebm (opt-in) | glass-box model | `trailercut.model_ebm` | explainable boosting machine on the readable features, same folds; one curve per feature (`--plot-only` redraws the figure) |
 
 ### Changing the inputs (`scripts/curate.sh`)
 
@@ -100,12 +103,12 @@ bash scripts/curate.sh swap-prepare --set expand   # first-choice trailers for n
 bash scripts/curate.sh swap-search       # ranked candidates for the audit's `swap` films
 bash scripts/curate.sh swap-download     # download them slowly, one at a time (resumable)
 bash scripts/curate.sh swap-apply        # check and swap in the downloaded candidates (resumable; --batch for hundreds)
-bash scripts/curate.sh swap-sheet        # contact sheets of the swaps to skim (cache/sheets/, not committed)
+bash scripts/curate.sh swap-review       # page to check replaced trailers by eye (labels/swap_review.html, not committed)
 bash scripts/curate.sh labels            # regenerate the hand-labeling page
 bash scripts/curate.sh tune              # align_tune, rerank --eval, model_tune against the labels
 ```
 Add `--set expand` to the `swap-*` steps to work on films new to the dataset. After any of them,
-rebuild with `bash scripts/run_all.sh prep align audio rq1 rq2 viz`.
+rebuild with `bash scripts/run_all.sh prep align audio rq1 viz` (plus `rq2` and `ebm` when needed).
 
 **Replacing trailers.** `audit` writes `data/ids/trailer_audit.csv`; films with a hard flag get
 `swap=True`. For a few films, `swap ID ...` searches, downloads and checks in one go. For many films,
@@ -116,8 +119,16 @@ and keeps it only if at least 25% of its shots match and the matches span at lea
 A film whose candidates all fail keeps its old trailer. Accepted swaps are logged in
 `trailer_recovery.csv` and `trailer_status.csv` (`source=search`). `swap-apply` saves after every film
 and skips films already decided, so an interrupted run resumes; `--batch` runs shot detection and
-CLIP once per round over all films instead of once per film. `swap-sheet` reads the alignment, so run
-it after the rebuild.
+CLIP once per round over all films instead of once per film.
+
+**Checking swaps by eye.** `swap-review` writes `labels/swap_review.html`: one replaced trailer
+(`source=search`) at a time, with the old YouTube title struck through, the new title, link and
+channel, the new trailer playing from the local file, and 8 of its best-matching shots next to the
+film keyframes they matched. Keys: `g` good, `b` bad, `u` unsure, `j`/`k` next/prev, `n` next
+unreviewed, space play/pause. Export saves `swap_review_<name>.json`; put it in `labels/`. Open the page
+from `labels/` (it loads the trailer from `../data/trailers/`). It reads the alignment, so run it
+after the rebuild. (`python -m trailercut.swap sheet`, the older contact sheets, still exists but
+`curate.sh` no longer runs it.)
 
 **Missed cuts.** `python -m trailercut.resplit` splits trailer shots whose keyframes disagree more
 than 99% of MovieNet film shots do (likely missed cuts) and logs them in `resplit_log.csv`; then

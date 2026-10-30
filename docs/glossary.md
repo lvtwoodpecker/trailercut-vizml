@@ -10,7 +10,7 @@
 | synopsis position | which paragraph of the MovieNet synopsis covers the shot, scaled 0 to 1 |
 | alignment | matching each trailer shot to the film shot it was cut from |
 | match / no match | a trailer shot is matched if its best score clears the threshold and it isn't blank |
-| best-F1 threshold | the match cutoff with the highest F1 (precision vs recall against the hand labels); 0.535, the one `align` uses now |
+| best-F1 threshold | the match cutoff with the highest F1 (precision vs recall against the hand labels); 0.515, the one `align` uses now (0.535 before the swaps and re-split) |
 | impostor null | best scores of trailer shots against *other* films; its 95th percentile was the threshold before hand labels (0.74) |
 | smoothing | matching a whole trailer as a sequence (Viterbi) so consecutive shots prefer nearby film shots; tried, not used |
 | FPR | false positive rate: share of impostor scores (best match in a different film) at or above the threshold |
@@ -20,7 +20,7 @@
 | `in_trailer` | label: at least one matched trailer shot points at this film shot |
 | readable features | features with names people understand (position, dialogue, scale, content, editing) |
 | CLIP block | the shot embedding (PCA'd) as one feature group; SHAP shown as one "other appearance" value |
-| AP / PR-AUC | average precision, area under the precision/recall curve; used because only 3.8% of shots are positive |
+| AP / PR-AUC | average precision, area under the precision/recall curve; used because only about 4% of shots are positive |
 | precision at trailer length | per film, precision of the top-k shots where k is how many shots the trailer used (R-precision) |
 | tolerance (±k shots) | in `model_eval`, a top-ranked film shot counts as a hit if a used shot is within k film shots of it; random gets the same tolerance |
 | lift | a rate over the rate you'd get by chance. Model: precision at trailer length over the base rate, at the same tolerance. RQ1 page: pick rate of a kind of shot over the average shot's pick rate (1x = no difference) |
@@ -52,6 +52,7 @@
 | scene clip | a YouTube upload of one scene posing as a trailer; it aligns well but only to a sliver of the film |
 | span | 10th to 90th percentile of a trailer's matched story positions; under 0.2 means a scene clip |
 | swap | replacing a working trailer with a better candidate (`swap.py`, `recover --ids`) |
+| swap review | checking replaced trailers by eye on `labels/swap_review.html`, one film at a time: good, bad or unsure (`swap_review.py`, `curate.sh swap-review`) |
 | keyframe consistency | the lowest cosine between a shot's 3 keyframes; low = the keyframes show different things |
 | missed cut | a trailer shot whose keyframe consistency is below what 99% of MovieNet film shots reach; likely two shots TransNetV2 merged |
 | re-split | splitting a likely missed cut once, at TransNetV2's most likely cut frame inside the shot (`resplit.py`) |

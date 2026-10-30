@@ -31,7 +31,7 @@ videos first, then accept a candidate only if at least 25% of its shots match th
 the 2nd search hit for *The Godfather Part II* is the *Godfather* anniversary trailer. Real trailers
 have a median match share of ~58% and a wrong film should sit near the 5% false-match rate, so 25%
 separates them with room on both sides. This needs the 5% impostor cutoff, not the label-picked one
-(at 0.535, 77% of shots from a wrong film still match something), so `align` always saves
+(at 0.515, 83% of impostor scores still clear it), so `align` always saves
 `impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
 
@@ -89,6 +89,16 @@ passes the filter, 60 to 240 s); only dead, flagged or missing links get a searc
 downloaded in `prepare`, and `download` fetches one pick per film by default. This keeps requests to
 YouTube low (metadata requests count toward the rate limit too, so they are paced) and leaves no pile
 of unused candidate videos on disk.
+
+**Swaps are reviewed on a page, one film at a time** (`swap_review.py`, `curate.sh swap-review`).
+Rules and alignment checks can miss what a person would catch (a re-cut with a clean title), so every
+replaced trailer (`source=search`) also gets a look by eye. The first tool was contact sheets (`swap
+sheet`: several films per image, 4 matched shot pairs each), but they were hard to read. The page shows
+one film at a time: the old title struck through, the new title, link and channel, the new trailer
+playable from the local file, and 8 of its best-matching shots (spread out, no two within 2 shots of
+each other) next to the film keyframes they matched. Verdicts are `g`/`b`/`u` per film, kept in the
+browser and exported as JSON per reviewer, like the label tool. Images are film frames, so the page
+and `labels/swap_img/` are gitignored.
 
 **Low-match trailers were checked by eye** (`data/ids/trailer_review.csv`). The 15 lowest-match
 trailers and the 3 weakest search replacements are all the right film. Low match comes from foreign
@@ -157,13 +167,15 @@ flagged on both sides: blank trailer shots are never matched and blank film shot
 (shot/reverse-shot, coverage of the same moment). Top-5 candidates feed the hand-labeling tool, and
 the margin to the best shot outside ±3 neighbors is saved as a confidence signal.
 
-**Hand labels pick the threshold: best F1, 0.535** (`label_tool.py`, `label_eval.py`). 10 trailers
-sampled across decades, each shot labeled against its top-5 candidates (710 usable shots, one labeler
-so far; 2 trailers are meant to be labeled by both of us for Cohen's kappa). The 0.74 impostor cutoff
-had precision 0.90 but recall 0.60: it threw away 40% of real matches, which become false negatives in
-the RQ1 labels. The best-F1 cutoff, 0.535, gives precision 0.85 and recall 0.91. The `align` stage of
+**Hand labels pick the threshold: best F1, now 0.515** (`label_tool.py`, `label_eval.py`). 10 trailers
+sampled across decades, each shot labeled against its top-5 candidates (710 usable shots at first, one
+labeler so far; 2 trailers are meant to be labeled by both of us for Cohen's kappa). The 0.74 impostor
+cutoff had precision 0.90 but recall 0.60: it threw away 40% of real matches, which become false
+negatives in the RQ1 labels. The best-F1 cutoff was 0.535 (precision 0.85, recall 0.91). After the
+trailer swaps and the re-split, 639 labels are left and the best-F1 cutoff is 0.515 (precision 0.87,
+recall 0.92, `alignment_eval.json`). The `align` stage of
 `run_all.sh` re-runs `align --threshold` with `best_f1.threshold` from `alignment_eval.json` once labels exist. What we
-give up: 77% of impostor scores clear 0.535, so the null no longer limits matches against the wrong
+give up: 83% of impostor scores clear 0.515, so the null no longer limits matches against the wrong
 film, and the labels show most "same scene" and many "not in film" shots get matched too (see
 `limitations.md`). The null's pass rate at `T` is still saved as `fpr`.
 
@@ -179,7 +191,8 @@ reference.
 keyed `imdb_id:shot_idx`, so they only mean something for the trailer that was labeled. After a swap,
 the same key points at a different shot of a different video. `label_trailers.csv` records the
 `youtube_id` each labeled film had, and `load_gold` drops a film's labels when the status log now
-shows another trailer. Miami Vice's trailer was swapped, so its 71 labels drop out and 641 remain;
+shows another trailer. Miami Vice's trailer was swapped, so its 71 labels drop out (639 labels are
+used now, `alignment_eval.json`);
 every step that reads labels (`label_eval`, `align_tune`, `align_diagnostics`, `av_sync`, `rerank`) goes
 through `load_gold`. What we give up: those labels, unless that film is labeled again. `resplit` skips
 hand-labeled trailers for the same reason: splitting a shot renumbers the ones after it.
@@ -242,8 +255,8 @@ position carries the finer story signal.
 
 ## RQ1 model (`model.py`)
 
-**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 3.8% positive
-at threshold 0.535 (2.5% at 0.74).
+**Label: `in_trailer` = at least one matched trailer shot points at this film shot.** 4.1% positive
+at threshold 0.515 (3.8% at 0.535 before the swaps and re-split, 2.5% at 0.74).
 
 **Logo and credit shots are dropped** (`model.EDGE`). Film shots in the first and last 1% of each film
 are left out of training and scoring. The film's first shot counted as "used" in 23.5% of films vs a
@@ -258,7 +271,7 @@ these shots (`viewer_export` joins model scores by shot).
 **Folds grouped by film.** Shots from the same film share look, cast and score; a random split would
 let the model memorize films and inflate every metric.
 
-**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the 3.8% positive
+**Metrics.** Average precision (PR-AUC) instead of accuracy or ROC-AUC because of the ~4% positive
 rate. Pooled AP, mean per-film AP, and precision at trailer length (per film, top-k where k is the
 number of shots the trailer used), which is the question a trailer editor actually faces.
 
@@ -287,7 +300,7 @@ model, so `model.py` keeps the original groups. The RQ1 page still uses the rela
 (shot/reverse-shot, continuous coverage), which at shot level is a full miss. `model_eval` rescores the
 saved out-of-fold predictions counting a pick as a hit if a used shot is within ±k film shots, to see
 whether these near misses hide a better model. Random gets the same tolerance, because a wider window
-also makes random hits more likely (at ±3, 19% of shots are near a used shot vs 3.8% exact); lift over
+also makes random hits more likely (at ±3, 21% of shots are near a used shot vs 4.1% exact); lift over
 that base rate is the fair comparison. Result: lift drops as k grows, so near misses are not the story.
 
 **EBM for the report's feature curves** (`model_ebm.py`). An explainable boosting machine learns one
@@ -405,25 +418,47 @@ numbers after a rerun.
 **Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
 get together, next to the single-feature lifts.
 
+**Effect of each feature: EBM curves** (from `model_ebm.json`). The lifts above look at one feature at
+a time; the EBM curves show each feature's effect with the others held fixed. The page shows the 6
+curves with the highest importance, as odds multipliers on one shared log scale (same reason as the
+lift bars), cut to the feature's 1st to 99th percentile since the outer bins hold few shots. The
+section is hidden when `model_ebm.json` doesn't exist.
+
 ## Pipeline structure
 
 **Staged rebuild vs curation.** `scripts/run_all.sh` only rebuilds outputs from the current inputs, in
-named stages (`data prep align audio rq1 rq2 viz`, plus opt-in `ebm`), so a change downstream reruns
-just the stages after it. Steps that change the inputs (dead-link recovery, the trailer audit and swaps,
+named stages, so a change downstream reruns just the stages after it. Steps that change the inputs (dead-link recovery, the trailer audit and swaps,
 label pages, variant comparisons against the labels) live in `scripts/curate.sh` and are run on purpose:
 they change what every later number is computed from, and the trailer steps are slow under YouTube's
 rate limits, so a full rebuild never triggers them.
 
+**`run_all.sh` is a menu, not a run-everything script.** With no arguments it lists the stages and
+runs nothing; you name the ones to run. Stages are run on purpose and several take hours (downloads,
+shot detection, embeddings, the model), so a bare call shouldn't start all of them. `rq2` (trailer
+features, clustering, case studies) and `ebm` are only run when named: RQ2 is a separate part of the
+project, and the EBM is slow. Two things moved so the core stages don't need `rq2`: `figures` (data
+funnel, alignment and story figures, `summary.json`) is now in `rq1`, and `viewer_export` computes the
+Trailer View's loudness and cut curves itself instead of reading `trailer_curves.json` (cached per
+trailer in `cache/curves/`, recomputed when the trailer's shot table changes, so a swap or re-split
+can't leave stale curves). The script keeps the name `run_all.sh` for now.
+
 ## Dataset release (`release.py`)
 
-**Links and annotations only.** `data/release/` holds one table per film (MovieNet's link vs the link
-we use, why it changed, YouTube metadata, audit flags, match share, span), trailer shot boundaries,
+**Links and annotations only.** `data/release/` holds one table per film (the trailer link in use,
+its YouTube title, channel and length, and how well it matches the film: trailer shots, match share,
+film span), trailer shot boundaries,
 the picture and dialogue alignments, sync features and the hand labels, plus a dataset card. Left
 out: videos, frames, audio and transcripts, which are copyrighted (transcripts are the film's
 dialogue), and MovieNet's own keyframes, subtitles and annotations, which are research-only under
 MovieNet's terms; film shot indices point into MovieNet's shot annotations instead. Labeler names are
 replaced by `labeler_1`, `labeler_2`, ... so a public file carries no personal names. The folder is
-gitignored and rebuilt from committed files. The annotations are released under CC BY-NC 4.0: non-commercial, to match MovieNet's research-only terms that the alignment depends on.
+gitignored and rebuilt from committed files (YouTube titles, channels and lengths come from the
+metadata cache and the candidate logs). The annotations are released under CC BY-NC 4.0: non-commercial, to match MovieNet's research-only terms that the alignment depends on.
+
+**The release table has no swap history.** `trailers.csv` lists only the link in use; MovieNet's old
+link, whether and why it was replaced, audit flags and review notes stay in `data/ids/` and are not
+released. An earlier version had the before and after link per film with reasons; the release only
+needs the trailer each film's annotations were made on, and how we got there is our own provenance.
 
 ## Dropped from the proposal
 

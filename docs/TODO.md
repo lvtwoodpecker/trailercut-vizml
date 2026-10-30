@@ -5,8 +5,12 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] After the 77 core swaps: `resplit` (running, `plan.md` E6), then `python -m trailercut.embed trailer` and `bash scripts/run_all.sh align audio rq1 rq2 viz` plus `ebm`, then `swap sheet` and skim the contact sheets
-- [ ] New films: `swap download --set expand` is running (798 first choices); then `swap apply --set expand --batch`, `embed film`, `resplit`, and the full rebuild
+- [ ] Review the 132 replaced core trailers on the swap review page (`curate.sh swap-review`), export the verdicts to `labels/`
+- [ ] Rerun `ebm` on the rebuilt core (the RQ1 page's feature curves still come from the old trailers), then `rq1_export`
+- [ ] New films: `swap apply --set expand --batch` (running); rerun it once at the end to pick up the two late downloads (Rio Bravo, The Theory of Everything)
+- [ ] New films: Whisper (`audio`), `resplit`, `embed trailer`, then rebuild (`align audio rq1 viz`, `ebm`)
+- [ ] Rerun `align_diagnostics` after `audio`: the committed language split covers only 211 of 293 trailers
+- [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
 - [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
@@ -20,7 +24,7 @@ current block lives in `plan.md`.
 ## Next (Nov 17 to Dec 1)
 
 - [ ] Dataset release on Hugging Face: `release` builds `data/release/` locally (annotations under CC BY-NC 4.0); publish (`plan.md` section G)
-- [ ] Expand to all 1,100 MovieNet keyframe films (`plan.md` section H): keyframes for the new films, then `swap download/apply --set expand` (the film list is already switched)
+- [ ] Expand to all 1,100 MovieNet keyframe films (`plan.md` section H): keyframes for the new films, then the batch apply and rebuild above
 
 - [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
@@ -51,10 +55,18 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-29: new-film trailer downloads: a pick for all 798 new films (`expand_downloads.csv`), with a wider re-search (20 results) for Rio Bravo and The Theory of Everything
+- 2026-10-29: release table trimmed to the link in use and its match quality (`trailers.csv`); swap history stays in `data/ids/`
+- 2026-10-29: swap review page (`swap_review.py`, `curate.sh swap-review`) replaces the contact sheets
+- 2026-10-29: core rebuild after the 77 swaps and the re-split: cutoff 0.515 from 639 labels (P 0.87, R 0.92), full lift 3.15x (`results.md`)
+- 2026-10-29: re-split of the core trailers: 1,225 shots split in 242 of 259 checked trailers (`resplit_log.csv`)
+- 2026-10-29: `run_all.sh` is a menu (no arguments lists the stages); `rq2` and `ebm` opt-in; `figures` in `rq1`; the Trailer View computes its own audio/cut curves
+- 2026-10-29: RQ1 page: "Effect of each feature" section with the 6 most important EBM curves
+
 - 2026-10-29: film list switched to all 1,100 films (`paths.IDS`, `TRAILERCUT_FILMS`); funnel figure counts MovieNet links and working trailers
 - 2026-10-29: `release` builder for the dataset (`data/release/`, local): links, shots, alignments, sync, anonymized hand labels, dataset card
 - 2026-10-29: `swap apply --batch`, `swap sheet`, `curate.sh` passes `--set`; trailers, recover, swap prepare and apply save after every film and resume
-- 2026-10-29: labels only count for the trailer that was labeled (`labels/label_trailers.csv`); Miami Vice's 71 labels dropped after its swap (641 left)
+- 2026-10-29: labels only count for the trailer that was labeled (`labels/label_trailers.csv`); Miami Vice's 71 labels dropped after its swap (641 left, 639 usable: 2 are "unsure")
 - 2026-10-29: 77 flagged core trailers swapped for official theatrical ones (6 kept); first-choice trailers picked for 798 new films (349 MovieNet links, 449 search)
 - 2026-10-29: docs pass for the staged pipeline, `curate.sh`, EBM, shapes, diagnostics, case finder, audit and swaps
 - 2026-10-29: `run_all.sh` split into stages (`data prep align audio rq1 rq2 viz`, opt-in `ebm`); input-changing steps in `scripts/curate.sh`

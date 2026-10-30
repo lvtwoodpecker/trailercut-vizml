@@ -11,17 +11,17 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   were checked by eye and are all the right film (`trailer_review.csv`). Six working links were also
   replaced: Scarface's TV spot, four scene clips and Mulholland Drive's German dub. Then 77 trailers
   the audit flagged were swapped for official theatrical ones (6 flagged films kept theirs), so 132 of
-  293 core trailers are search picks now (`trailer_status.csv`). The swaps were checked by alignment,
-  not yet by eye (contact sheets are pending).
+  293 core trailers are search picks now (`trailer_status.csv`). The swaps were checked by alignment;
+  the eye check of the 132 replaced trailers on the review page (`curate.sh swap-review`) is pending.
 - **YouTube rate limits and region locks.** Bulk downloads trip YouTube's bot check, so swaps run one
   video at a time with pauses and can take several sessions. Some candidates are unavailable in one
   region and fine in another, so which trailer a film ends up with can depend on where the download
   ran (`unavailable` in the candidate lists records the reason).
 - **One trailer per film.** Films often have a teaser, several trailers and TV spots. We see one,
   usually whichever MovieNet's authors found, so "what the trailer used" means "what this trailer used".
-- **Missed cuts in trailer shots.** TransNetV2 misses some cuts (fast flashes, dissolves). 6.7% of
-  trailer shots have keyframes less alike than 99% of MovieNet film shots (`alignment_diagnostics.json`),
-  so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
+- **Missed cuts in trailer shots.** TransNetV2 misses some cuts (fast flashes, dissolves). After
+  `resplit`, 3.4% of trailer shots still have keyframes less alike than 99% of MovieNet film shots
+  (6.7% before; `alignment_diagnostics.json`), so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
   splits each such shot at most once, so a shot hiding two missed cuts stays partly merged, and
   hand-labeled trailers are not re-split.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
@@ -41,20 +41,20 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 - **`in_trailer` comes from our aligner, not ground truth.** Missed matches become false negatives
   in the model's training data; wrong matches become false positives. Hand labels measure this on few
-  trailers: 10 were labeled (precision 0.85, recall 0.91 at the 0.535 cutoff), and since Miami Vice's
-  trailer was swapped its labels no longer count, so 9 trailers (641 labels) are left.
+  trailers: 10 were labeled, and since Miami Vice's trailer was swapped its labels no longer count, so
+  9 trailers (639 labels) are left; precision 0.87, recall 0.92 at the 0.515 cutoff.
 - **Hand labels: one labeler, possible anchoring.** All labels are from one person, so there is
   no kappa yet. The tool shows candidates sorted by score, and 94% of picks were candidate #1, so
   labels may lean toward the aligner's own choice and overstate its accuracy.
-- **The 0.535 cutoff lets through shots that aren't in the film.** 77% of impostor scores (best match
-  in a *different* film) clear it, so the null no longer bounds false matches. In the labels, 37 of 38
-  "same scene" and 27 of 71 "not in film" trailer shots still get matched (in-session count). Trailer
+- **The 0.515 cutoff lets through shots that aren't in the film.** 83% of impostor scores (best match
+  in a *different* film) clear it, so the null no longer bounds false matches. In the labels, 96% of 27
+  "same scene" and 43% of 54 "not in film" trailer shots score above it (`alignment_diagnostics.json`). Trailer
   stats that count matches (match share, story sampling) include some of these.
 - **Look-alike shots, not neighbors.** Of the 36 labeled shots matched to the wrong film shot at 0.535,
   only 5 land within ±3 shots of the true one (in-session count); the true shot is usually rank 2
   somewhere else in the film. Unlike a neighbor, that can put the shot at the wrong story position,
   and the ±k tolerance eval can't catch it. Lift over random still falls as the tolerance widens (full
-  3.22x exact, 1.71x at ±3), so model misses are different moments too.
+  3.15x exact, 1.70x at ±3), so model misses are different moments too.
 - **Shot length.** Longer film shots give a trailer more footage to sample, so they are more likely to
   be labeled in-trailer regardless of content. Controlled with a length-only baseline and
   length-adjusted AP, not removed.
@@ -79,10 +79,10 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 ## Analysis
 
-- **The RQ1 signal is weak.** The full model's AP is 0.076 against 0.038 for random, and at trailer
-  length about 12 in 100 top-ranked shots are in the trailer (lift 3.22x). It ranks better than chance,
+- **The RQ1 signal is weak.** The full model's AP is 0.083 against 0.042 for random, and at trailer
+  length about 13 in 100 top-ranked shots are in the trailer (lift 3.15x). It ranks better than chance,
   not well enough to say which shots an editor will pick. Readable features carry most of what the
-  model finds (AP 0.069 vs 0.076 with CLIP). Allowing ±k shots of slack doesn't rescue it (lift 1.71x
+  model finds (AP 0.076 vs 0.083 with CLIP). Allowing ±k shots of slack doesn't rescue it (lift 1.70x
   at ±3), and extra features or a ranker don't move it (`model_tune.json`).
 - **Clusters are weakly separated** (silhouette 0.10 to 0.31). We report them as reproducible splits,
   not as distinct trailer types.
