@@ -9,7 +9,7 @@ tt0049833,EiLmKxiTT3g,ok,
 tt0050419,X6VLdVrVQGQ,ok,
 tt0050706,NHJcwMrqnJo,ok,
 tt0053125,cPNiwc3ogIo,ok,
-tt0053221,WPO12ZzGS84,error,ERROR: unable to download video data: HTTP Error 403: Forbidden
+tt0053221,WPO12ZzGS84,ok,
 tt0053579,8QSIB7EOKSk,ok,
 tt0054167,c7ujjwtHuZQ,ok,
 tt0056869,TRoAje3dNUg,ok,
@@ -732,7 +732,7 @@ tt2911666,tkVJn6-eSWg,ok,
 tt2923316,rARy1veFIps,ok,
 tt2978462,gMDymk_gx3A,error,ERROR: [youtube] gMDymk_gx3A: This video is not available
 tt2978462,X3dTERxKuac,ok,
-tt2980516,74Cl_KOO-sE,error,ERROR: unable to download video data: HTTP Error 403: Forbidden
+tt2980516,74Cl_KOO-sE,ok,
 tt3062096,RH2BD49sEZI,ok,
 tt3064298,mMHejG4lPHs,ok,
 tt3077214,FTSP_oEHcOE,ok,
