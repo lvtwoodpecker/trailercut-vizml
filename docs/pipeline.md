@@ -53,9 +53,9 @@ MovieNet (HF mirror)                    YouTube
 | prep | `trailercut.embed film` | film keyframes | `cache/clip/<tag>/film/{id}.npy` [shots, 3, d] | ~1 h (B/32, MPS) |
 | prep | `trailercut.embed trailer` | trailer keyframes | `cache/clip/<tag>/trailer/{id}.npy` | ~3 min |
 | prep | `trailercut.concepts` | CLIP text encoder | `cache/concept_text_<tag>.npy` | seconds |
-| align | `trailercut.align` | embeddings, trailer shot tables, MovieNet shots | `data/features/alignment/{id}.csv`, `alignment_threshold.json`, `cache/alignment_null_<tag>.npy` | ~1 min |
+| align | `trailercut.align [--threshold T]` (T = last `best_f1.threshold` from `alignment_eval.json`, if it exists) | embeddings, trailer shot tables, MovieNet shots | `data/features/alignment/{id}.csv`, `alignment_threshold.json`, `cache/alignment_null_<tag>.npy` | ~1 min |
 | align | `trailercut.label_eval` (only if `labels/gold_*.json` exist) | `labels/gold_*.json`, alignment, `alignment_threshold.json` | `alignment_eval.json`, `figures/alignment_pr.png` | seconds |
-| align | `trailercut.align --threshold T` (same condition) | as `align`; `T` = `best_f1.threshold` from `alignment_eval.json` | same as `align`, `source: manual` | ~1 min |
+| align | `trailercut.align --threshold T` (only if `label_eval` now picks a different T) | as `align` | same as `align`, `source: manual` | ~1 min |
 | align | `trailercut.align_diagnostics` | `labels/gold_*.json`, alignment, `alignment_threshold.json`, `cache/trailer_asr/`, film and trailer embeddings | `figures/alignment_diagnostics.png`, `alignment_diagnostics.json` | not timed |
 | audio | `trailercut.trailer_asr` | `cache/trailer_audio/` | `cache/trailer_asr/{id}.json` (skips done ones) | ~13 s/trailer |
 | audio | `trailercut.dialogue_align` | transcripts, MovieNet subtitles | `data/features/dialogue_alignment/{id}.csv` | not timed |
@@ -127,9 +127,10 @@ default location.
 
 `recover` and `swap apply` read `impostor_threshold` from the committed `alignment_threshold.json`
 (the 5% impostor cutoff, kept even when `align` runs with the label-picked cutoff).
-`align` without `--threshold` writes the 5% impostor cutoff; the `align` stage then re-aligns with the
-best-F1 cutoff from the hand labels. The null is still computed and its pass rate at `T` is saved as
-`fpr`. `label_eval` runs between the two, so it sees the impostor cutoff as "current".
+`align` without `--threshold` writes the 5% impostor cutoff. The `align` stage reuses the last
+best-F1 cutoff from the hand labels, so it is usually one pass; `label_eval` then re-scores, and only if
+it picks a different cutoff does `align` run again with it. The null is still computed and its pass
+rate at `T` is saved as `fpr`.
 `model`, `model_tune` and `rq1_export` drop film shots in the first and last 1% of each film
 (`model.EDGE`); `viewer_export` joins model scores by shot, so those shots have no score.
 
