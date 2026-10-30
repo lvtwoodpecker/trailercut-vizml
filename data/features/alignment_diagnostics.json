@@ -24,16 +24,16 @@
   },
   "language": {
     "English": {
-      "trailers": 194,
-      "median_match": 0.9421381542238589
+      "trailers": 272,
+      "median_match": 0.9437410982750435
     },
     "other language": {
-      "trailers": 14,
-      "median_match": 0.9234693877551021
+      "trailers": 15,
+      "median_match": 0.9183673469387755
     },
     "no speech": {
-      "trailers": 3,
-      "median_match": 0.9466666666666667
+      "trailers": 6,
+      "median_match": 0.8722826086956521
     }
   },
   "cuts": {
