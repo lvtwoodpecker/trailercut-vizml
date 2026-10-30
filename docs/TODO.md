@@ -13,6 +13,8 @@ current block lives in `plan.md`.
 - [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
+- [ ] Status-file race: `swap apply` loads `trailer_status.csv` at start and rewrites the whole file after every film, so two runs at once undo each other's swaps (an overnight expand batch reverted 12 core swaps; a rerun picked the same trailers again). Fix: each save re-reads the file and updates only its own films
+- [ ] Retry the 117 new films whose candidates were all rejected: that batch ran with the old 25% rule, before the beats-other-films check
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
 - [ ] Rerun `trailer_audit` after the rerun (also writes the new `subtitled` flag): the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
 
