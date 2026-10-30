@@ -20,7 +20,7 @@ from datetime import date
 import pandas as pd
 
 from . import movienet_io as mn
-from .paths import FEATURES, IDS, IDS_DIR, LABELS, ROOT
+from .paths import CACHE, FEATURES, IDS, IDS_DIR, LABELS, ROOT
 
 OUT = ROOT / "data" / "release"
 
@@ -31,25 +31,62 @@ def stack(folder):
     return df[["imdb_id", *[c for c in df.columns if c != "imdb_id"]]]
 
 
+def youtube_meta():
+    """Title / channel / duration per YouTube id, from the metadata cache and every candidate log."""
+    out = {}
+    for f in ["trailer_recovery.csv", "swap_candidates.csv", "expand_candidates.csv"]:
+        if (IDS_DIR / f).exists():
+            for r in pd.read_csv(IDS_DIR / f, dtype=str).itertuples():
+                out[r.youtube_id] = dict(title=r.title, channel=r.channel, duration=r.duration)
+    for p in (CACHE / "yt_meta").glob("*.json"):
+        m = json.loads(p.read_text())
+        if "error" not in m:
+            out[p.stem] = dict(title=m.get("title"), channel=m.get("channel"), duration=m.get("duration"))
+    return out
+
+
+def why(i, old, now, review, audit, meta):
+    if now == old:
+        return ""
+    if i in review.index and isinstance(review.reason.get(i), str):
+        return review.reason.get(i)
+    if not old:
+        return "no MovieNet link"
+    if old not in meta:
+        return "MovieNet link dead or unavailable"
+    flags = audit["flags"].get(i)
+    return f"audit: {flags}" if isinstance(flags, str) else "replaced"
+
+
 def trailers():
-    ids = IDS_DIR
-    status = pd.read_csv(ids / "trailer_status.csv", dtype=str)
-    films = pd.read_csv(ids / "films_1100.csv", dtype=str).rename(columns={"youtube_id": "movienet_youtube_id"})
-    audit = pd.read_csv(ids / "trailer_audit.csv", dtype=str)[["imdb_id", "flags", "span", "channel", "height"]]
-    review = pd.read_csv(ids / "trailer_review.csv", dtype=str).rename(columns={"reason": "review_note"})
-    df = status.merge(films[["imdb_id", "movienet_youtube_id", "core"]], on="imdb_id", how="left") \
-               .merge(audit, on="imdb_id", how="left").merge(review[["imdb_id", "review_note"]], on="imdb_id", how="left")
-    df["title_film"] = df.imdb_id.map(lambda i: mn.meta(i)["title"])
-    df["changed"] = df.youtube_id != df.movienet_youtube_id
-    share = {}
-    for p in (FEATURES / "alignment").glob("*.csv"):
-        a = pd.read_csv(p)
-        share[p.stem] = round(float(a.matched[~a.blank].mean()), 3)
-    df["match_share"] = df.imdb_id.map(share)
-    df["checked"] = date.today().isoformat()
-    cols = ["imdb_id", "title_film", "core", "movienet_youtube_id", "youtube_id", "changed", "source", "status",
-            "title", "channel", "duration", "height", "flags", "match_share", "span", "review_note", "checked"]
-    return df.rename(columns={"title": "youtube_title"})[[c if c != "title" else "youtube_title" for c in cols]]
+    """One row per film: the film, MovieNet's original trailer (before), the trailer in use (after), and
+    how well the trailer in use matches the film."""
+    status = pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)
+    films = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).set_index("imdb_id")
+    audit = pd.read_csv(IDS_DIR / "trailer_audit.csv", dtype=str).set_index("imdb_id")
+    review = pd.read_csv(IDS_DIR / "trailer_review.csv", dtype=str).drop_duplicates("imdb_id", keep="last").set_index("imdb_id")
+    meta = youtube_meta()
+    url = lambda y: f"https://www.youtube.com/watch?v={y}" if isinstance(y, str) and y else ""
+    rows = []
+    for r in status[status.status == "ok"].itertuples():
+        i, old = r.imdb_id, films.youtube_id.get(r.imdb_id)
+        old = old if isinstance(old, str) else ""
+        a = pd.read_csv(FEATURES / "alignment" / f"{i}.csv") if (FEATURES / "alignment" / f"{i}.csv").exists() else None
+        pos = a.film_story_pos.dropna() if a is not None else pd.Series(dtype=float)
+        m = mn.meta(i)
+        now = meta.get(r.youtube_id, {})
+        rows.append(dict(
+            imdb_id=i, film=m["title"], year=m["year"], core=films.core.get(i),
+            movienet_url=url(old), movienet_title=meta.get(old, {}).get("title", "") if old else "",
+            movienet_flags=audit["flags"].get(i, "") if audit["youtube_id"].get(i) == old else "",
+            url=url(r.youtube_id), title=now.get("title") or r.title, channel=now.get("channel", ""),
+            duration_s=now.get("duration") or r.duration, source=r.source, changed=r.youtube_id != old,
+            why_changed=why(i, old, r.youtube_id, review, audit, meta),
+            trailer_shots=len(a) if a is not None else None,
+            match_share=round(float(a.matched[~a.blank].mean()), 3) if a is not None else None,
+            film_span=round(float(pos.quantile(0.9) - pos.quantile(0.1)), 3) if len(pos) else None,
+            checked=date.today().isoformat()))
+    return pd.DataFrame(rows)
 
 
 CARD = """---
@@ -70,7 +107,7 @@ subtitles, and {n_labels} hand-checked alignments.
 
 | file | what |
 |---|---|
-| `trailers.csv` | one row per film: MovieNet's trailer link, the link used here, why it changed, YouTube metadata, audit flags, match share |
+| `trailers.csv` | one row per film: MovieNet's original trailer (link, YouTube title, audit flags), the trailer used here (link, title, channel, length, source), why it changed, and how well it matches the film (shots, match share, span of the film covered) |
 | `trailer_shots.parquet` | trailer shot boundaries (TransNetV2) |
 | `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, matched flag, top-5 candidates |
 | `dialogue_alignment.parquet` | trailer speech segment -> film subtitle time; times and scores only |
