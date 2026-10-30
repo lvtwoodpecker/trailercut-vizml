@@ -22,3 +22,5 @@ data/features/model_shap.parquet
 viz/data/
 labels/img/
 data/release/
+labels/swap_img/
+labels/swap_review.html
