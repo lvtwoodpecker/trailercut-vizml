@@ -11,7 +11,8 @@ a flash) also get cut this way, so nothing is applied until a sample has been ch
   review   page to check a sample of proposed cuts (labels/split_review.html): --n of them spread
            evenly over `sim`, shown shuffled; keys y real cut, x same shot, u unsure; Export gives
            split_review_<name>.json (verdicts `y`, `n`, `u`)
-  report   from the exported verdicts (labels/split_review_*.json): share of real cuts at each `sim` cutoff
+  report   from the exported verdicts (labels/split_review_*.json): share of real cuts at each `sim`
+           cutoff, and at each `sharp` cutoff (how much the cut dips below the frames around it)
   apply    cut at the proposals with sim <= --max-sim (picked from the report), log the trailers in
            data/features/split_applied.csv, then rerun `embed trailer` and everything after it
 
@@ -55,7 +56,7 @@ def embed(model, preprocess, frames, box, device, bs=256):
 
 
 def cuts_in(a, b, E, f0, depth=0):
-    """Cuts for frames a..b (E: their embeddings, one row per frame) -> [(frame, sim, depth)]."""
+    """Cuts for frames a..b (E: their embeddings, one row per frame) -> [(frame, sim, sharp, depth)]."""
     n = b - a + 1
     if n < 2 * MIN_FRAMES or depth >= MAX_DEPTH:
         return []
@@ -65,7 +66,10 @@ def cuts_in(a, b, E, f0, depth=0):
     sim = (E[:-1] * E[1:]).sum(1)  # sim[j]: frame a+j vs a+j+1
     j = MIN_FRAMES - 1 + int(sim[MIN_FRAMES - 1:n - MIN_FRAMES].argmin())
     c = a + j + 1
-    return [(c, float(sim[j]), depth)] + cuts_in(a, c - 1, E[:j + 1], f0, depth + 1) + cuts_in(c, b, E[j + 1:], f0, depth + 1)
+    # sharpness: a hard cut is a one-frame dip; a pan, flash or dissolve stays low over several frames
+    near = np.r_[sim[max(j - 5, 0):j], sim[j + 1:j + 6]]
+    sharp = float(np.median(near) - sim[j]) if len(near) else 0.0
+    return [(c, float(sim[j]), sharp, depth)] + cuts_in(a, c - 1, E[:j + 1], f0, depth + 1) + cuts_in(c, b, E[j + 1:], f0, depth + 1)
 
 
 def current(df, now):
@@ -97,10 +101,10 @@ def propose(core):
                 a, b = int(sh.frame_start[s]), min(int(sh.frame_end[s]), len(frames) - 1)
                 E = embed(model, preprocess, frames[a:b + 1], box, DEVICE)
                 rows += [dict(imdb_id=i, youtube_id=now.get(i), shot_idx=int(s), frame_start=a, frame_end=int(sh.frame_end[s]),
-                              cut_frame=c, sim=round(x, 4), depth=d) for c, x, d in cuts_in(a, b, E, f0)]
+                              cut_frame=c, sim=round(x, 4), sharp=round(h, 4), depth=d) for c, x, h, d in cuts_in(a, b, E, f0)]
         # a shot_idx -1 row marks a trailer checked with nothing to cut, so a rerun skips it
         out = pd.DataFrame(rows or [dict(imdb_id=i, youtube_id=now.get(i), shot_idx=-1)])
-        out.reindex(columns=["imdb_id", "youtube_id", "shot_idx", "frame_start", "frame_end", "cut_frame", "sim", "depth"]) \
+        out.reindex(columns=["imdb_id", "youtube_id", "shot_idx", "frame_start", "frame_end", "cut_frame", "sim", "sharp", "depth"]) \
            .to_csv(PROPOSALS, mode="a", header=not PROPOSALS.exists(), index=False)
     df = pd.read_csv(PROPOSALS)
     cuts = df[df.shot_idx >= 0]
@@ -115,7 +119,9 @@ def proposals():
 
 def review(n):
     from . import movienet_io as mn
-    df = proposals().sort_values("sim").reset_index(drop=True)
+    df = proposals()
+    seen = set(verdicts())
+    df = df[~(df.imdb_id + ":" + df.cut_frame.astype(int).astype(str)).isin(seen)].sort_values("sim").reset_index(drop=True)
     # spread the sample evenly over sim, so the verdicts show where real cuts stop
     pick = df.iloc[np.unique(np.linspace(0, len(df) - 1, n).round().astype(int))]
     IMG.mkdir(parents=True, exist_ok=True)
@@ -140,12 +146,18 @@ def review(n):
     print(f"{len(items)} proposed cuts -> {PAGE}")
 
 
-def report():
-    df = proposals()
-    df["key"] = df.imdb_id + ":" + df.cut_frame.astype(int).astype(str)
+def verdicts():
+    """All exported verdicts, key imdb_id:cut_frame -> y / n / u (later files win)."""
     v = {}
     for p in sorted(LABELS.glob("split_review_*.json")):
         v.update(json.loads(p.read_text())["verdicts"])
+    return v
+
+
+def report():
+    df = proposals()
+    df["key"] = df.imdb_id + ":" + df.cut_frame.astype(int).astype(str)
+    v = verdicts()
     r = df[df.key.isin(v)].assign(verdict=lambda d: d.key.map(v))
     r = r[r.verdict != "u"].sort_values("sim")
     print(f"{len(r)} verdicts ({(r.verdict == 'y').mean():.0%} real cuts); {len(df)} proposed cuts in all")
@@ -153,6 +165,11 @@ def report():
     for s in np.unique(np.quantile(r.sim, np.linspace(0.1, 1, 10)).round(2)):
         k = r[r.sim <= s]
         print(f"{s:7.2f}  {(k.verdict == 'y').mean():14.0%}  {(df.sim <= s).mean():23.0%}")
+    if "sharp" in r and r.sharp.notna().any():
+        print("min-sharp  real cuts kept  share of proposals kept")
+        for s in np.unique(np.quantile(r.sharp.dropna(), np.linspace(0, 0.9, 10)).round(2)):
+            k = r[r.sharp >= s]
+            print(f"{s:9.2f}  {(k.verdict == 'y').mean():14.0%}  {(df.sharp >= s).mean():23.0%}")
 
 
 def apply(max_sim):

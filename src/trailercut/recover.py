@@ -153,8 +153,8 @@ def main():
         ok = [i for i, r in got.items() if r["status"] == "ok"]
         print(f"round {rank + 1}: {len(ok)}/{len(batch)} downloaded")
         if ok:
-            run("trailercut.trailer_prep")
-            run("trailercut.embed", "trailer")
+            run("trailercut.trailer_prep", "--ids", *ok)  # only this round's films
+            run("trailercut.embed", "trailer", "--ids", *ok)
         for i, c in batch.items():
             share = None
             if got[i]["status"] == "ok":

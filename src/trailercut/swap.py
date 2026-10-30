@@ -216,8 +216,8 @@ def apply():
         accepted, rows = False, []
         for c in got:
             shutil.copyfile(files[c.youtube_id], TRAILERS / f"{i}.mp4")
-            run("trailercut.trailer_prep")
-            run("trailercut.embed", "trailer")
+            run("trailercut.trailer_prep", "--ids", i)  # only this film: other jobs may have trailers pending
+            run("trailercut.embed", "trailer", "--ids", i)
             share, span, accepted = check(i, align_one(i, threshold))
             rows.append(dict(imdb_id=i, rank=c.rank, youtube_id=c.youtube_id, title=c.title, channel=c.channel,
                              duration=c.duration, match_share=share, accepted=accepted))
@@ -267,8 +267,8 @@ def apply_batch(retry=False):
             backup(i)  # no-op if an interrupted run already holds the original
             clear(i)
             shutil.copyfile(files[c.youtube_id], TRAILERS / f"{i}.mp4")
-        run("trailercut.trailer_prep")
-        run("trailercut.embed", "trailer")
+        run("trailercut.trailer_prep", "--ids", *batch)  # only this round's films
+        run("trailercut.embed", "trailer", "--ids", *batch)
         for i, c in batch.items():
             try:
                 share, span, ok = check(i, align_one(i, threshold))

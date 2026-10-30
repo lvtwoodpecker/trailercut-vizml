@@ -108,9 +108,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films (default: every trailer not yet done)")
     a = ap.parse_args()
     # yt-dlp leaves tt123.f605.mp4 fragments mid-merge; only take finished files
-    vids = sorted(p for p in TRAILERS.glob("tt*.mp4") if p.stem.isalnum())
+    vids = sorted(p for p in TRAILERS.glob("tt*.mp4") if p.stem.isalnum() and (a.ids is None or p.stem in a.ids))
     if a.limit:
         vids = vids[: a.limit]
     if torch.cuda.is_available():

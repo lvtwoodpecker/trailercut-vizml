@@ -6,7 +6,7 @@ Outputs (gitignored, regenerate with this script)
   data/cache/clip/{tag}/film/{imdb_id}.npy      float16 [n_shots, 3, d], L2-normalized
   data/cache/clip/{tag}/trailer/{imdb_id}.npy   float16 [n_shots, 3, d]
 
-  TRAILERCUT_CLIP=h14 python -m trailercut.embed film|trailer [--limit N] [--bs 256] [--workers 6]
+  TRAILERCUT_CLIP=h14 python -m trailercut.embed film|trailer [--ids ID ...] [--limit N] [--bs 256] [--workers 6]
 """
 import argparse
 
@@ -106,11 +106,12 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--bs", type=int, default=256)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films (default: every one not yet embedded)")
     a = ap.parse_args()
     out = CLIP / a.kind
     out.mkdir(parents=True, exist_ok=True)
     model, preprocess, _ = load_model()
-    jobs = [j for j in (film_jobs() if a.kind == "film" else trailer_jobs()) if not (out / f"{j[0]}.npy").exists()]
+    jobs = [j for j in (film_jobs() if a.kind == "film" else trailer_jobs()) if not (out / f"{j[0]}.npy").exists() and (a.ids is None or j[0] in a.ids)]
     if a.limit:
         jobs = jobs[: a.limit]
     print(f"{MODEL} on {DEVICE}: {len(jobs)} {a.kind}s to embed")
