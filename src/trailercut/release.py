@@ -45,26 +45,11 @@ def youtube_meta():
     return out
 
 
-def why(i, old, now, review, audit, meta):
-    if now == old:
-        return ""
-    if i in review.index and isinstance(review.reason.get(i), str):
-        return review.reason.get(i)
-    if not old:
-        return "no MovieNet link"
-    if old not in meta:
-        return "MovieNet link dead or unavailable"
-    flags = audit["flags"].get(i)
-    return f"audit: {flags}" if isinstance(flags, str) else "replaced"
-
-
 def trailers():
-    """One row per film: the film, MovieNet's original trailer (before), the trailer in use (after), and
-    how well the trailer in use matches the film."""
+    """One row per film: the film, the trailer link in use, its YouTube metadata, and how well it matches
+    the film. (Which links replaced MovieNet's, and why, stays in data/ids/; not part of the release.)"""
     status = pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)
     films = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).set_index("imdb_id")
-    audit = pd.read_csv(IDS_DIR / "trailer_audit.csv", dtype=str).set_index("imdb_id")
-    review = pd.read_csv(IDS_DIR / "trailer_review.csv", dtype=str).drop_duplicates("imdb_id", keep="last").set_index("imdb_id")
     meta = youtube_meta()
     url = lambda y: f"https://www.youtube.com/watch?v={y}" if isinstance(y, str) and y else ""
     rows = []
@@ -76,12 +61,9 @@ def trailers():
         m = mn.meta(i)
         now = meta.get(r.youtube_id, {})
         rows.append(dict(
-            imdb_id=i, film=m["title"], year=m["year"], core=films.core.get(i),
-            movienet_url=url(old), movienet_title=meta.get(old, {}).get("title", "") if old else "",
-            movienet_flags=audit["flags"].get(i, "") if audit["youtube_id"].get(i) == old else "",
+            imdb_id=i, film=m["title"], year=m["year"],
             url=url(r.youtube_id), title=now.get("title") or r.title, channel=now.get("channel", ""),
-            duration_s=now.get("duration") or r.duration, source=r.source, changed=r.youtube_id != old,
-            why_changed=why(i, old, r.youtube_id, review, audit, meta),
+            duration_s=now.get("duration") or r.duration,
             trailer_shots=len(a) if a is not None else None,
             match_share=round(float(a.matched[~a.blank].mean()), 3) if a is not None else None,
             film_span=round(float(pos.quantile(0.9) - pos.quantile(0.1)), 3) if len(pos) else None,
@@ -107,7 +89,7 @@ subtitles, and {n_labels} hand-checked alignments.
 
 | file | what |
 |---|---|
-| `trailers.csv` | one row per film: MovieNet's original trailer (link, YouTube title, audit flags), the trailer used here (link, title, channel, length, source), why it changed, and how well it matches the film (shots, match share, span of the film covered) |
+| `trailers.csv` | one row per film: the trailer link, its YouTube title, channel and length, and how well it matches the film (trailer shots, share of shots matched, span of the film covered) |
 | `trailer_shots.parquet` | trailer shot boundaries (TransNetV2) |
 | `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, matched flag, top-5 candidates |
 | `dialogue_alignment.parquet` | trailer speech segment -> film subtitle time; times and scores only |
@@ -155,7 +137,7 @@ def main():
               for k, v, l in zip(gold.key, gold.label, gold.labeler)]
     pd.DataFrame(labels).to_csv(OUT / "hand_labels.csv", index=False)
     (OUT / "README.md").write_text(CARD.format(n=len(t), checked=t.checked.iloc[0], n_labels=len(labels)))
-    print(f"{len(t)} films, {int(t.changed.sum())} links changed from MovieNet's -> {OUT}")
+    print(f"{len(t)} films -> {OUT}")
 
 
 if __name__ == "__main__":
