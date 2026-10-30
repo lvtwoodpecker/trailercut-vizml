@@ -15,7 +15,7 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 |---|---|
 | `src/trailercut/` | one module per pipeline step, each runnable with `python -m trailercut.<step>` |
 | `scripts/run_all.sh` | menu of rebuild stages; runs only the ones named (`data prep align audio rq1 viz`, opt-in `rq2` and `ebm`); no arguments lists them |
-| `scripts/curate.sh` | steps that change the inputs: dead links, trailer audit and swaps, label page, tuning against the labels |
+| `scripts/curate.sh` | steps that change the inputs: dead links, trailer audit and swaps, shot splits, label page, tuning against the labels |
 | `hpc/` | Slurm jobs for the heavy steps |
 | `data/ids/` | film lists, trailer availability, recovery, audit and swap logs |
 | `data/features/` | everything the analysis and views read |

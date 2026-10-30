@@ -9,7 +9,8 @@ How data flows from MovieNet and YouTube to the model, clusters and figures. Two
   trailers; the rest recompute, which takes minutes.
 - `scripts/curate.sh <step>` holds the steps that change the inputs (trailer links, labels) and are
   run on purpose: `recover`, `audit`, `swap`, `swap-prepare`, `swap-search`, `swap-download`,
-  `swap-apply`, `swap-review`, `labels`, `tune`. After any of them, rebuild with
+  `swap-apply`, `swap-review`, `split-propose`, `split-review`, `split-report`, `split-apply`,
+  `labels`, `tune`. After any of them, rebuild with
   `bash scripts/run_all.sh prep align audio rq1 viz` (plus `rq2` and `ebm` when needed).
 
 ```
@@ -83,6 +84,10 @@ MovieNet (HF mirror)                    YouTube
 | `swap-download` | `trailercut.swap download [--sleep 30] [--per-film 1] [--recheck]` | `swap_candidates.csv`, `swap_downloads.csv` | `data/trailers/candidates/{id}__{youtube_id}.mp4`, `swap_downloads.csv`, `unavailable` column of `swap_candidates.csv` |
 | `swap-apply` | `trailercut.swap apply [--batch]` | candidates, downloaded videos, `impostor_threshold`, `trailer_recovery.csv` (to skip decided films) | swapped trailers (runs `trailer_prep` and `embed trailer`), status and recovery logs saved after every film |
 | `swap-review` | `trailercut.swap_review` | status log (`source=search`, `status=ok`), film list (MovieNet's old link), YouTube metadata cache and candidate logs, alignment, trailer and film keyframes | `labels/swap_review.html`, `labels/swap_img/{id}/` (not committed); run after the rebuild so the alignment is the new trailer's. The page's Export gives `swap_review_<name>.json` for `labels/` |
+| `split-propose` | `trailercut.resplit_clip propose [--core]` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, embeddings, videos and keyframes, status log, `labels/label_trailers.csv` | `split_proposals.csv`, appended per trailer (resumes); changes no shots |
+| `split-review` | `trailercut.resplit_clip review [--n 50]` | `split_proposals.csv`, trailer videos | `labels/split_review.html`, `labels/split_img/` (not committed); a sample of `--n` proposed cuts spread evenly over `sim`, shown shuffled. The page's Export gives `split_review_<name>.json` for `labels/` |
+| `split-report` | `trailercut.resplit_clip report` | `split_proposals.csv`, `labels/split_review_*.json` | printed only: share of real cuts and of all proposals kept at each `sim` cutoff |
+| `split-apply --max-sim S` | `trailercut.resplit_clip apply --max-sim S` | `split_proposals.csv`, trailer shot tables and videos | rewritten `trailer_shots/{id}.csv` and `cache/trailer_frames/{id}/`, trailer embedding removed, `split_applied.csv`; a trailer whose shots changed since the proposals is skipped. Then `embed trailer` and the rebuild |
 | `labels` | `trailercut.label_tool --n 10 --seed 0` | alignment, keyframes | `labels/label_tool.html`, `labels/label_sample.json`, `labels/img/` |
 | `tune` | `trailercut.align_tune`, `rerank --eval`, `model_tune` | labels, embeddings, keyframes, film shot table; `rerank` downloads SSCD weights to `cache/models/` | `align_tune.json`, `rerank_eval.json`, `model_tune.json` |
 
@@ -111,6 +116,7 @@ restored.
 
 After `resplit`, run `python -m trailercut.embed trailer` (it re-embeds the trailers whose embedding was
 removed), then `bash scripts/run_all.sh align audio rq1 viz`. Hand-labeled trailers are skipped.
+The same holds after `curate.sh split-apply`.
 
 `cache/` is `$TRAILERCUT_DATA/cache` (default `data/cache`). `<tag>` is the CLIP backbone
 (`b32`, `l14`, `h14`). Keyframes, `trailer_prep` and both `embed` steps are the heavy ones and have Slurm jobs in `hpc/` (the

@@ -6,13 +6,13 @@ current block lives in `plan.md`.
 ## Now
 
 - [ ] Review the 132 replaced core trailers on the swap review page (`curate.sh swap-review`), export the verdicts to `labels/`
-- [ ] Rerun `ebm` on the rebuilt core (the RQ1 page's feature curves still come from the old trailers), then `rq1_export`
+- [ ] Split review: when `split-propose` finishes on the core, open `labels/split_review.html` (`curate.sh split-review`), label the sample, export the verdicts to `labels/`, read `split-report`, pick `--max-sim`, then `split-apply`, `embed trailer` and the rebuild (`align audio rq1 viz`, `ebm`)
 - [ ] New films: `swap apply --set expand --batch` (running); rerun it once at the end to pick up the two late downloads (Rio Bravo, The Theory of Everything)
 - [ ] New films: Whisper (`audio`), `resplit`, `embed trailer`, then rebuild (`align audio rq1 viz`, `ebm`)
-- [ ] Rerun `align_diagnostics` after `audio`: the committed language split covers only 211 of 293 trailers
 - [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
+- [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
 - [ ] Rerun `trailer_audit` after the rerun: the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
 
 **Clustering and Overview**
@@ -55,6 +55,10 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-29: EBM rerun on the rebuilt core: lift 2.74 vs 2.82 for LightGBM; `rq1_export` rerun
+- 2026-10-29: `align_diagnostics` rerun: language split covers all 293 trailers; 3.4% of 24,188 trailer shots below the film floor
+- 2026-10-29: second split pass with CLIP (`resplit_clip.py`, `curate.sh split-*`): propose, review page, report, apply; `resplit.rewrite` takes any number of cuts per shot
+
 - 2026-10-29: new-film trailer downloads: a pick for all 798 new films (`expand_downloads.csv`), with a wider re-search (20 results) for Rio Bravo and The Theory of Everything
 - 2026-10-29: release table trimmed to the link in use and its match quality (`trailers.csv`); swap history stays in `data/ids/`
 - 2026-10-29: swap review page (`swap_review.py`, `curate.sh swap-review`) replaces the contact sheets
@@ -76,7 +80,7 @@ current block lives in `plan.md`.
 - 2026-10-29: trailer audit with hard and soft flags (`trailer_audit.csv`); stricter `recover` search (official trailers first; dubs, teasers, TV spots, re-releases rejected)
 - 2026-10-29: Mulholland Drive's German dub replaced by the official trailer
 - 2026-10-29: `recover --min-span 0.2`; four scene clips replaced (Moonstruck, Commando, Ferris Bueller, Phone Booth)
-- 2026-10-29: EBM glass-box model (`model_ebm.py`): lift 2.74 vs 2.82 for LightGBM on the same features; `figures/ebm_shapes.png`
+- 2026-10-29: EBM glass-box model (`model_ebm.py`): lift 2.83 vs 2.88 for LightGBM on the same features (before the swaps); `figures/ebm_shapes.png`
 - 2026-10-29: shape plots from binned SHAP (`figures/model_shapes.png`)
 - 2026-10-29: case finder (`case_studies.py`, `case_studies.json`)
 - 2026-10-29: alignment diagnostics (`align_diagnostics.py`): score by label type, match rate by language, likely missed cuts

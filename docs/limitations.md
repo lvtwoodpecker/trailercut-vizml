@@ -23,7 +23,9 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   `resplit`, 3.4% of trailer shots still have keyframes less alike than 99% of MovieNet film shots
   (6.7% before; `alignment_diagnostics.json`), so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
   splits each such shot at most once, so a shot hiding two missed cuts stays partly merged, and
-  hand-labeled trailers are not re-split.
+  hand-labeled trailers are not re-split. A second pass with CLIP (`resplit_clip`) proposes more cuts
+  but is not applied yet; once it is, the below-floor share drops partly by construction (CLIP both
+  flags and cuts), so only the by-eye check says how many of its cuts are real.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
   look like any of the 3 keyframes and goes unmatched. This also limits strict visual matching: SSCD
   copy detection did worse than CLIP (top pick right 71% vs 93%).

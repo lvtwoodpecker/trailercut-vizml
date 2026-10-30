@@ -26,6 +26,7 @@ Its `trailers.csv` has one row per film with only the trailer link in use: `imdb
 | `data/ids/swap_candidates.csv`, `swap_downloads.csv` | ranked replacement candidates for flagged trailers and the download log (`expand_*` for films new to the dataset: first-choice trailers from `swap prepare --set expand`) |
 | `data/features/trailer_shots/*.csv` | TransNetV2 shots per trailer (after `resplit` where it split a shot) |
 | `data/features/resplit_log.csv` | trailer shots split by `resplit` (likely missed cuts) |
+| `data/features/split_proposals.csv`, `split_applied.csv` | cuts CLIP proposes inside shots still glued after `resplit`, and the trailers where they were applied (`resplit_clip`) |
 | `data/features/alignment/*.csv` | per trailer shot: matched film shot, score, margin, top-5 candidates |
 | `data/features/dialogue_alignment/*.csv` | per trailer speech segment: trailer times, matched film subtitle time, score, margin (no text; transcripts stay in the gitignored cache) |
 | `data/features/av_sync.csv`, `av_sync.json` | per trailer speech features and sound vs picture sync rate; summary and check against the hand labels |
@@ -40,7 +41,7 @@ Its `trailers.csv` has one row per film with only the trailer link in use: `imdb
 | `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
-| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`) and their images (`labels/img/`, `labels/swap_img/`) are not committed |
+| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`, `split_review.html`) and their images (`labels/img/`, `labels/swap_img/`, `labels/split_img/`) are not committed |
 | `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
 
 ## Setup
@@ -132,7 +133,10 @@ after the rebuild. (`python -m trailercut.swap sheet`, the older contact sheets,
 
 **Missed cuts.** `python -m trailercut.resplit` splits trailer shots whose keyframes disagree more
 than 99% of MovieNet film shots do (likely missed cuts) and logs them in `resplit_log.csv`; then
-`python -m trailercut.embed trailer` and rebuild from `align`.
+`python -m trailercut.embed trailer` and rebuild from `align`. Shots still glued after that get a
+second pass with CLIP on every frame (`curate.sh split-propose`, `split-review`, `split-report`,
+`split-apply --max-sim S`): it only proposes cuts until a sample has been checked by eye on
+`labels/split_review.html` (keys `y` real cut, `x` same shot, `u` unsure).
 
 ## Hand-labeling alignments
 

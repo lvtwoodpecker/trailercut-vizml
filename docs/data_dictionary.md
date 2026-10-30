@@ -131,6 +131,15 @@ below; `trailer_shots`; `trailer_below_floor`: share of trailer shots below it, 
 split), `split_frame` (first frame of the second half), `prob` (TransNetV2's cut probability there;
 empty for -1 rows).
 
+**`split_proposals.csv`** (C, `resplit_clip propose`): appended per trailer, one row per proposed cut
+inside a shot still below the film floor. `imdb_id`, `youtube_id` (trailer the proposal was made on;
+rows for an older trailer are ignored), `shot_idx`, `frame_start`, `frame_end` (the shot as it was),
+`cut_frame` (first frame of the new piece), `sim` (cosine between the CLIP embeddings of the frames
+just before and at the cut; lower = more likely a real cut), `depth` (0 for the first cut in a shot,
+up to 2 for cuts inside its pieces). A `shot_idx` -1 row marks a trailer checked with nothing to cut.
+**`split_applied.csv`** (C, `resplit_clip apply`): one row per trailer cut: `imdb_id`, `youtube_id`,
+`cuts` (number applied), `max_sim` (cutoff used).
+
 **`rerank_eval.json`** (C): `clip`, `sscd`, `blend` (CLIP + SSCD), each with `best_f1` (`threshold`,
 `precision`, `recall`, `f1`, `near_precision`, `n_pred`, as in `align_tune.json`) and
 `recall_no_threshold` (share of labeled sources that are the top pick).
@@ -244,6 +253,10 @@ MovieNet link"), `old_url`, `new`, `channel`, `url`, and 8 `pairs` (`t`, `f` ima
 the trailer in s, `pos` story position of the film shot). **`labels/swap_img/{id}/`** (G): `t_XXXX.jpg`
 (trailer keyframe of shot XXXX) and `f_XXXX.jpg` (matched film keyframe). **`labels/swap_review_<name>.json`**
 (Export from the page): `{reviewer, verdicts}`, verdicts keyed by IMDb ID: `g` good, `b` bad, `u` unsure.
+**`labels/split_review.html`** (G, `resplit_clip review`): the split review page, a sample of
+proposed cuts with the trailer clip and 4 frames each (shot start, just before, just after, shot end)
+from **`labels/split_img/`** (G). **`labels/split_review_<name>.json`** (Export from the page):
+`{reviewer, verdicts}`, verdicts keyed `imdb_id:cut_frame`: `y` real cut, `n` same shot (key `x`), `u` unsure.
 
 ## Trailer View data (`viz/data/`, G)
 

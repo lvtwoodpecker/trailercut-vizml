@@ -8,10 +8,12 @@ a flash) also get cut this way, so nothing is applied until a sample has been ch
 
   propose  write data/features/split_proposals.csv (one row per proposed cut, with `sim`: how alike
            the two frames around the cut are); saves per trailer and resumes; changes nothing else
-  review   page to check a sample of proposed cuts (labels/split_review.html); keys y/n/u
+  review   page to check a sample of proposed cuts (labels/split_review.html): --n of them spread
+           evenly over `sim`, shown shuffled; keys y real cut, x same shot, u unsure; Export gives
+           split_review_<name>.json (verdicts `y`, `n`, `u`)
   report   from the exported verdicts (labels/split_review_*.json): share of real cuts at each `sim` cutoff
-  apply    cut at the proposals with sim <= --max-sim (picked from the report), then rerun
-           `embed trailer` and everything after it
+  apply    cut at the proposals with sim <= --max-sim (picked from the report), log the trailers in
+           data/features/split_applied.csv, then rerun `embed trailer` and everything after it
 
 Hand-labeled trailers are skipped (their labels index the current shots).
 

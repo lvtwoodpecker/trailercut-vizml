@@ -138,6 +138,19 @@ shot table are built in a side folder and swapped in, so an interrupted run neve
 that don't match the shot table. The log records every
 trailer checked (`shot_idx` -1 when nothing split) so reruns skip them.
 
+**Second split pass with CLIP, checked by eye before applying** (`resplit_clip.py`). Shots still
+below the film floor after `resplit` get every frame embedded with CLIP. The shot is cut where two
+neighboring frames are least alike, and each piece is checked and cut again the same way, up to 3
+rounds, with pieces at least 6 frames long. This handles shots hiding more than one missed cut, which
+`resplit` can't. It is split into propose, review and apply because CLIP both flags the glued shots
+and picks the cut, so applying it would lower the below-floor share (3.4%) partly by construction;
+that number can't tell us whether the cuts are real. A by-eye check of a sample (spread evenly over
+`sim`, the similarity of the two frames at the cut, shown shuffled so the order doesn't hint at the
+answer) is the independent measure, and the `sim` cutoff for `apply` is picked from it. Real shots
+that change a lot (fast pans, flashes) also get cut, which is why a cutoff is needed at all. What we
+give up: cuts above the cutoff stay unapplied, and hand-labeled trailers are skipped as in `resplit`.
+`TODO(why):` MAX_DEPTH 3 and the 6-frame minimum were not tuned.
+
 ## CLIP
 
 **ViT-B/32 locally, ViT-H/14 on the cluster.** B/32 runs at ~257 images/s on a laptop GPU vs ~15 for

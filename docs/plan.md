@@ -71,7 +71,8 @@ keyframes less consistent than 99% of MovieNet shots (likely missed cuts). Four 
 were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were replaced.
 
 6. [x] Re-split likely missed cuts (keyframe consistency below the film floor; `resplit`; labeled trailers skipped): split each at TransNetV2's most likely cut frame (probability at least 0.1). Core: 1,225 shots split in 242 of 259 checked trailers; shots below the floor 6.7% to 3.4% after the rebuild
-7. [~] Full rerun after the replacements and swaps: transcripts, alignment, model, figures done for the core; EBM and RQ1 page curves still to rerun
+7. [x] Full rerun after the replacements and swaps: transcripts, alignment, model, figures, diagnostics, EBM and RQ1 page curves done for the core
+8. [~] Second split pass with CLIP for shots still below the floor (`resplit_clip`): propose (running on the core), review a sample by eye, pick the `sim` cutoff, apply, rebuild
 
 ## F. Representative trailers (original theatrical, original language; rules only)
 
@@ -80,7 +81,7 @@ were scene clips (Moonstruck, Commando, Ferris Bueller, Phone Booth) and were re
 3. [x] Swap the hard-flagged trailers: bulk `recover --ids` was blocked by YouTube; the three-step `swap` (search, slow download, apply): 77 swapped, 6 kept
 4. [~] Check every swap by eye: contact sheets (`swap sheet`) were hard to read, replaced by the review page (`curate.sh swap-review`, built); review the 132 replaced trailers on it
 5. [ ] Transcribe the new trailers, re-run the audit: dubs can only be confirmed after Whisper
-6. [~] Re-split likely missed cuts (section E6, done), then one full rerun (E7, core done), then rerun the EBM
+6. [x] Re-split likely missed cuts (section E6), one full rerun (E7, core) and the EBM rerun
 
 ## G. Dataset release and expansion
 

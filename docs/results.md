@@ -6,8 +6,8 @@ numbers moved as the data and methods changed.
 ## 2026-10-29: core rebuild after the swaps and the re-split
 
 Same 293 core films, CLIP ViT-B/32. The trailers are the ones after the 77 audit swaps, and likely
-missed cuts were re-split, then `align`, `audio` and `rq1` were rerun. The EBM and the RQ2
-stage (`rq2`) were not rerun, so `model_ebm.json`, `trailers.parquet`, `cluster_report.json` and
+missed cuts were re-split, then `align`, `audio`, `rq1`, `align_diagnostics` and the EBM were rerun.
+The RQ2 stage (`rq2`) was not rerun, so `trailers.parquet`, `cluster_report.json` and
 `case_studies.json` are still from the old trailers.
 
 **Re-split** [`resplit_log.csv`]
@@ -29,7 +29,7 @@ stage (`rq2`) were not rerun, so `model_ebm.json`, `trailers.parquet`, `cluster_
 
 **Alignment diagnostics** [`alignment_diagnostics.json`]
 - median score by hand label: right shot 0.77 (98% above 0.515), same scene other shot 0.73 (96%), wrong shot 0.71 (84%), not in film 0.47 (43%)
-- median per-trailer match rate: English 0.94 (194 trailers), other language 0.92 (14), no speech 0.95 (3); only 211 trailers have a Whisper language in this file
+- median per-trailer match rate: English 0.94 (272 trailers), other language 0.92 (15), no speech 0.87 (6); all 293 trailers have a Whisper language now
 
 **Story sampling** [`summary.json`]: 33% of matched shots from the first quarter, 18% from the last;
 median trailer takes 17% of its matched shots from the final act.
@@ -56,6 +56,9 @@ Precision at trailer length lost when one group is dropped from the full model: 
 0.011, position 0.006, scale 0.005, dialogue 0.005, content 0.003. SHAP mean |value| by group: CLIP
 0.28, editing 0.22, position 0.19, content 0.10, dialogue 0.07, scale 0.05.
 
+**EBM vs LightGBM** [`model_ebm.json`]: lift at trailer length 2.74 vs 2.82 on the same readable
+features and folds; AP 0.074, AP per film 0.093, precision at trailer length 0.114, length-adjusted AP 0.069.
+
 Read: more trailer shots match and the positive rate rose (3.8% to 4.1%), so compare lifts. The full
 model's exact-shot lift is 3.15x (3.22x before); the order of the models and groups is unchanged.
 
@@ -79,7 +82,7 @@ four scene-clip replacements and Mulholland Drive's dub swap: the alignment, mod
 still come from the old trailers for those 5 films, so numbers will shift slightly after the rerun.
 
 **EBM vs LightGBM** [`model_ebm.json`]: glass-box EBM on the readable features, same folds.
-- lift at trailer length 2.74 vs 2.82 for LightGBM on the same features
+- lift at trailer length 2.83 vs 2.88 for LightGBM on the same features
 - AP 0.067, AP per film 0.088, precision at trailer length 0.107, length-adjusted AP 0.063
 
 **Feature shapes** [`model_ebm.json` curves, `figures/ebm_shapes.png`, `figures/model_shapes.png`]
