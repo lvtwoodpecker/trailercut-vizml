@@ -13,7 +13,8 @@
                                                    ones; resumable; stops after repeated bot checks
   python -m trailercut.swap apply --batch          the same checks in rounds: shot detection and CLIP run
                                                    once per round over all films (for hundreds of films)
-  python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed)
+  python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed;
+                                                   curate.sh runs trailercut.swap_review instead)
   python -m trailercut.swap apply                  for each film, try its downloaded candidates in rank
                                                    order with the usual checks (25% of shots match,
                                                    matched shots span 20% of the film); keep the old

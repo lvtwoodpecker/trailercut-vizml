@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Steps that change the inputs, run on purpose (not part of run_all.sh). After any of them, rebuild
-# with: bash scripts/run_all.sh prep align audio rq1 rq2 viz
+# with: bash scripts/run_all.sh prep align audio rq1 viz (plus rq2 and ebm when needed)
 #
 #   bash scripts/curate.sh recover           replace dead trailer links (search + alignment check)
 #   bash scripts/curate.sh audit             flag trailers that aren't the original theatrical trailer
@@ -10,7 +10,7 @@
 #   bash scripts/curate.sh swap-download     download them slowly, one at a time (resumable)
 #   bash scripts/curate.sh swap-apply        check and swap in the downloaded candidates (resumable; --batch for hundreds)
 #   bash scripts/curate.sh swap-review       page to check replaced trailers by eye (labels/swap_review.html)
-#   (add --set expand to the swap-* steps to work on new films instead of flagged core ones)
+#   (add --set expand to swap-prepare/-search/-download/-apply to work on new films instead of flagged core ones)
 #   bash scripts/curate.sh labels            regenerate the hand-labeling page
 #   bash scripts/curate.sh tune              compare alignment and model variants against the labels
 set -euo pipefail

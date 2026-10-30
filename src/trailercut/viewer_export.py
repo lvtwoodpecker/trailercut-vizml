@@ -7,6 +7,8 @@ Trailer speech segments come with their film position when dialogue_align matche
 (text included: viz/data is local and gitignored).
 Each film and trailer shot also gets the average color of its middle keyframe, so the view can draw
 the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe).
+Loudness and cut curves are computed here too (cached in cache/curves/, recomputed when the trailer's
+shot table changes), so the views don't need the RQ2 step (trailer_features).
 
 Outputs (gitignored, rebuilt in seconds)
   viz/data/index.json        one entry per trailer: id, title, year, genre, shots, match rate

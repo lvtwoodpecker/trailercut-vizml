@@ -3,8 +3,8 @@
 Links and annotations only: no videos, frames, audio or transcripts (copyrighted; MovieNet itself is
 research-only). Written to data/release/ (gitignored; upload that folder).
 
-  trailers.csv                one row per film: MovieNet's trailer link vs the link we use, why it
-                              changed, YouTube title/channel/duration, audit flags, match share, span
+  trailers.csv                one row per film: the trailer link in use, YouTube title/channel/duration,
+                              trailer shots, match share, film span (swap history stays in data/ids/)
   trailer_shots.parquet       TransNetV2 shot boundaries per trailer
   alignment.parquet           trailer shot -> film shot (score, matched, top-5), at the cutoff in use
   dialogue_alignment.parquet  trailer speech segment -> film subtitle time (times and scores, no text)
