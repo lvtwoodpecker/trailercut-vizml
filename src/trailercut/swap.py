@@ -36,7 +36,7 @@ import pandas as pd
 import yt_dlp
 
 from .paths import FEATURES, IDS, IDS_DIR, TRAILERS
-from .recover import LOG, LOG_FIELDS, SKIP, backup, candidates, clear, run
+from .recover import LOG, LOG_FIELDS, SKIP, backup, candidates, clear, run, save
 from .trailer_audit import yt_meta
 from .trailers import FIELDS, STATUS
 
@@ -120,8 +120,11 @@ def download(sleep, per_film, cookies, recheck=False):
     opts = dict(format=FORMAT, merge_output_format="mp4", quiet=True, no_warnings=True, noprogress=True, retries=2)
     if cookies:
         opts["cookiesfrombrowser"] = (cookies,)
+    status = {r["imdb_id"]: r["youtube_id"] for r in csv.DictReader(open(STATUS))}
     blocked = 0
     for i, g in cands.groupby("imdb_id"):
+        if status.get(i) in set(g.youtube_id):
+            continue  # one of its candidates is already in use
         got = sum(log.get(y, {}).get("status") == "ok" for y in g.youtube_id)
         for c in g.itertuples():
             if got >= per_film:
@@ -180,21 +183,6 @@ def check(i, df):
     span = float(pos.quantile(0.9) - pos.quantile(0.1)) if len(pos) else 0.0
     ok = span >= 0.2 and (share >= 0.25 or beats_others(i) >= BEATS)
     return share, span, ok
-
-
-def save(status, rows):
-    """Write the status log and append to the recovery log; called after every film so an interrupted
-    run loses at most the film in progress."""
-    with open(STATUS, "w", newline="") as f:
-        w = csv.DictWriter(f, FIELDS, restval="movienet")
-        w.writeheader()
-        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
-    new = not LOG.exists()
-    with open(LOG, "a", newline="") as f:
-        w = csv.DictWriter(f, LOG_FIELDS)
-        if new:
-            w.writeheader()
-        w.writerows(rows)
 
 
 def apply():

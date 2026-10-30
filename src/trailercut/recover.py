@@ -20,6 +20,7 @@ Outputs
 import argparse
 import csv
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -108,11 +109,19 @@ def run(*mod):
 
 
 def save(status, rows):
-    """Status log rewritten, recovery log appended; called after every film."""
-    with open(STATUS, "w", newline="") as f:
+    """Recovery log appended, and the status log updated for the films in `rows` only: the file is read
+    again first, so decisions another job saved meanwhile stay, and written aside then renamed so a
+    reader never sees half a file. Called after every film."""
+    cur = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))} if STATUS.exists() else {}
+    for i in {r["imdb_id"] for r in rows}:
+        if i in status:
+            cur[i] = status[i]
+    tmp = STATUS.with_name(STATUS.name + ".tmp")
+    with open(tmp, "w", newline="") as f:
         w = csv.DictWriter(f, FIELDS, restval="movienet")
         w.writeheader()
-        w.writerows(sorted(status.values(), key=lambda r: r["imdb_id"]))
+        w.writerows(sorted(cur.values(), key=lambda r: r["imdb_id"]))
+    os.replace(tmp, STATUS)
     new = not LOG.exists()
     with open(LOG, "a", newline="") as f:
         w = csv.DictWriter(f, LOG_FIELDS)
