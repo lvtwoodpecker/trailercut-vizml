@@ -36,12 +36,45 @@ def floor():
     return json.loads((FEATURES / "alignment_diagnostics.json").read_text())["cuts"]["film_floor_1pct"]
 
 
+def labeled_now():
+    """Trailers whose hand labels are for the trailer in use (their shot indices must not change)."""
+    now = dict(pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)[["imdb_id", "youtube_id"]].values)
+    ref = LABELS / "label_trailers.csv"
+    return now, ({i for i, y in pd.read_csv(ref, dtype=str).values if now.get(i) == y} if ref.exists() else set())
+
+
+def rewrite(i, sh, cuts, fps, n):
+    """Split trailer i's shots at the given frames (any number per shot), then rewrite its shot table
+    and keyframes and drop its CLIP embedding."""
+    spans = []
+    for r in sh.itertuples():
+        a = r.frame_start
+        for c in sorted(f for f in cuts if r.frame_start < f <= r.frame_end):
+            spans.append((a, c - 1))
+            a = c
+        spans.append((a, r.frame_end))
+    new = pd.DataFrame(spans, columns=["frame_start", "frame_end"])
+    new.insert(0, "shot_idx", np.arange(len(new)))
+    new["t_start"] = new.frame_start / fps
+    new["t_end"] = (new.frame_end + 1) / fps
+    new["shot_len"] = new.t_end - new.t_start
+    new["trailer_pos"] = (new.t_start + new.t_end) / 2 / (n / fps)
+    # build the new keyframes and shot table next to the old ones, then swap them in, so an
+    # interrupted run never leaves keyframes that don't match the shot table
+    tmp = FRAMES_DIR / f"{i}.resplit"
+    shutil.rmtree(tmp, ignore_errors=True)
+    extract_keyframes(TRAILERS / f"{i}.mp4", new, tmp, fps)
+    new.round(4).to_csv(tmp / "shots.csv", index=False)
+    shutil.rmtree(FRAMES_DIR / i)
+    os.replace(tmp, FRAMES_DIR / i)
+    os.replace(FRAMES_DIR / i / "shots.csv", SHOTS_DIR / f"{i}.csv")
+    (CLIP / "trailer" / f"{i}.npy").unlink(missing_ok=True)
+
+
 def main():
     # keyed on the trailer video, not the film: a film whose trailer is swapped later gets checked again,
     # and labels only protect the trailer they were made on
-    now = dict(pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)[["imdb_id", "youtube_id"]].values)
-    ref = LABELS / "label_trailers.csv"
-    labeled = {i for i, y in pd.read_csv(ref, dtype=str).values if now.get(i) == y} if ref.exists() else set()
+    now, labeled = labeled_now()
     done = set()
     if LOG.exists():
         log = pd.read_csv(LOG, dtype=str)
@@ -82,29 +115,7 @@ def main():
                 cuts.append(f)
                 rows.append(dict(imdb_id=i, youtube_id=now.get(i), shot_idx=int(k), split_frame=f, prob=round(float(prob[f]), 3)))
         if cuts:
-            spans = []
-            for r in sh.itertuples():
-                c = [f for f in cuts if r.frame_start < f <= r.frame_end]
-                spans.append((r.frame_start, c[0] - 1) if c else (r.frame_start, r.frame_end))
-                if c:
-                    spans.append((c[0], r.frame_end))
-            n = len(frames)
-            new = pd.DataFrame(spans, columns=["frame_start", "frame_end"])
-            new.insert(0, "shot_idx", np.arange(len(new)))
-            new["t_start"] = new.frame_start / fps
-            new["t_end"] = (new.frame_end + 1) / fps
-            new["shot_len"] = new.t_end - new.t_start
-            new["trailer_pos"] = (new.t_start + new.t_end) / 2 / (n / fps)
-            # build the new keyframes and shot table next to the old ones, then swap them in, so an
-            # interrupted run never leaves keyframes that don't match the shot table
-            tmp = FRAMES_DIR / f"{i}.resplit"
-            shutil.rmtree(tmp, ignore_errors=True)
-            extract_keyframes(path, new, tmp, fps)
-            new.round(4).to_csv(tmp / "shots.csv", index=False)
-            shutil.rmtree(FRAMES_DIR / i)
-            os.replace(tmp, FRAMES_DIR / i)
-            os.replace(FRAMES_DIR / i / "shots.csv", SHOTS_DIR / f"{i}.csv")
-            (CLIP / "trailer" / f"{i}.npy").unlink(missing_ok=True)
+            rewrite(i, sh, cuts, fps, len(frames))
         # log even when nothing split, so a rerun skips this trailer
         out = pd.DataFrame(rows or [dict(imdb_id=i, youtube_id=now.get(i), shot_idx=-1, split_frame=-1, prob=np.nan)])
         if LOG.exists():  # line up with the log's columns (older logs have no youtube_id)
