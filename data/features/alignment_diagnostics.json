@@ -24,12 +24,12 @@
   },
   "language": {
     "English": {
-      "trailers": 857,
+      "trailers": 904,
       "median_match": 0.9375
     },
     "other language": {
-      "trailers": 134,
-      "median_match": 0.9376992376992377
+      "trailers": 149,
+      "median_match": 0.9384615384615385
     },
     "no speech": {
       "trailers": 29,
@@ -37,8 +37,8 @@
     }
   },
   "cuts": {
-    "film_floor_1pct": 0.4121277928352356,
-    "trailer_shots": 90750,
-    "trailer_below_floor": 0.01249586776859504
+    "film_floor_1pct": 0.4117773175239563,
+    "trailer_shots": 92830,
+    "trailer_below_floor": 0.012711407950016159
   }
 }

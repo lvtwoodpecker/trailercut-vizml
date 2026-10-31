@@ -145,8 +145,8 @@ def main():
             cur = dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")), x=r4(edges[:-1]), y=r4(score))
             if "lo" in c:  # band (spread over the outer bags) and shots per bin (support)
                 cur.update(lo=r4(np.exp(c["lo"])), hi=r4(np.exp(c["hi"])))
-            if len(c.get("n", [])) == len(score):
-                cur["n"] = [int(v) for v in np.asarray(c["n"])[keep]]
+            # shots per bin, counted on the same shots as everything else on the page (support for the curve)
+            cur["n"] = [int(v) for v in np.histogram(df[name].dropna(), bins=edges)[0][keep]]
             out["ebm"].append(cur)
         out["ebm_lift"] = e["metrics"]["lift"]
     OUT.parent.mkdir(parents=True, exist_ok=True)

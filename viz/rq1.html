@@ -243,7 +243,7 @@ const label = n => ({ random: "random picks", position_only: "story position onl
 function ebm(curves, lift) {
   const box = d3.select("#ebm").html("");
   if (!curves) { d3.select("#ebm-card").style("display", "none"); return; }
-  d3.select("#ebm-sub").text(`Odds of making the trailer vs the average shot, from an interpretable model (${times(lift)} lift, about the same as the black-box model). Band: spread across the model's bags; grey strip: shots per bin. Associations, not causes.`);
+  d3.select("#ebm-sub").text(`Odds of making the trailer vs the average shot, from an interpretable model (${times(lift)} lift, about the same as the black-box model). Band: spread across the model's bags; grey strip: where the shots are. Associations, not causes.`);
   // one y range for every panel, from the data, so nothing is clipped and panels compare
   const all = curves.flatMap(c => c.y), Y = [Math.min(0.8, d3.min(all) / 1.08), Math.max(1.25, d3.max(all) * 1.08)];
   const ticks = [0.25, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.6, 2, 2.5, 3, 4].filter(t => t >= Y[0] && t <= Y[1]);
@@ -257,11 +257,12 @@ function ebm(curves, lift) {
     const pts = c.x.map((v, i) => [v, c.y[i]]);
     // a curve is only as good as its support: shots per bin as a strip along the bottom, and the
     // spread over the model's bags as a band
-    if (c.n) {
-      const nMax = d3.max(c.n) || 1, xs = [...c.x, x.domain()[1]];
-      svg.append("g").selectAll("rect").data(c.n).join("rect").attr("fill", "var(--axis)")
-        .attr("x", (_, i) => x(xs[i])).attr("width", (_, i) => Math.max(0.5, x(xs[i + 1]) - x(xs[i]) - 1))
-        .attr("y", n => H - m.b - 12 * n / nMax).attr("height", n => 12 * n / nMax);
+    if (c.n) {  // data density (shots per unit of the feature): the EBM's bins hold equal counts, so narrow bins = dense data
+      const xs = [...c.x, x.domain()[1]], dens = c.n.map((n, i) => n / Math.max(1e-9, xs[i + 1] - xs[i]));
+      const dMax = d3.quantile([...dens].sort(d3.ascending), 0.95) || 1;
+      svg.append("g").selectAll("rect").data(dens).join("rect").attr("fill", "var(--axis)")
+        .attr("x", (_, i) => x(xs[i])).attr("width", (_, i) => Math.max(0.5, x(xs[i + 1]) - x(xs[i])))
+        .attr("y", v => H - m.b - 12 * Math.min(1, v / dMax)).attr("height", v => 12 * Math.min(1, v / dMax));
     }
     if (c.lo) svg.append("path").attr("fill", "var(--band)")
       .attr("d", d3.area().x(d => x(d[0])).y0(d => y(d[1])).y1(d => y(d[2])).curve(d3.curveStepAfter)(c.x.map((v, i) => [v, c.lo[i], c.hi[i]])));
