@@ -5,18 +5,15 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] Review the 132 replaced core trailers on the swap review page (`curate.sh swap-review`), export the verdicts to `labels/`
-- [ ] `split-apply --max-sim 1.0` on the core (all 919 proposed cuts; running overnight), then `embed trailer` and the rebuild (`align audio rq1 viz`, `ebm`)
-- [ ] Swap retry on 12 core films (`swap apply --batch --retry`, running overnight): the 6 `subtitled` ones, Twelve Monkeys (Spanish dub), Bourne Identity, Hitchhiker's Guide, Ocean's Twelve, Buried, Freddy vs. Jason; check the results on the swap review page, then transcribe the swapped trailers. The Wizard of Oz is left out on purpose: a swap would drop its ~70 hand labels
-- [ ] New films: `swap apply --set expand --batch` (running); rerun it once at the end to pick up the two late downloads (Rio Bravo, The Theory of Everything)
-- [ ] New films: Whisper (`audio`), `resplit`, `embed trailer`, then rebuild (`align audio rq1 viz`, `ebm`)
+- [ ] RQ1 rerun on all 1,058 trailers (running: `rq1 viz`, then `ebm`); record the numbers in `results.md`
+- [ ] Review the replaced trailers on the swap review page (`curate.sh swap-review`: all core swaps plus 30 sampled new films, weakest first), export the verdicts to `labels/`
+- [ ] Rerun the audit on all 1,058 trailers (`curate.sh audit`; Whisper language is in now; also writes the `subtitled` flag and fixes the old span and `clip` flag of the four replaced scene clips), then check the flags on the audit review page (`curate.sh audit-review`) and export the verdicts; `swap search` follows them
+- [ ] New films still without a trailer (42): download and apply the 175 wider-search candidates found for 21 of the 26 that ran out (`swap download --set expand`, `swap apply --set expand --batch`); the other 5 have nothing left. The 16 with untried candidates only need the download rerun (their downloads failed in a DNS blip)
+- [ ] Split review refinement: review the 100-check split page and refine the split pass from it
 - [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
-- [x] Status-file race (fixed: `recover.save` re-reads the file and updates only the films it decided; `swap download` skips films already swapped): `swap apply` loads `trailer_status.csv` at start and rewrites the whole file after every film, so two runs at once undo each other's swaps (an overnight expand batch reverted 12 core swaps; a rerun picked the same trailers again). Fix: each save re-reads the file and updates only its own films
-- [ ] Retry the 117 new films whose candidates were all rejected (running: re-judge, up to 2 more downloads each, then the per-trailer pipeline and `rq1 viz`); ~48 films are out of candidates and need a wider search: that batch ran with the old 25% rule, before the beats-other-films check
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
-- [ ] Rerun `trailer_audit` after the rerun (also writes the new `subtitled` flag): the committed file still shows the old span and `clip` flag for the four replaced scene clips, and the swapped trailers can only be checked for dubs after Whisper
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
@@ -26,8 +23,7 @@ current block lives in `plan.md`.
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] Dataset release on Hugging Face: `release` builds `data/release/` locally (annotations under CC BY-NC 4.0); publish (`plan.md` section G)
-- [ ] Expand to all 1,100 MovieNet keyframe films (`plan.md` section H): keyframes for the new films, then the batch apply and rebuild above
+- [ ] Publish the dataset on Hugging Face: `release` builds and checks `data/release/` (1,058 films, ~6 MB); needs a go and a repo name, then `release --push USER/NAME` (private unless `--public`)
 
 - [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
@@ -58,6 +54,15 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-30: Trailer View redesign: the video clock drives every highlight (clicks seek, no click lock), video and a "now" panel side by side above the timeline, keyboard controls, `?t=` deep links
+- 2026-10-30: `release`: dataset card numbers from the pipeline outputs, Hugging Face viewer configs, `check()` (no text columns or file paths, tables agree), `--push USER/NAME`; built locally (1,058 films, 90,750 trailer shots)
+- 2026-10-30: swap review page shows all core swaps plus a random sample of new films (`--new`, default 30), weakest matches first
+- 2026-10-30: `swap search` appends to the candidate list; with `--set expand` and no `--ids` it searches the new films that ran out of candidates
+- 2026-10-30: audit review page (`audit_review.py`, `curate.sh audit-review`); `swap search` uses its verdicts
+- 2026-10-30: status-file race fixed: `recover.save` re-reads `trailer_status.csv` and updates only its own films (atomic write); `swap download` skips films already swapped
+- 2026-10-30: rebuild for the new films: Whisper, `resplit`, CLIP splits applied on every trailer with proposals (`--max-sim 1.0`), `embed trailer`, align, audio, diagnostics on 968 trailers; then 90 more from the retry (1,058)
+- 2026-10-30: new films: 765 of 807 have a trailer (batch apply, then a retry of the 117 rejected: re-judged under the beats-other-films rule and up to 2 more downloads each)
+- 2026-10-30: swap retry on 12 core films (12 core swaps in the overnight batch)
 - 2026-10-30: split review: 48 verdicts (`labels/split_review_ced.json`), 77% real cuts, flat at about 80% for every `sim` cutoff, so all proposals get applied (`--max-sim 1.0`)
 - 2026-10-30: audit `subtitled` hard flag; swap check accepts weak matches that beat 5 random other films (`beats_others` 0.45); `swap apply --batch --retry`; swap search asks for 20 results; `recover` title filter ignores the film's own title and rejects subtitled uploads
 - 2026-10-30: `run_all.sh align` reuses the last label cutoff

@@ -3,6 +3,36 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-10-30: new films, splits applied, rebuild on 968 trailers
+
+The overnight batch for the films new to the dataset, the CLIP splits applied, then `align`, `audio`
+and `align_diagnostics` on 968 trailers (293 core + 675 new). A retry then added 90 new films (1,058);
+the RQ1 stage and the numbers below for 1,058 are not in yet.
+
+**Trailers** [`trailer_status.csv`, `trailer_recovery.csv`]
+- first pass (old 25% rule): 673 of 790 new films accepted
+- retry of the 117 rejected: 56 accepted when re-judged under the beats-other-films rule, 34 more from up to 2 extra downloads each, 2 from late downloads
+- 1,058 of 1,100 films have a trailer: 293 core + 765 new; 42 new films have none (26 out of candidates, 16 with untried candidates after failed downloads)
+- a wider search found 175 new candidates for 21 of the 26 (`expand_candidates.csv`, not downloaded yet)
+
+**Glued shots** [`resplit_log.csv`, `split_applied.csv`, `alignment_diagnostics.json`]
+- TransNetV2 re-split: 3,897 shots split in 823 trailers so far (core included)
+- CLIP split pass applied in full (`--max-sim 1.0`): 2,857 cuts in 701 trailers
+- shots below the keyframe consistency floor: 1.1% of 84,288 trailer shots (floor 0.41), vs 3.4% of 24,188 core shots before; CLIP both flags and cuts, so part of the drop is by construction
+
+**Alignment vs hand labels** [`alignment_eval.json`]: unchanged, cutoff 0.515, precision 0.87, recall 0.92.
+
+**Language** [`alignment_diagnostics.json`]: median per-trailer match rate English 0.94 (827 trailers),
+other language 0.94 (116), no speech 0.89 (25).
+
+**Dialogue** [`dialogue_alignment/`]: 8,261 of 25,922 speech segments (32%) found in the film's
+subtitles; 641 trailers with at least one.
+
+**Sound vs picture** [`av_sync.json`]
+- 8,034 found lines play over a matched picture, 50% of them (pooled) within 30 s of the picture's film moment
+- median sync rate 0.50 over the 565 trailers with 3+ such lines
+- median trailer: speech over 51% of its length, 83 words per minute
+
 ## 2026-10-30: CLIP split review
 
 **Split proposals** [`split_proposals.csv`, `labels/split_review_ced.json`]

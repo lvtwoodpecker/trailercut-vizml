@@ -7,11 +7,13 @@
 
   python -m trailercut.swap search [--ids ...]     ranked candidates, appended to data/ids/swap_candidates.csv
                                                    (default ids: the audit's `swap` rows, overridden by
-                                                   labels/audit_review_*.json verdicts)
+                                                   labels/audit_review_*.json verdicts; with --set expand,
+                                                   the new films that ran out of candidates)
   python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
                                                    one video at a time into data/trailers/candidates/,
                                                    walking down each film's candidates past unavailable
-                                                   ones; resumable; stops after repeated bot checks
+                                                   ones; skips films already using one of their
+                                                   candidates; resumable; stops after repeated bot checks
   python -m trailercut.swap apply --batch [--retry] the same checks in rounds: shot detection and CLIP run
                                                    once per round over all films (for hundreds of films)
   python -m trailercut.swap sheet                  contact sheets of the swaps (cache/sheets/, not committed;

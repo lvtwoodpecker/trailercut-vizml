@@ -46,6 +46,8 @@ bash hpc/setup.sh                                # cluster, see hpc/README.md
 - YouTube steps (`recover`, `audit`, `swap-*`) are rate-limited: run swaps as `swap-search`,
   `swap-download` (resumable; rerun later if it stops on bot checks), `swap-apply` (resumable;
   `--batch` for hundreds of films). Add `--set expand` for films new to the dataset.
+- Review pages (`swap-review`, `audit-review`, `split-review`) export `<page>_<name>.json`; save it in
+  `labels/` and commit it. Audit review verdicts change which films `swap-search` replaces.
 - Swapping a hand-labeled film's trailer drops its labels (`labels/label_trailers.csv`); when labeling
   a new film, add its `imdb_id` and current `youtube_id` there.
 

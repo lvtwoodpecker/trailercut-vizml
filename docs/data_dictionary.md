@@ -13,15 +13,17 @@ steps that haven't produced a committed output so far.
 trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0). The
 pipeline's film list (`paths.IDS`; `TRAILERCUT_FILMS` overrides).
 
-**`trailer_status.csv`** (C): one row per film with a trailer in use (the 293 core films so far; new
-films are added by `swap apply --set expand`).
+**`trailer_status.csv`** (C): one row per film with a trailer in use (1,058: the 293 core films and
+765 new ones, added by `swap apply --set expand`).
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
 `title` (YouTube title), `error` (first line of the yt-dlp error, up to 200 chars), `source` (`movienet`
-or `search`). `duration` and `title` are empty when the video was already on disk. All 293 rows are `ok`
-(161 `movienet`, 132 `search`: 49 dead links; Scarface, four scene clips and Mulholland Drive's dub
-replaced with `recover --ids`; 77 flagged trailers swapped with `swap apply`).
+or `search`). `duration` and `title` are empty when the video was already on disk. All rows are `ok`.
+Core: 149 `movienet`, 144 `search` (49 dead links; Scarface, four scene clips and Mulholland Drive's dub
+replaced with `recover --ids`; 77 flagged trailers swapped with `swap apply`, then 12 more in the
+retry). New films: 331 `movienet`, 434 `search`. Saves re-read the file and replace only the films
+they decided, so two jobs can run at once.
 
-**`trailer_recovery.csv`** (C): every candidate tried by `recover` (dead links, `--ids`) or `swap apply`, appended across runs and after every film (401 rows for 138 films, 132 accepted). `swap apply` reads it to skip films already decided.
+**`trailer_recovery.csv`** (C): every candidate tried by `recover` (dead links, `--ids`) or `swap apply`, appended across runs and after every film (1,411 rows for 940 films). `swap apply` reads it to skip films already decided.
 `imdb_id`, `rank` (search order among filtered results, 0-based), `youtube_id`, `title`, `channel`,
 `duration` (s, from search results), `match_share` (fraction of non-blank shots matched to the film,
 empty if download or alignment failed; `recover` sets it to 0 when the matched shots span under
@@ -47,10 +49,13 @@ flags: `rerelease` (anniversary, restoration, 4K, ... or a year in the title 3+ 
 rerun for the four replaced scene clips, so their rows still show the old `span` and `clip` flag.
 
 **`swap_candidates.csv`** (C, `swap search`): ranked replacement candidates for the audit's `swap` films
-whose link is still MovieNet's. `imdb_id`, `rank` (0 = first choice: official/theatrical titles,
+whose link is still MovieNet's (overridden by `labels/audit_review_*.json`). A new search appends after a
+film's existing candidates, ranks continuing, and skips ones already listed. `imdb_id`, `rank` (0 = first choice: official/theatrical titles,
 then 90 to 180 s, then search order), `youtube_id`, `title`, `channel`, `duration` (s, from search),
 `unavailable` (YouTube's reason when a download showed the video is gone, private or region-locked;
-empty otherwise; `download --recheck` retries these). 551 candidates for 83 films.
+empty otherwise; `download --recheck` retries these), `source` (`search`; only on rows added since search
+appends). The committed list has 122 candidates for 12 films: the core retry search, run when a search
+still replaced the list (the first 551 candidates for 83 films were overwritten).
 
 **`swap_downloads.csv`** (C, `swap download`): one row per video attempted. `imdb_id`, `youtube_id`,
 `status` (`ok` / `error`), `error` (first line of the yt-dlp error). Bot-check errors are retried on
@@ -255,6 +260,15 @@ MovieNet link"), `old_url`, `new`, `channel`, `url`, and 8 `pairs` (`t`, `f` ima
 the trailer in s, `pos` story position of the film shot). **`labels/swap_img/{id}/`** (G): `t_XXXX.jpg`
 (trailer keyframe of shot XXXX) and `f_XXXX.jpg` (matched film keyframe). **`labels/swap_review_<name>.json`**
 (Export from the page): `{reviewer, verdicts}`, verdicts keyed by IMDb ID: `g` good, `b` bad, `u` unsure.
+The page holds every replaced core trailer and a random sample of new films (`--new`, default 30; their
+`film` ends in "(new film)"), each with `share` (share of non-blank shots above the impostor cutoff),
+sorted by `share`, lowest first.
+**`labels/audit_review.html`** (G, `audit_review`): the audit review page, every row of
+`trailer_audit.csv` with a flag embedded: `id`, `film`, `title`, `channel`, `flags`, `rule` (the audit's
+`swap`), `lang`, `want` (expected language), `span`, `url`; plays the trailer from `../data/trailers/`.
+**`labels/audit_review_<name>.json`** (C, Export from the page): `{reviewer, verdicts}`,
+verdicts keyed by IMDb ID: `swap` or `keep`. `audit_review.decisions()` applies them over the audit's
+`swap` column, later files winning.
 **`labels/split_review.html`** (G, `resplit_clip review`): the split review page, a sample of
 proposed cuts with the trailer clip and 4 frames each (shot start, just before, just after, shot end)
 from **`labels/split_img/`** (G). **`labels/split_review_<name>.json`** (Export from the page):
@@ -300,7 +314,8 @@ films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` fr
 ## Caches (G, under `$TRAILERCUT_DATA/cache/`)
 
 `clip/<tag>/{film,trailer}/{id}.npy` (float16, [shots, 3, d], L2-normalized),
-`trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `trailer_audio/{id}.wav` (mono 22,050 Hz),
+`trailer_frames/{id}/shot_XXXX_img_{0,1,2}.jpg` (320x180), `transnet/{id}_{video bytes}.npy` (`trailer_prep`:
+TransNetV2's per-frame cut probability, float32; read by `resplit`), `trailer_audio/{id}.wav` (mono 22,050 Hz),
 `trailer_asr/{id}.json` (`trailer_asr`: `language`, `language_p`, `segments` with `start`, `end`,
 `text`, `words` [{`start`, `end`, `word`, `p`}]), `models/` (SSCD weights for `rerank`),
 `replaced/{id}/` (a trailer's old files while `recover --ids` or `swap apply` replaces it, plus `_paths.json`; written once, removed after a restore),
@@ -326,4 +341,4 @@ Links and annotations only, to upload as a dataset. Not written to the repo.
 | `trailer_shots.parquet`, `alignment.parquet`, `dialogue_alignment.parquet` | the per-trailer CSVs stacked, with an `imdb_id` column |
 | `av_sync.csv` | copy of `data/features/av_sync.csv` |
 | `hand_labels.csv` | `imdb_id`, `trailer_shot`, `label`, `labeler` (`labeler_1`, ... by file order, names removed) |
-| `README.md` | dataset card: files, how it was made, limitations, terms (annotations under CC BY-NC 4.0) |
+| `README.md` | dataset card: files, how it was made, limitations, terms (annotations under CC BY-NC 4.0); numbers (films, trailer shots, labels, precision/recall, cutoff, glued-shot share) filled from the tables, `alignment_eval.json` and `alignment_diagnostics.json`; YAML header with one Hugging Face viewer `configs` entry per table |

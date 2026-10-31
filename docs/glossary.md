@@ -52,7 +52,10 @@
 | scene clip | a YouTube upload of one scene posing as a trailer; it aligns well but only to a sliver of the film |
 | span | 10th to 90th percentile of a trailer's matched story positions; under 0.2 means a scene clip |
 | swap | replacing a working trailer with a better candidate (`swap.py`, `recover --ids`) |
-| swap review | checking replaced trailers by eye on `labels/swap_review.html`, one film at a time: good, bad or unsure (`swap_review.py`, `curate.sh swap-review`) |
+| swap review | checking replaced trailers by eye on `labels/swap_review.html`, one film at a time, weakest matches first: good, bad or unsure (`swap_review.py`, `curate.sh swap-review`) |
+| audit review | checking the audit's flagged trailers by eye on `labels/audit_review.html`: swap or keep; the verdicts override the audit for `swap search` (`audit_review.py`, `curate.sh audit-review`) |
+| out of candidates | a film with no trailer in use whose candidates were all tried or are unavailable (`swap.out_of_candidates`) |
+| now panel | in the Trailer View, the panel next to the video: current trailer frame, the film frame it matched, and the "why this shot" bars |
 | keyframe consistency | the lowest cosine between a shot's 3 keyframes; low = the keyframes show different things |
 | missed cut | a trailer shot whose keyframe consistency is below what 99% of MovieNet film shots reach; likely two shots TransNetV2 merged |
 | re-split | splitting a likely missed cut once, at TransNetV2's most likely cut frame inside the shot (`resplit.py`) |

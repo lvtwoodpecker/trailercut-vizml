@@ -104,6 +104,14 @@ this the logs were only written at the end, so an interrupted run lost every dec
 The backup of a film's original trailer in `cache/replaced/{id}/` is written once: a resumed run that
 finds one doesn't overwrite it with a half-tried candidate. It is removed after a restore, so the next swap of that film starts clean.
 
+**Status saves update only their own films** (`recover.save`). Each save used to rewrite all of
+`trailer_status.csv` from the copy loaded at the start, so two jobs at once undid each other: an
+overnight expand batch reverted 12 core swaps (a rerun picked the same trailers again). Now each save
+reads the file again, replaces only the films it decided, writes to a side file and renames it, so a
+reader never sees half a file. `swap download` also skips a film whose trailer in use is already one
+of its candidates. What we give up: nothing locks the file, so two saves in the same instant could
+still race; the window is one small write.
+
 **New films: metadata first** (`swap prepare --set expand`). For films new to the dataset, MovieNet's
 own link stays the first choice when its YouTube metadata looks like a clean trailer (alive, title
 passes the filter, 60 to 240 s); only dead, flagged or missing links get a search. Nothing is
@@ -119,7 +127,23 @@ one film at a time: the old title struck through, the new title, link and channe
 playable from the local file, and 8 of its best-matching shots (spread out, no two within 2 shots of
 each other) next to the film keyframes they matched. Verdicts are `g`/`b`/`u` per film, kept in the
 browser and exported as JSON per reviewer, like the label tool. Images are film frames, so the page
-and `labels/swap_img/` are gitignored.
+and `labels/swap_img/` are gitignored. Every core swap is on the page, but of the ~765 new films only
+a random sample (`--new`, default 30): enough to estimate how often a new film's trailer is wrong
+without watching hundreds. Films are sorted by the share of shots above the impostor cutoff, lowest
+first, so the likeliest wrong trailers come up while the reviewer is still fresh.
+
+**Audit flags are checked on a page too** (`audit_review.py`, `curate.sh audit-review`). The audit's
+rules can flag a trailer that is fine (a clean official trailer with "4K" in the title) or miss one.
+The page shows one flagged trailer at a time, playable, with its flags, what Whisper heard vs the
+expected language and the film span, and a swap / keep verdict. `swap search` takes the audit's
+`swap` rows overridden by any exported verdicts (`audit_review.decisions()`), so a person has the last
+word without editing the audit file.
+
+**Search appends to the candidate list** (`swap search`). A second search for a film adds new
+candidates after its existing ones (ranks continue) instead of overwriting the list, so earlier
+candidates and the record of what was tried and what is unavailable stay. With `--set expand` and no
+`--ids` it searches the new films whose candidates are all tried or unavailable
+(`swap.out_of_candidates()`).
 
 **Low-match trailers were checked by eye** (`data/ids/trailer_review.csv`). The 15 lowest-match
 trailers and the 3 weakest search replacements are all the right film. Low match comes from foreign
@@ -159,6 +183,11 @@ shot table are built in a side folder and swapped in, so an interrupted run neve
 that don't match the shot table. The log records every
 trailer checked (`shot_idx` -1 when nothing split) so reruns skip them.
 
+TransNetV2's per-frame cut probabilities are cached per video (`cache/transnet/`, keyed on the
+video's size so a swapped trailer gets its own entry), so `resplit` never runs the network again.
+On a core-sized batch that took the re-split from about 4 h to 21 min. `trailer_prep --probs-only`
+fills the cache with 4 workers, about 4x faster than `resplit`'s single process.
+
 **Second split pass with CLIP, checked by eye before applying** (`resplit_clip.py`). Shots still
 below the film floor after `resplit` get every frame embedded with CLIP. The shot is cut where two
 neighboring frames are least alike, and each piece is checked and cut again the same way, up to 3
@@ -174,7 +203,9 @@ The check found no cutoff to pick: of 48 sampled cuts with a verdict, 77% were r
 stays flat around 80% at every `sim` cutoff (83% at 0.5, 79% at 0.7, 80% at 0.9;
 `labels/split_review_ced.json`). `sim` doesn't separate real cuts from fake ones, so every proposal is
 applied (`--max-sim 1.0`). What we give up: about 1 in 5 applied cuts splits a real shot in two,
-and both halves likely match the same film shot.
+and both halves likely match the same film shot. Applied on every trailer with proposals, glued
+shots went from 3.4% (core) to 1.1% of 84,288 trailer shots, with the label cutoff and precision/recall
+unchanged.
 `TODO(why):` MAX_DEPTH 3 and the 6-frame minimum were not tuned.
 
 ## CLIP
@@ -398,13 +429,23 @@ film?" at a glance, so both are shown.
 **No trailerness chart.** We first drew the model's score as a bar per film shot, then replaced it
 with a "Would the model have picked the same shots?" panel (top-k thumbnails, rank of each used shot,
 hits vs random). Neither told a clear story (~700 thin bars per film were hard to read), so both were dropped. The model score now shows in the
-film-shot tooltip and in the "Why this shot?" SHAP panel, filled by hovering or clicking a film shot on
-the barcode. We give up a view of the score profile along the film.
+film-shot tooltip and in the "why this shot" bars of the "now" panel. We give up a view of the score profile along the film.
 
-**Hover previews, click locks.** Hover shows a tooltip and highlights the shot and its match, but it
-disappears as soon as the mouse moves. Judging a match means looking at both frames for a while, so a
-click locks the shot: the highlight stays and the trailer frame and matched film frame show side by
-side, large enough to compare. Arrow keys step through matched shots and Esc unlocks, so you can walk a whole trailer from the keyboard.
+**The video clock is the single source of truth.** Every highlight (current shot, its link, the film
+outline, the scatter dot, the "now" panel) follows the video's time, and every click seeks the video:
+the trailer strip and sound track scrub, a film barcode shot the trailer uses jumps to the trailer
+shot that uses it (again for its next use), and the order and sync dots seek to their moment. Hover
+previews a shot only while paused; leaving the mark goes back to the shot under the playhead. A film
+shot the trailer doesn't use just fills the panel (Esc clears it). Before, hover previewed and a click
+locked a shot without moving the video (and a strip click seeked twice), so the video and the
+highlight could disagree; we gave up the click lock for one rule: what you see is where the video is.
+The playhead runs on `requestVideoFrameCallback` where the browser has it, so it tracks the frame on
+screen.
+
+**Video and "now" panel side by side, above the timeline.** The panel shows the current trailer frame
+next to the film frame it matched and the "why this shot" bars, so judging a match needs no extra
+click. Keyboard: space or `k` play/pause, left/right step one shot, shift+left/right 5 s, Home to the
+start, `c` captions, `m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked.
 
 **Thumbnails are local only.** Frame images load from the viewer's own `data/movienet/frames/` and
 `data/cache/trailer_frames/`. Frames are copyrighted, so they are never committed, exported into
@@ -412,9 +453,8 @@ side, large enough to compare. Arrow keys step through matched shots and Esc unl
 The paths are fixed to `data/` and loose JPEGs, so they ignore `TRAILERCUT_DATA` and `--pack` zips
 (unlike the label tool, which copies its images).
 
-**Playable trailer with a custom player.** The trailer plays above the timeline and the current shot
-drives the same highlight as hover. No native control bar: a play/pause button, the time, a CC
-toggle, click the video to play/pause, and drag the trailer strip or sound track to scrub. Trailers
+**Playable trailer with a custom player.** No native control bar: a play/pause button, the time, CC
+and sound toggles, click the video to play/pause, and drag the trailer strip or sound track to scrub. Trailers
 are AV1, VP9 or H.264 in MP4, so Safari can't play all of them; Chrome and Firefox can.
 The native controls look different in every browser and duplicate the timeline; with our own controls the trailer strip itself is the seek bar.
 
@@ -498,6 +538,15 @@ metadata cache and the candidate logs). The annotations are released under CC BY
 link, whether and why it was replaced, audit flags and review notes stay in `data/ids/` and are not
 released. An earlier version had the before and after link per film with reasons; the release only
 needs the trailer each film's annotations were made on, and how we got there is our own provenance.
+
+**Card numbers come from the outputs; every build is checked.** The dataset card's numbers (films,
+trailer shots, labels, precision/recall and cutoff, glued-shot share) are filled from
+`alignment_eval.json`, `alignment_diagnostics.json` and the built tables, so a rebuild can't leave a
+stale number in the card. `check()` fails the build if any table has a text column (transcript,
+subtitle, words) or a file path, or if the tables disagree (same films in the trailer, shot and
+alignment tables, one shot row per alignment row, unique films, YouTube URLs). The card's `configs`
+list one config per table so the Hugging Face viewer shows each one. `--push USER/NAME` uploads the
+folder to a dataset repo, private unless `--public`, so a push can be looked at before anyone else sees it.
 
 ## Dropped from the proposal
 

@@ -12,7 +12,7 @@ Builds on Argaw et al., *Towards Automated Movie Trailer Generation* (CVPR 2024)
 
 Nothing copyrighted is committed. The repo holds YouTube IDs, download scripts and extracted features;
 raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in gitignored `data/` folders and are rebuilt by the scripts.
-The dataset release (`python -m trailercut.release`, links and annotations only) is written to gitignored `data/release/`.
+The dataset release (`python -m trailercut.release`, links and annotations only) is written to gitignored `data/release/` and checked (no text columns, no file paths, tables agree); `--push USER/NAME` uploads it to a Hugging Face dataset repo, private unless `--public`.
 Its `trailers.csv` has one row per film with only the trailer link in use: `imdb_id`, `film`, `year`, `url`, YouTube `title`, `channel`, `duration_s`, and how well it matches the film (`trailer_shots`, `match_share`, `film_span`), plus the `checked` date. Which links replaced MovieNet's and why stays in `data/ids/`.
 
 | committed | what |
@@ -41,7 +41,7 @@ Its `trailers.csv` has one row per film with only the trailer link in use: `imdb
 | `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
-| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`, `split_review.html`) and their images (`labels/img/`, `labels/swap_img/`, `labels/split_img/`) are not committed |
+| `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`, `audit_review.html`, `split_review.html`) and their images (`labels/img/`, `labels/swap_img/`, `labels/split_img/`) are not committed |
 | `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
 
 ## Setup
@@ -99,9 +99,10 @@ not in `run_all.sh`; they live in `scripts/curate.sh` (below).
 ```bash
 bash scripts/curate.sh recover           # replace dead trailer links (search + alignment check)
 bash scripts/curate.sh audit             # flag trailers that aren't the original theatrical trailer
+bash scripts/curate.sh audit-review      # page to confirm or overrule the audit's flags (labels/audit_review.html, not committed)
 bash scripts/curate.sh swap ID [ID ...]  # replace these films' trailers now
 bash scripts/curate.sh swap-prepare --set expand   # first-choice trailers for new films (metadata only)
-bash scripts/curate.sh swap-search       # ranked candidates for the audit's `swap` films
+bash scripts/curate.sh swap-search       # ranked candidates for the audit's `swap` films (appended to the list)
 bash scripts/curate.sh swap-download     # download them slowly, one at a time (resumable)
 bash scripts/curate.sh swap-apply        # check and swap in the downloaded candidates (resumable; --batch for hundreds)
 bash scripts/curate.sh swap-review       # page to check replaced trailers by eye (labels/swap_review.html, not committed)
@@ -112,18 +113,19 @@ Add `--set expand` to the `swap-*` steps to work on films new to the dataset. Af
 rebuild with `bash scripts/run_all.sh prep align audio rq1 viz` (plus `rq2` and `ebm` when needed).
 
 **Replacing trailers.** `audit` writes `data/ids/trailer_audit.csv`; films with a hard flag get
-`swap=True`. For a few films, `swap ID ...` searches, downloads and checks in one go. For many films,
-use the three steps so YouTube's rate limits only slow the middle one: `swap-search` writes ranked
-candidates, `swap-download` fetches one video at a time with a pause between requests and stops after
+`swap=True`; `audit-review` shows each flagged trailer with a swap / keep verdict (keys `s` swap / `x` keep, `j`/`k` next/prev like the other review pages, `n` next unreviewed), and its exported `labels/audit_review_<name>.json` overrides the audit for `swap-search`. For a few films, `swap ID ...` searches, downloads and checks in one go. For many films,
+use the three steps so YouTube's rate limits only slow the middle one: `swap-search` appends ranked
+candidates (earlier ones stay; with `--set expand` and no IDs it searches the new films that ran out), `swap-download` fetches one video at a time with a pause between requests and stops after
 3 bot checks in a row (rerun later, it resumes), and `swap-apply` aligns each downloaded candidate
-and keeps it only if at least 25% of its shots match and the matches span at least 20% of the film.
+and keeps it only if the matches span at least 20% of the film and either 25% of its shots clear the
+impostor cutoff or most of its shots match this film better than other films.
 A film whose candidates all fail keeps its old trailer. Accepted swaps are logged in
 `trailer_recovery.csv` and `trailer_status.csv` (`source=search`). `swap-apply` saves after every film
 and skips films already decided, so an interrupted run resumes; `--batch` runs shot detection and
 CLIP once per round over all films instead of once per film.
 
-**Checking swaps by eye.** `swap-review` writes `labels/swap_review.html`: one replaced trailer
-(`source=search`) at a time, with the old YouTube title struck through, the new title, link and
+**Checking swaps by eye.** `swap-review` writes `labels/swap_review.html`: every replaced core trailer
+plus a random sample of new films (`--new`, default 30), weakest matches first, one at a time, with the old YouTube title struck through, the new title, link and
 channel, the new trailer playing from the local file, and 8 of its best-matching shots next to the
 film keyframes they matched. Keys: `g` good, `b` bad, `u` unsure, `j`/`k` next/prev, `n` next
 unreviewed, space play/pause. Export saves `swap_review_<name>.json`; put it in `labels/`. Open the page
@@ -149,14 +151,14 @@ Type your name in the Labeler box (empty exports `gold_anon.json`, which counts 
 
 ## Trailer View
 
-D3 page for one trailer at a time: the trailer plays on top with transcript captions (CC toggle),
-then the trailer's cuts and a sound track (loudness, violet where a line comes from the film's
-dialogue), the film as a movie barcode (average color per shot) below, and a curve from each matched
-trailer shot to where it sits in the film. Drag the trailer strip or sound track to scrub, click the
-video or press space to play/pause. Hover to preview, click to lock a shot and see trailer and film
-frames side by side, arrow keys step through matched shots. Below that, an order scatter (trailer
-position vs film position), a sound vs picture panel, and, when the model has been run, the grouped
-SHAP for the hovered or clicked film shot (click a group to see its features).
+D3 page for one trailer at a time. The trailer plays next to a "now" panel (the current trailer frame
+vs the film frame it matched, and why the model rates that film shot), above the trailer's cuts, a
+sound track (loudness, violet where a line comes from the film's dialogue), the film as a movie
+barcode (average color per shot) and a curve from each matched trailer shot to where it sits in the
+film. The video drives everything: drag the strip or sound track to scrub, click a film shot to jump to
+the trailer shot that uses it (click again for its next use), click a dot in the order scatter or the
+sound vs picture panel to seek there. Hover previews while paused. Keys: space or `k` play/pause,
+left/right shot, shift+left/right 5 s, Home, `c` captions, `m` sound, Esc. `?t=41` opens at 0:41.
 
 ```bash
 python -m trailercut.viewer_export   # writes viz/data/

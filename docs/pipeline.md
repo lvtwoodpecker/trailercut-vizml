@@ -8,7 +8,7 @@ How data flows from MovieNet and YouTube to the model, clusters and figures. Two
   run only when named. Download, shot, embedding and transcription steps skip finished films and
   trailers; the rest recompute, which takes minutes.
 - `scripts/curate.sh <step>` holds the steps that change the inputs (trailer links, labels) and are
-  run on purpose: `recover`, `audit`, `swap`, `swap-prepare`, `swap-search`, `swap-download`,
+  run on purpose: `recover`, `audit`, `audit-review`, `swap`, `swap-prepare`, `swap-search`, `swap-download`,
   `swap-apply`, `swap-review`, `split-propose`, `split-review`, `split-report`, `split-apply`,
   `labels`, `tune`. After any of them, rebuild with
   `bash scripts/run_all.sh prep align audio rq1 viz` (plus `rq2` and `ebm` when needed).
@@ -78,12 +78,13 @@ MovieNet (HF mirror)                    YouTube
 |---|---|---|---|
 | `recover` | `trailercut.recover` | status log, MovieNet meta, film embeddings, `impostor_threshold` from `alignment_threshold.json` | replacement trailers for dead links (runs `trailer_prep` and `embed trailer` itself), `trailer_recovery.csv`, updated status |
 | `audit` | `trailercut.trailer_audit` | status log, YouTube metadata (no download; cached in `cache/yt_meta/`), `cache/trailer_asr/`, alignment, MovieNet meta | `data/ids/trailer_audit.csv` |
+| `audit-review` | `trailercut.audit_review` | `trailer_audit.csv` (rows with any flag), trailer videos | `labels/audit_review.html` (not committed); one flagged trailer at a time, swap / keep. The page's Export gives `audit_review_<name>.json` for `labels/`, which `swap-search` reads |
 | `swap ID ...` | `trailercut.recover --ids ID ...` | as `recover` | replaces these films' working trailers; old files kept in `cache/replaced/{id}/` and restored if no candidate passes |
 | `swap-prepare` | `trailercut.swap prepare --set expand` | `films_1100.csv`, status log, YouTube metadata and search (no download) | `expand_candidates.csv`, appended per film (resumes) |
-| `swap-search` | `trailercut.swap search` | `trailer_audit.csv` (`swap` rows whose link is still MovieNet's), status log, YouTube search | `swap_candidates.csv` |
-| `swap-download` | `trailercut.swap download [--sleep 30] [--per-film 1] [--recheck]` | `swap_candidates.csv`, `swap_downloads.csv` | `data/trailers/candidates/{id}__{youtube_id}.mp4`, `swap_downloads.csv`, `unavailable` column of `swap_candidates.csv` |
+| `swap-search` | `trailercut.swap search [--ids ...]` | `trailer_audit.csv` (`swap` rows whose link is still MovieNet's) overridden by `labels/audit_review_*.json`; with `--set expand`, the new films out of candidates (status log, candidate list, recovery log); YouTube search | new candidates appended to `swap_candidates.csv` (or `expand_candidates.csv`), ranks continuing after a film's existing ones |
+| `swap-download` | `trailercut.swap download [--sleep 30] [--per-film 1] [--recheck]` | `swap_candidates.csv`, `swap_downloads.csv`, status log (films whose trailer in use is one of their candidates are skipped) | `data/trailers/candidates/{id}__{youtube_id}.mp4`, `swap_downloads.csv`, `unavailable` column of `swap_candidates.csv` |
 | `swap-apply` | `trailercut.swap apply [--batch [--retry]]` | candidates, downloaded videos, `impostor_threshold`, `trailer_recovery.csv` (to skip decided films) | swapped trailers (runs `trailer_prep` and `embed trailer`), status and recovery logs saved after every film |
-| `swap-review` | `trailercut.swap_review` | status log (`source=search`, `status=ok`), film list (MovieNet's old link), YouTube metadata cache and candidate logs, alignment, trailer and film keyframes | `labels/swap_review.html`, `labels/swap_img/{id}/` (not committed); run after the rebuild so the alignment is the new trailer's. The page's Export gives `swap_review_<name>.json` for `labels/` |
+| `swap-review` | `trailercut.swap_review [--new 30]` | status log (`source=search`, `status=ok`; every core film plus a random sample of `--new` new films), `impostor_threshold` (sort, weakest first), film list (MovieNet's old link), YouTube metadata cache and candidate logs, alignment, trailer and film keyframes | `labels/swap_review.html`, `labels/swap_img/{id}/` (not committed); run after the rebuild so the alignment is the new trailer's. The page's Export gives `swap_review_<name>.json` for `labels/` |
 | `split-propose` | `trailercut.resplit_clip propose [--core]` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, embeddings, videos and keyframes, status log, `labels/label_trailers.csv` | `split_proposals.csv`, appended per trailer (resumes); changes no shots |
 | `split-review` | `trailercut.resplit_clip review [--n 50]` | `split_proposals.csv`, trailer videos | `labels/split_review.html`, `labels/split_img/` (not committed); a sample of `--n` proposed cuts spread evenly over `sim`, shown shuffled. The page's Export gives `split_review_<name>.json` for `labels/` |
 | `split-report` | `trailercut.resplit_clip report` | `split_proposals.csv`, `labels/split_review_*.json` | printed only: share of real cuts and of all proposals kept at each `sim` cutoff |
@@ -112,8 +113,8 @@ restored.
 
 | step | command | reads | writes |
 |---|---|---|---|
-| re-split | `trailercut.resplit` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, trailer embeddings and videos, `labels/label_trailers.csv` | rewritten `trailer_shots/{id}.csv` and `cache/trailer_frames/{id}/`, trailer embedding removed, `resplit_log.csv` (appended per trailer; logged trailers are skipped on rerun) |
-| release | `trailercut.release` | status, film list, YouTube metadata cache and candidate logs, alignment, dialogue alignment, `av_sync.csv`, `labels/gold_*.json` | `data/release/` (gitignored): see `data_dictionary.md` |
+| re-split | `trailercut.resplit` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, trailer embeddings and videos, TransNetV2 cut probabilities from `cache/transnet/` (computed and cached when missing; fill it first with `trailer_prep --probs-only`, 4 workers, which is about 4x faster), `labels/label_trailers.csv` | rewritten `trailer_shots/{id}.csv` and `cache/trailer_frames/{id}/`, trailer embedding removed, `resplit_log.csv` (appended per trailer; logged trailers are skipped on rerun) |
+| release | `trailercut.release [--push USER/NAME [--public]]` | status, film list, YouTube metadata cache and candidate logs, alignment, dialogue alignment, `av_sync.csv`, `labels/gold_*.json`, `alignment_eval.json`, `alignment_diagnostics.json` (card numbers) | `data/release/` (gitignored): see `data_dictionary.md`; then `check()`; `--push` uploads it to a Hugging Face dataset repo (private unless `--public`; uses the cached Hugging Face login) |
 
 After `resplit`, run `python -m trailercut.embed trailer` (it re-embeds the trailers whose embedding was
 removed), then `bash scripts/run_all.sh align audio rq1 viz`. Hand-labeled trailers are skipped.

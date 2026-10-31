@@ -10,9 +10,14 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   theatrical trailer (tracked in `source`). The 3 weakest replacements and the 15 lowest-match trailers
   were checked by eye and are all the right film (`trailer_review.csv`). Six working links were also
   replaced: Scarface's TV spot, four scene clips and Mulholland Drive's German dub. Then 77 trailers
-  the audit flagged were swapped for official theatrical ones (6 flagged films kept theirs), so 132 of
-  293 core trailers are search picks now (`trailer_status.csv`). The swaps were checked by alignment;
-  the eye check of the 132 replaced trailers on the review page (`curate.sh swap-review`) is pending.
+  the audit flagged were swapped for official theatrical ones (6 flagged films kept theirs), and 12
+  more in a retry, so 144 of 293 core trailers are search picks now (`trailer_status.csv`). Of the 765
+  new films with a trailer, 434 are search picks. Swaps were checked by alignment only; the eye check
+  on the review page (`curate.sh swap-review`: all core swaps, 30 sampled new films) is pending, and
+  the new films' trailers haven't been through the audit yet.
+- **42 of the 1,100 films have no trailer.** All new films (none of the core): 26 ran out of
+  candidates and 16 have untried ones. They lean toward films whose trailer is hard to find on
+  YouTube, so the 1,058 are not a random sample of MovieNet.
 - **YouTube rate limits and region locks.** Bulk downloads trip YouTube's bot check, so swaps run one
   video at a time with pauses and can take several sessions. Some candidates are unavailable in one
   region and fine in another, so which trailer a film ends up with can depend on where the download
@@ -20,11 +25,11 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 - **One trailer per film.** Films often have a teaser, several trailers and TV spots. We see one,
   usually whichever MovieNet's authors found, so "what the trailer used" means "what this trailer used".
 - **Missed cuts in trailer shots.** TransNetV2 misses some cuts (fast flashes, dissolves). After
-  `resplit`, 3.4% of trailer shots still have keyframes less alike than 99% of MovieNet film shots
-  (6.7% before; `alignment_diagnostics.json`), so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
+  `resplit` and the CLIP pass, 1.1% of 84,288 trailer shots still have keyframes less alike than 99%
+  of MovieNet film shots (6.7% on the core before any split, 3.4% after `resplit`; `alignment_diagnostics.json`), so they likely span two shots; such a shot gets one match for two pieces of footage. `resplit`
   splits each such shot at most once, so a shot hiding two missed cuts stays partly merged, and
-  hand-labeled trailers are not re-split. A second pass with CLIP (`resplit_clip`) proposes more cuts
-  and is being applied in full; the below-floor share then drops partly by construction (CLIP both
+  hand-labeled trailers are not re-split. The second pass with CLIP (`resplit_clip`) was applied in
+  full; the below-floor share drops partly by construction (CLIP both
   flags and cuts). By eye, 77% of 48 sampled cuts are real at every `sim` cutoff, so about 1 in 5
   applied cuts splits a real shot.
 - **MovieNet keyframes are 3 per shot.** Trailer footage from the middle of a long shot may not
