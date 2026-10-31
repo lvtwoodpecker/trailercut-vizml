@@ -5,7 +5,7 @@
                                                    its metadata looks like a clean trailer, otherwise
                                                    search; nothing is downloaded
 
-  python -m trailercut.swap search [--ids ...]     ranked candidates -> data/ids/swap_candidates.csv
+  python -m trailercut.swap search [--ids ...]     ranked candidates, appended to data/ids/swap_candidates.csv
                                                    (default ids: the audit's `swap` rows, overridden by
                                                    labels/audit_review_*.json verdicts)
   python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
@@ -98,14 +98,31 @@ def prepare(sleep):
 
 
 def search(ids):
-    status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
+    """Wider search (20 results) for these films. New candidates are appended after a film's existing
+    ones, so earlier candidates, and what was tried, stay in the list."""
+    status = {r["imdb_id"]: r["youtube_id"] for r in csv.DictReader(open(STATUS))}
+    old = pd.read_csv(CANDS, dtype=str) if CANDS.exists() else pd.DataFrame(columns=["imdb_id", "rank", "youtube_id"])
     rows = []
     for i in ids:
-        for rank, c in enumerate(c for c in candidates(i, n=20) if c["youtube_id"] != status[i]["youtube_id"]):
-            rows.append(dict(imdb_id=i, rank=rank, **c))
+        have = set(old[old.imdb_id == i].youtube_id) | {status.get(i)}
+        start = int(pd.to_numeric(old[old.imdb_id == i]["rank"]).max()) + 1 if (old.imdb_id == i).any() else 0
+        new = [c for c in candidates(i, n=20) if c["youtube_id"] not in have]
+        rows += [dict(imdb_id=i, rank=start + k, **c, source="search") for k, c in enumerate(new)]
         time.sleep(2)
-    mark_unavailable(pd.DataFrame(rows))
-    print(f"{len(rows)} candidates for {len({r['imdb_id'] for r in rows})} of {len(ids)} films -> {CANDS}")
+    out = pd.concat([old, pd.DataFrame(rows)], ignore_index=True) if rows else old
+    mark_unavailable(out.reindex(columns=list(dict.fromkeys([*old.columns, *pd.DataFrame(rows).columns]))))
+    print(f"{len(rows)} new candidates for {len({r['imdb_id'] for r in rows})} of {len(ids)} films -> {CANDS}")
+
+
+def out_of_candidates():
+    """Films with no trailer in use whose candidates were all tried or are unavailable."""
+    status = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
+    films = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).imdb_id
+    cands = pd.read_csv(CANDS, dtype=str) if CANDS.exists() else pd.DataFrame(columns=["imdb_id", "youtube_id"])
+    tried = set(pd.read_csv(LOG, dtype=str).youtube_id) if LOG.exists() else set()
+    gone = set(cands[cands.get("unavailable", pd.Series(index=cands.index, dtype=str)).notna()].youtube_id)
+    left = cands[~cands.youtube_id.isin(tried | gone)]
+    return [i for i in films if status.get(i, {}).get("status") != "ok" and i not in set(left.imdb_id)]
 
 
 def download(sleep, per_film, cookies, recheck=False):
@@ -340,7 +357,10 @@ def main():
     elif a.step == "search":
         from .audit_review import decisions  # the audit's swap flags, overridden by verdicts from its review page
         status = pd.read_csv(STATUS).set_index("imdb_id")
-        ids = a.ids or [i for i in decisions() if status.loc[i, "source"] != "search"]
+        if a.set == "expand":  # new films that ran out of candidates
+            ids = a.ids or out_of_candidates()
+        else:
+            ids = a.ids or [i for i in decisions() if status.loc[i, "source"] != "search"]
         search(ids)
     elif a.step == "download":
         download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)
