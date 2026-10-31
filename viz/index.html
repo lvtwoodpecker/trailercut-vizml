@@ -77,17 +77,15 @@ svg { display: block; overflow: visible; }
 .axis path, .axis line { stroke: var(--axis); }
 .lbl { fill: var(--muted); font-size: 11px; }
 .link { stroke: var(--matched); stroke-opacity: 0.35; stroke-width: 1.2; fill: none; }
-.link.hi { stroke-opacity: 1; stroke-width: 2.5; }
-.link.dim { stroke-opacity: 0.22; }
+.link.hi { stroke-opacity: 1; stroke-width: 3; }
 .slink { stroke: var(--speech); stroke-width: 2.5; stroke-dasharray: 5 3; fill: none; }
-.dim { opacity: 0.35; }
 .scrub { cursor: ew-resize; }
 .hit { cursor: pointer; }
-.outline { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.outline { fill: none; stroke: var(--ink); stroke-width: 2.5; pointer-events: none; }
 #playhead { stroke: var(--ink); stroke-width: 2; pointer-events: none; }
 .dot { fill: var(--matched); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
 .sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
-.dot.cur, .sdot.cur { stroke: var(--ink); stroke-width: 2.5; }
+.dot.cur, .sdot.cur { stroke: var(--ink); stroke-width: 2.5; r: 7; }
 .diag { stroke: var(--axis); stroke-dasharray: 4 4; }
 .note { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
 .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -301,13 +299,14 @@ function render() { const h = current(); highlight(h); drawNow(h); }
 function highlight(h) {
   const t = h && h.trailer !== undefined ? h.trailer : null, f = h && h.film >= 0 ? h.film : null;
   const onLink = i => t !== null ? i === t : D.shots[i][3] === f;
-  const links = d3.select("#main .links").selectAll("path"), cells = d3.select("#main .tcells").selectAll("rect");
+  const links = d3.select("#main .links").selectAll("path");
   const none = !h || (f === null && t !== null);  // an unmatched trailer shot has no link to single out
-  d3.selectAll("#order .dot").classed("cur", ([, i]) => t !== null && i === t).classed("dim", ([, i]) => !none && !onLink(i));
-  if (none) { links.classed("hi", false).classed("dim", false); cells.classed("dim", false); }
+  d3.selectAll("#order .dot").classed("cur", ([, i]) => t !== null && i === t);
+  d3.selectAll("#order .dot.cur").raise();
+  if (none) links.classed("hi", false);
   else {
-    links.classed("hi", ([, i]) => onLink(i)).classed("dim", ([, i]) => !onLink(i));
-    cells.classed("dim", (s, i) => t !== null ? i !== t : s[3] !== f);
+    links.classed("hi", ([, i]) => onLink(i));
+    links.filter(".hi").raise();  // draw the highlighted link on top of the others
   }
   d3.selectAll("#sync .sdot").classed("cur", p => p.i === t);
   const rows = d3.select("#tbl tbody").selectAll("tr").classed("cur", (_, i) => i === t);
