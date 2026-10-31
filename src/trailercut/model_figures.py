@@ -34,6 +34,8 @@ def pr_curves(preds):
         p, r, _ = precision_recall_curve(preds.in_trailer, preds[key])
         main = key in ("readable", "full", "clip_only")
         ax.plot(r, p, color=color, lw=2 if main else 1.2, ls="-" if main else "--", label=label)
+    ax.axhline(base, color="#898781", lw=0.8)  # chance: a random ranking's precision is the positive rate
+    ax.text(0.99, base, "chance", ha="right", va="bottom", fontsize=7, color="#52514e", transform=ax.get_yaxis_transform())
     ax.set_xlim(0, 1)
     # the curves sit near the positive rate; zoom there (precision spikes at recall ~0 are a handful of shots)
     ax.set_ylim(0, 0.3)

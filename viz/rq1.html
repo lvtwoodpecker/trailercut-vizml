@@ -224,7 +224,7 @@ const label = n => ({ random: "random picks", position_only: "story position onl
 function ebm(curves, lift) {
   const box = d3.select("#ebm").html("");
   if (!curves) { d3.select("#ebm-card").style("display", "none"); return; }
-  d3.select("#ebm-sub").text(`Odds of making the trailer, from an interpretable model (${times(lift)} lift, about the same as the black-box model).`);
+  d3.select("#ebm-sub").text(`Odds of making the trailer vs the average shot, from an interpretable model (${times(lift)} lift, about the same as the black-box model). Band: spread across the model's bags; grey strip: shots per bin. Associations, not causes.`);
   // one y range for every panel, from the data, so nothing is clipped and panels compare
   const all = curves.flatMap(c => c.y), Y = [Math.min(0.8, d3.min(all) / 1.08), Math.max(1.25, d3.max(all) * 1.08)];
   const ticks = [0.25, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.6, 2, 2.5, 3, 4].filter(t => t >= Y[0] && t <= Y[1]);
@@ -236,6 +236,16 @@ function ebm(curves, lift) {
     const x = d3.scaleLinear(d3.extent(c.x), [m.l, w - m.r]), y = d3.scaleLog(Y, [H - m.b, m.t]).clamp(true);
     ticks.forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(t)).attr("y2", y(t)));
     const pts = c.x.map((v, i) => [v, c.y[i]]);
+    // a curve is only as good as its support: shots per bin as a strip along the bottom, and the
+    // spread over the model's bags as a band
+    if (c.n) {
+      const nMax = d3.max(c.n) || 1, xs = [...c.x, x.domain()[1]];
+      svg.append("g").selectAll("rect").data(c.n).join("rect").attr("fill", "var(--axis)")
+        .attr("x", (_, i) => x(xs[i])).attr("width", (_, i) => Math.max(0.5, x(xs[i + 1]) - x(xs[i]) - 1))
+        .attr("y", n => H - m.b - 12 * n / nMax).attr("height", n => 12 * n / nMax);
+    }
+    if (c.lo) svg.append("path").attr("fill", "var(--band)")
+      .attr("d", d3.area().x(d => x(d[0])).y0(d => y(d[1])).y1(d => y(d[2])).curve(d3.curveStepAfter)(c.x.map((v, i) => [v, c.lo[i], c.hi[i]])));
     svg.append("path").attr("fill", "none").attr("stroke", "var(--pos)").attr("stroke-width", 2)
       .attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1])).curve(d3.curveStepAfter)(pts));
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(4).tickSizeOuter(0));
@@ -247,12 +257,14 @@ function ebm(curves, lift) {
         const px = d3.pointer(ev)[0], v = x.invert(px), k = Math.max(0, d3.bisectRight(c.x, v) - 1);
         hair.style("display", null).attr("x1", px).attr("x2", px);
         dot.style("display", null).attr("cx", px).attr("cy", y(c.y[k]));
-        showTip(ev, `<b>${times(c.y[k])}</b> ${esc(c.name)} ${d3.format(".3~g")(c.x[k])}`);
+        showTip(ev, `<b>${times(c.y[k])}</b> ${esc(c.name)} ${d3.format(".3~g")(c.x[k])}` +
+          (c.lo ? `<br>band ${fmtL(c.lo[k])} to ${fmtL(c.hi[k])}` : "") + (c.n ? `<br>${d3.format(",")(c.n[k])} shots` : ""));
       })
       .on("mouseleave", () => { hideTip(); hair.style("display", "none"); dot.style("display", "none"); });
   });
-  table("ebm", [["feature", r => r.name], ["value from", r => d3.format(".3~g")(r.x)], ["odds vs average", r => times(r.y)]],
-    curves.flatMap(c => c.x.map((v, i) => ({ name: c.name, x: v, y: c.y[i] }))));
+  table("ebm", [["feature", r => r.name], ["value from", r => d3.format(".3~g")(r.x)], ["odds vs average", r => times(r.y)],
+    ["band", r => r.lo != null ? `${fmtL(r.lo)} to ${fmtL(r.hi)}` : "–"], ["shots", r => r.n != null ? d3.format(",")(r.n) : "–"]],
+    curves.flatMap(c => c.x.map((v, i) => ({ name: c.name, x: v, y: c.y[i], lo: c.lo && c.lo[i], hi: c.hi && c.hi[i], n: c.n && c.n[i] }))));
 }
 
 d3.json("data/rq1.json").then(D => {

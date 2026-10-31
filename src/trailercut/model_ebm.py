@@ -54,8 +54,13 @@ def main():
     curves = {}
     for k, name in enumerate(m.term_names_):
         d = m.explain_global().data(k)
+        dens = d.get("density") or {}
         curves[name] = dict(x=[float(v) if not isinstance(v, str) else v for v in d["names"]],
-                            score=[float(v) for v in d["scores"]], importance=float(imp[name]))
+                            score=[float(v) for v in d["scores"]], importance=float(imp[name]),
+                            # spread over the outer bags, and shots per bin: a curve is only as good as its support
+                            lo=[float(v) for v in d.get("lower_bounds", d["scores"])],
+                            hi=[float(v) for v in d.get("upper_bounds", d["scores"])],
+                            n=[int(v) for v in dens.get("scores", [])])
     lgb = json.loads((FEATURES / "model_eval.json").read_text())["k0"]["readable"]["lift"]
     (FEATURES / "model_ebm.json").write_text(json.dumps(dict(metrics=res, lightgbm_readable_lift=lgb, curves=curves), indent=2))
     print(f"EBM lift {res['lift']:.2f} (LightGBM, same features: {lgb:.2f}); ap_film {res['ap_film']:.3f}")
@@ -73,6 +78,8 @@ def plot(curves, df):
         x, s = np.array(c["x"], dtype=float), np.exp(c["score"])
         lo, hi = df[name].quantile([0.01, 0.99])
         keep = (x[:-1] >= lo) & (x[:-1] <= hi)
+        if "lo" in c:  # band from the outer bags
+            ax.fill_between(x[:-1][keep], np.exp(c["lo"])[keep], np.exp(c["hi"])[keep], step="post", color="#2a78d6", alpha=0.15, lw=0)
         ax.step(x[:-1][keep], s[keep], where="post", color="#2a78d6", lw=1.8)
         ax.set_yscale("log")
         ax.axhline(1, color="#898781", lw=0.8, ls="--")

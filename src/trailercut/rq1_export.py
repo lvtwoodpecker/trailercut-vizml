@@ -90,9 +90,13 @@ def main():
             edges, score = np.array(c["x"], dtype=float), np.exp(c["score"])
             lo, hi = df[name].quantile([0.01, 0.99])
             keep = (edges[:-1] >= lo) & (edges[:-1] <= hi)
-            out["ebm"].append(dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")),
-                                   x=[round(float(v), 4) for v in edges[:-1][keep]],
-                                   y=[round(float(v), 4) for v in score[keep]]))
+            r4 = lambda a: [round(float(v), 4) for v in np.asarray(a)[keep]]
+            cur = dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")), x=r4(edges[:-1]), y=r4(score))
+            if "lo" in c:  # band (spread over the outer bags) and shots per bin (support)
+                cur.update(lo=r4(np.exp(c["lo"])), hi=r4(np.exp(c["hi"])))
+            if len(c.get("n", [])) == len(score):
+                cur["n"] = [int(v) for v in np.asarray(c["n"])[keep]]
+            out["ebm"].append(cur)
         out["ebm_lift"] = e["metrics"]["lift"]
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, allow_nan=False))

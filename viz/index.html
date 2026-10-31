@@ -166,6 +166,7 @@ let cur = -1, curLine = -1;      // shot and spoken line under the playhead
 let preview = null;              // hover while paused: {trailer?, film?}
 let focusFilm = null;            // a clicked film shot that isn't in the trailer
 let expanded = null;             // feature group opened in the "why" bars
+let allGroups = false;           // the "why" bars show the top 3 groups unless opened
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -341,7 +342,7 @@ function drawNow(h) {
       (users.length ? `<figure>${img(tImg(users[0]))}<figcaption>trailer · shot ${users[0] + 1}</figcaption></figure>` : "");
   }
   box.html(`<div class="head">${head}</div><div class="frames">${frames}</div>` +
-    `<div class="why-h"><span>Why this film shot?</span><span>blue: toward the trailer · red: away</span></div><svg id="shap"></svg>`);
+    `<div class="why-h"><span>What moved the model's score, vs the average shot</span><span>blue: toward the trailer · red: away</span></div><svg id="shap"></svg>`);
   drawShap(j);
 }
 
@@ -349,8 +350,11 @@ function drawShap(i) {
   const f = D.film, svg = d3.select("#shap");
   if (i === null || !f.shap || f.trailerness[i] == null) { d3.select("#now .why-h").remove(); svg.remove(); return; }
   const w = document.getElementById("now").clientWidth - 30;
+  // a few reasons read better than all of them: top 3 groups, the rest behind "more"
   let rows = f.shap_groups.map((g, k) => ({ key: g, label: GROUP_LABEL[g], v: f.shap[i][k], group: true }));
   rows.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const hidden = rows.length - 3;
+  if (!allGroups && hidden > 0) rows = rows.slice(0, 3);
   const detail = f.detail[i];
   if (expanded && detail) {
     const at = rows.findIndex(r => r.key === expanded);
@@ -370,8 +374,14 @@ function drawShap(i) {
     .text(r => r.group ? `${r.key === expanded ? "▾" : r.key === "clip" || !detail ? " " : "▸"} ${r.label}` : r.label);
   g.append("path").attr("d", r => bar(x(0), x(r.v), 4, 12))
     .attr("fill", r => r.v >= 0 ? "var(--pos)" : "var(--neg)").attr("opacity", r => r.group ? 1 : 0.7);
+  // values are log-odds contributions; shown as what they do to the odds (×1.5 = 50% better odds)
   g.append("text").attr("class", "val").attr("y", 14).attr("x", r => r.v >= 0 ? x(r.v) + 4 : x(r.v) - 4)
-    .attr("text-anchor", r => r.v >= 0 ? "start" : "end").text(r => d3.format("+.2f")(r.v));
+    .attr("text-anchor", r => r.v >= 0 ? "start" : "end").text(r => `×${d3.format(".2f")(Math.exp(r.v))}`);
+  if (hidden > 0) {
+    svg.attr("height", H + 18).attr("viewBox", `0 0 ${w} ${H + 18}`);
+    svg.append("text").attr("class", "lbl").attr("y", H + 12).style("cursor", "pointer")
+      .text(allGroups ? "▴ fewer" : `▾ ${hidden} more`).on("click", () => { allGroups = !allGroups; drawShap(i); });
+  }
 }
 // a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
 function bar(x0, x1, y, h) {

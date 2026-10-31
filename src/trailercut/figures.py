@@ -63,7 +63,7 @@ def alignment_plot(al, ids):
         d = al[al.imdb_id == imdb_id]
         m = d[d.matched]
         fs = mn.shots(imdb_id)
-        ax.scatter(m.trailer_pos, m.film_story_pos, c=m.score, cmap=SEQ, vmin=0.7, vmax=0.95, s=14)
+        sc = ax.scatter(m.trailer_pos, m.film_story_pos, c=m.score, cmap=SEQ, vmin=0.7, vmax=0.95, s=14)
         u = d[~d.matched]
         ax.scatter(u.trailer_pos, np.full(len(u), -0.06), marker="|", c=NEG, s=30, label="no match")
         for y in (0.25, 0.75):
@@ -73,8 +73,8 @@ def alignment_plot(al, ids):
         ax.set_xlim(0, 1)
     np.atleast_1d(axes)[0].set_ylabel("position in film (story)")
     np.atleast_1d(axes)[0].set_ylim(-0.1, 1.02)
-    fig.tight_layout()
-    fig.savefig(FIGURES / "alignment_examples.png")
+    fig.colorbar(sc, ax=axes, shrink=0.8, pad=0.01, label="match score")  # the color needs a scale
+    fig.savefig(FIGURES / "alignment_examples.png", bbox_inches="tight")
     plt.close(fig)
 
 
