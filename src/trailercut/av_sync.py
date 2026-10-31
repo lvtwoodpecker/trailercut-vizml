@@ -27,6 +27,7 @@ import pandas as pd
 from . import movienet_io as mn
 from .label_eval import load_gold
 from .paths import CACHE, FEATURES, FIGURES
+from .style import SPEECH
 
 SYNC = 30
 
@@ -84,7 +85,7 @@ def main():
     (FEATURES / "av_sync.json").write_text(json.dumps(summary, indent=2))
 
     fig, ax = plt.subplots(figsize=(5.2, 2.8))
-    ax.hist(paired.sync_rate, bins=np.linspace(0, 1, 11), color="#6250d6", rwidth=0.9)
+    ax.hist(paired.sync_rate, bins=np.linspace(0, 1, 11), color=SPEECH, rwidth=0.9)
     ax.set_xlabel("share of film lines that play over their own scene")
     ax.set_ylabel("trailers")
     ax.set_title(f"Sound vs picture ({len(paired)} trailers with 3+ lines)", loc="left")

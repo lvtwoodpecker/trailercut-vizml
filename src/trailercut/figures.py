@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import movienet_io as mn
+from .style import AXIS, GRID, MATCHED, NEG, SEQ, USED
 from .paths import CACHE, CLIP_TAG, FEATURES, FIGURES, IDS, IDS_DIR
 
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False, "font.size": 9})
@@ -29,7 +30,7 @@ def funnel():
         ("trailer aligned to film", len(list((FEATURES / "alignment").glob("*.csv")))),
     ]
     fig, ax = plt.subplots(figsize=(6, 2.4))
-    ax.barh([s for s, _ in steps][::-1], [n for _, n in steps][::-1], color="#4c78a8")
+    ax.barh([s for s, _ in steps][::-1], [n for _, n in steps][::-1], color=MATCHED)
     for y, (_, n) in enumerate(steps[::-1]):
         ax.text(n + 10, y, str(n), va="center")
     ax.set_xlabel("films")
@@ -45,8 +46,8 @@ def scores(al):
     thr = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]
     fig, ax = plt.subplots(figsize=(5, 3))
     bins = np.linspace(0.3, 1, 71)
-    ax.hist(null, bins, density=True, alpha=0.6, label="impostor (other film)", color="#bbb")
-    ax.hist(al[~al.blank].score, bins, density=True, alpha=0.6, label="own film", color="#4c78a8")
+    ax.hist(null, bins, density=True, alpha=0.6, label="impostor (other film)", color=AXIS)
+    ax.hist(al[~al.blank].score, bins, density=True, alpha=0.6, label="own film", color=MATCHED)
     ax.axvline(thr, c="k", ls="--", lw=1, label=f"threshold {thr:.3f}")
     ax.set_xlabel("best CLIP shot similarity")
     ax.set_title("Trailer shot to film: own film vs impostor")
@@ -62,11 +63,11 @@ def alignment_plot(al, ids):
         d = al[al.imdb_id == imdb_id]
         m = d[d.matched]
         fs = mn.shots(imdb_id)
-        ax.scatter(m.trailer_pos, m.film_story_pos, c=m.score, cmap="viridis", vmin=0.7, vmax=0.95, s=14)
+        ax.scatter(m.trailer_pos, m.film_story_pos, c=m.score, cmap=SEQ, vmin=0.7, vmax=0.95, s=14)
         u = d[~d.matched]
-        ax.scatter(u.trailer_pos, np.full(len(u), -0.06), marker="|", c="#c44", s=30, label="no match")
+        ax.scatter(u.trailer_pos, np.full(len(u), -0.06), marker="|", c=NEG, s=30, label="no match")
         for y in (0.25, 0.75):
-            ax.axhline(y, c="#ddd", lw=0.8, zorder=0)
+            ax.axhline(y, c=GRID, lw=0.8, zorder=0)
         ax.set_title(mn.meta(imdb_id)["title"][:28], fontsize=8)
         ax.set_xlabel("position in trailer")
         ax.set_xlim(0, 1)
@@ -81,13 +82,13 @@ def story_depth(al):
     m = al[al.matched]
     per = m.groupby("imdb_id").film_story_pos.agg(final_act=lambda s: (s > 0.75).mean(), depth=lambda s: s.quantile(0.9))
     fig, axes = plt.subplots(1, 2, figsize=(8, 3))
-    axes[0].hist(m.film_story_pos, bins=20, range=(0, 1), color="#4c78a8")
+    axes[0].hist(m.film_story_pos, bins=20, range=(0, 1), color=MATCHED)
     for x in (0.25, 0.75):
         axes[0].axvline(x, c="k", lw=0.8, ls=":")
     axes[0].set_xlabel("story position of matched film shot")
     axes[0].set_ylabel("trailer shots")
     axes[0].set_title("Where trailer shots come from (pooled)")
-    axes[1].hist(per.final_act, bins=15, range=(0, 0.6), color="#f58518")
+    axes[1].hist(per.final_act, bins=15, range=(0, 0.6), color=USED)
     axes[1].set_xlabel("share of matched shots from final quarter")
     axes[1].set_ylabel("trailers")
     axes[1].set_title("Final-act share per trailer")
@@ -104,14 +105,14 @@ def corpus():
     tr = pd.concat([pd.read_csv(p).assign(imdb_id=p.stem) for p in (FEATURES / "trailer_shots").glob("*.csv")])
     per = tr.groupby("imdb_id").agg(n=("shot_idx", "size"), dur=("t_end", "max"), med=("shot_len", "median"))
     fig, axes = plt.subplots(1, 4, figsize=(13, 2.8))
-    (meta.year // 10 * 10).value_counts().sort_index().plot.bar(ax=axes[0], color="#4c78a8")
+    (meta.year // 10 * 10).value_counts().sort_index().plot.bar(ax=axes[0], color=MATCHED)
     axes[0].set_title("Films by decade")
-    meta.genres.explode().value_counts().head(12).plot.barh(ax=axes[1], color="#4c78a8")
+    meta.genres.explode().value_counts().head(12).plot.barh(ax=axes[1], color=MATCHED)
     axes[1].invert_yaxis()
     axes[1].set_title("Genres (multi-label)")
-    axes[2].hist(per.dur, bins=20, color="#4c78a8")
+    axes[2].hist(per.dur, bins=20, color=MATCHED)
     axes[2].set_title("Trailer length (s)")
-    axes[3].hist(per.med, bins=20, color="#4c78a8")
+    axes[3].hist(per.med, bins=20, color=MATCHED)
     axes[3].set_title("Median trailer shot length (s)")
     fig.tight_layout()
     fig.savefig(FIGURES / "corpus.png")

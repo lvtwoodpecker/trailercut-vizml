@@ -407,101 +407,10 @@ speech, and stays small (largest 0.103, dialogue); pacing and speech clusters fo
 speech group's k = 8 sits at the edge of the search range with a flat silhouette, so it isn't a real k. Next step: regress out genre and
 decade and re-cluster the residuals; if structure stays weak, report continuous axes instead of types.
 
-## Trailer View (`viz/index.html`, `viewer_export.py`)
+## Viz pages
 
-**One JSON per trailer.** The page loads only the trailer it shows plus a small index for the picker.
-Named-feature detail (value + SHAP per feature) is only exported for in-trailer shots and the top 60 by
-model score, the shots someone will actually hover; the rest get grouped SHAP only, which keeps files
-small.
-
-**Movie barcode from average color.** The film is drawn as a strip of its shots, each filled with the
-average color of its middle keyframe and as wide as its share of runtime. It gives the film axis a
-recognizable look (night scenes, color grading, act changes) without showing any frames, so it works
-in the committed page too. Average color is cheap (JPEG decoded at reduced size, ~1 ms per keyframe)
-and cached per film in `cache/shot_colors/`. We give up any notion of shot content; the hover frames
-cover that.
-
-**Links plus an order scatter.** Curves from each trailer shot down to its film position show where
-footage comes from, but with 70+ shots they cross into a tangle that's hard to read for order. The
-scatter (trailer position vs film position, diagonal = film order) answers "does the trailer follow the
-film?" at a glance, so both are shown.
-
-**No trailerness chart.** We first drew the model's score as a bar per film shot, then replaced it
-with a "Would the model have picked the same shots?" panel (top-k thumbnails, rank of each used shot,
-hits vs random). Neither told a clear story (~700 thin bars per film were hard to read), so both were dropped. The model score now shows in the
-film-shot tooltip and in the "why this shot" bars of the "now" panel. We give up a view of the score profile along the film.
-
-**The video clock is the single source of truth.** Every highlight (current shot, its link, the film
-outline, the scatter dot, the "now" panel) follows the video's time, and every click seeks the video:
-the trailer strip and sound track scrub, a film barcode shot the trailer uses jumps to the trailer
-shot that uses it (again for its next use), and the order and sync dots seek to their moment. Hover
-previews a shot only while paused; leaving the mark goes back to the shot under the playhead. A film
-shot the trailer doesn't use just fills the panel (Esc clears it). Before, hover previewed and a click
-locked a shot without moving the video (and a strip click seeked twice), so the video and the
-highlight could disagree; we gave up the click lock for one rule: what you see is where the video is.
-The playhead runs on `requestVideoFrameCallback` where the browser has it, so it tracks the frame on
-screen.
-
-**Video and "now" panel side by side, above the timeline.** The panel shows the current trailer frame
-next to the film frame it matched and the "why this shot" bars, so judging a match needs no extra
-click. Keyboard: space or `k` play/pause, left/right step one shot, shift+left/right 5 s, Home to the
-start, `c` captions, `m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked.
-
-**Thumbnails are local only.** Frame images load from the viewer's own `data/movienet/frames/` and
-`data/cache/trailer_frames/`. Frames are copyrighted, so they are never committed, exported into
-`viz/data/` or hosted; on a machine without the data the page still works, just without pictures.
-The paths are fixed to `data/` and loose JPEGs, so they ignore `TRAILERCUT_DATA` and `--pack` zips
-(unlike the label tool, which copies its images).
-
-**Playable trailer with a custom player.** No native control bar: a play/pause button, the time, CC
-and sound toggles, click the video to play/pause, and drag the trailer strip or sound track to scrub. Trailers
-are AV1, VP9 or H.264 in MP4, so Safari can't play all of them; Chrome and Firefox can.
-The native controls look different in every browser and duplicate the timeline; with our own controls the trailer strip itself is the seek bar.
-
-**Captions from the transcript, on by default** (`viz/data/{id}.vtt`). Whisper can merge ~30 s of
-speech into one segment, so `viewer_export` splits cues at about 6 s, 12 words or a pause over 1.5 s,
-using the word timestamps.
-
-**One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
-it, tinted green where a line was found in the film's dialogue (it was violet until a palette check showed blue vs violet collapses under red-green colorblindness: ΔE 1.9 to 4.5; blue, orange and green pass). One sound link at a time runs from the
-current or hovered line to its film moment; picture links are drawn only in the main chart. A "Sound
-vs picture" panel plots each found line's film time against its picture's film time and counts lines
-within 30 s. Drawing every sound link next to every picture link was too crowded to read, so sound shows on demand and the sync panel carries the overview.
-
-**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
-subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
-
-## RQ1 page (`viz/rq1.html`, `rq1_export.py`)
-
-**One page across all films**, linked from the Trailer View header. The Trailer View answers "what did
-this trailer take"; this page answers "what kind of shot gets picked" over the whole corpus.
-
-**Everything is a lift**: pick rate of a kind of shot over the pick rate of the average shot. One
-unit for story position, shot scale, within-film shot length, distinctiveness, dialogue and 20
-content concepts, so panels compare directly. Shot length and distinctiveness are binned by
-within-film percentile (`rel_*`), and a concept counts as present in the film's top 10% for it, since
-raw CLIP scores and shot lengths shift from film to film.
-
-**Shared log scale, 0.5x to 2x** (clamped). Log so 0.5x and 2x sit the same distance from 1x; shared
-so a long bar in one panel means the same as in another.
-
-**95% intervals from resampling films, not shots.** Shots within a film aren't independent; resampling
-films keeps one film from carrying a result.
-
-**Grey when the interval crosses 1x**, blue above, red below. Color then only marks effects that hold up.
-
-**Subtitles are written from the data.** Each panel's line quotes only the strongest effect above and
-below 1x whose interval excludes 1x, or says there is no clear difference. Text can't drift from the
-numbers after a rerun.
-
-**Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
-get together, next to the single-feature lifts.
-
-**Effect of each feature: EBM curves** (from `model_ebm.json`). The lifts above look at one feature at
-a time; the EBM curves show each feature's effect with the others held fixed. The page shows the 6
-curves with the highest importance, as odds multipliers on one shared log scale (same reason as the
-lift bars), cut to the feature's 1st to 99th percentile since the outer bins hold few shots. The
-section is hidden when `model_ebm.json` doesn't exist.
+The Trailer View and RQ1 page decisions moved to [viz_design.md](viz_design.md), with the shared
+viz design system.
 
 ## Pipeline structure
 
