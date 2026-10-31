@@ -10,10 +10,13 @@ research-only). Written to data/release/ (gitignored; upload that folder).
   dialogue_alignment.parquet  trailer speech segment -> film subtitle time (times and scores, no text)
   av_sync.csv                 per-trailer speech features and sound/picture sync rate
   hand_labels.csv             hand-checked alignments (trailer shot -> film shot, or s / n / u)
-  README.md                   dataset card
+  README.md                   dataset card (numbers filled in from the pipeline's outputs)
 
-  python -m trailercut.release
+  python -m trailercut.release                      build data/release/ and check it
+  python -m trailercut.release --push USER/NAME     also upload it to a Hugging Face dataset repo (private
+                                                    unless --public; uses the cached `huggingface-cli login`)
 """
+import argparse
 import json
 from datetime import date
 
@@ -76,44 +79,64 @@ pretty_name: Trailer-to-film alignment for MovieNet
 license: cc-by-nc-4.0
 task_categories: [video-classification]
 tags: [movie-trailers, movienet, shot-alignment, video]
+size_categories: [10K<n<100K]
+configs:
+  - config_name: trailers
+    data_files: trailers.csv
+  - config_name: alignment
+    data_files: alignment.parquet
+  - config_name: trailer_shots
+    data_files: trailer_shots.parquet
+  - config_name: dialogue_alignment
+    data_files: dialogue_alignment.parquet
+  - config_name: av_sync
+    data_files: av_sync.csv
+  - config_name: hand_labels
+    data_files: hand_labels.csv
 ---
 
 # Trailer-to-film alignment for MovieNet
 
 Which shots of a film end up in its trailer. For {n} MovieNet films: a working YouTube link to a
-trailer (checked {checked}), shot boundaries for each trailer, an alignment of every trailer shot to
-the film shot it was cut from (or "no match"), an alignment of trailer dialogue to the film's
-subtitles, and {n_labels} hand-checked alignments.
+trailer (checked {checked}), shot boundaries for each trailer ({n_shots:,} trailer shots), an alignment
+of every trailer shot to the film shot it was cut from (or "no match"), an alignment of trailer dialogue
+to the film's subtitles, and {n_labels} hand-checked alignments.
 
 ## Files
 
 | file | what |
 |---|---|
 | `trailers.csv` | one row per film: the trailer link, its YouTube title, channel and length, and how well it matches the film (trailer shots, share of shots matched, span of the film covered) |
-| `trailer_shots.parquet` | trailer shot boundaries (TransNetV2) |
+| `trailer_shots.parquet` | trailer shot boundaries (frames and seconds) |
 | `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, matched flag, top-5 candidates |
 | `dialogue_alignment.parquet` | trailer speech segment -> film subtitle time; times and scores only |
 | `av_sync.csv` | per-trailer speech share, words per minute, share of lines found in the film, sound/picture sync rate |
 | `hand_labels.csv` | hand labels: the source film shot, `s` (same scene, other shot), `n` (not in film) or `u` (unsure) |
 
-Film shot indices refer to MovieNet's shot annotations (`movie1K.shot_detection`).
+Film shot indices refer to MovieNet's shot annotations (`movie1K.shot_detection`). Join on `imdb_id`
+(plus `shot_idx` for trailer shots).
 
 ## How it was made
 
-- Trailer links start from MovieNet's list. Dead links, scene clips, dubs, teasers, TV spots and home-video
-  ads were replaced by searching YouTube for the original theatrical trailer; a replacement is kept only if
-  at least 25% of its shots match the film and the matches span at least 20% of it. `source` says
-  whether a link is MovieNet's or a replacement.
-- Shots: TransNetV2. Alignment: CLIP ViT-B/32 on 3 keyframes per shot; a shot counts as matched above
-  a similarity cutoff picked from the hand labels (best F1: precision 0.85, recall 0.91).
+- Trailer links start from MovieNet's list. Dead links, scene clips, dubs, subtitled uploads, teasers,
+  TV spots and home-video ads were replaced by searching YouTube for the original theatrical trailer. A
+  replacement is kept only if its matched shots span at least 20% of the film and either 25% of its shots
+  clear a strict similarity cutoff or most of its shots match this film better than other films.
+- Shots: TransNetV2, then two passes over shots whose keyframes disagree more than real shots ever do
+  (a missed cut): a split at TransNetV2's most likely frame, then a split where CLIP sees the biggest
+  change between neighboring frames. {below_floor:.1%} of trailer shots still look like two shots glued
+  together (about the rate of MovieNet's own shots).
+- Alignment: CLIP ViT-B/32 on 3 keyframes per shot; a shot counts as matched above a similarity cutoff
+  picked from the hand labels (best F1: precision {prec:.2f}, recall {rec:.2f}, cutoff {thr}).
 - Dialogue: Whisper (small) transcripts matched to MovieNet subtitles with fuzzy text matching.
 
 ## Limitations
 
 - One trailer per film; for older films the original theatrical trailer is not always on YouTube.
-- About 15% of matched shots are wrong (look-alike shots, or footage not in the film).
-- Some trailer shots likely span a cut the shot detector missed.
-- Hand labels come from one labeler, choosing among the aligner's top 5.
+- About {wrong:.0%} of matched shots are wrong (look-alike shots, or footage not in the film).
+- The CLIP split pass also cuts some real shots in two (about 1 in 5 of its cuts, from a by-eye check).
+- Hand labels come from one labeler, choosing among the aligner's top 5, on {n_label_trailers} trailers.
+- Links can die; the table records the link that worked when it was checked.
 
 ## Terms
 
@@ -122,11 +145,45 @@ and annotations are under MovieNet's own terms (research use). These annotations
 """
 
 
+TEXT_COLS = {"text", "words", "transcript", "subtitle", "line"}
+
+
+def check(t):
+    """The release holds links and annotations only, and its tables agree with each other."""
+    tables = {p.name: (pd.read_parquet(p) if p.suffix == ".parquet" else pd.read_csv(p)) for p in OUT.glob("*.*")
+              if p.suffix in (".csv", ".parquet")}
+    for name, df in tables.items():
+        bad = TEXT_COLS & set(df.columns)
+        assert not bad, f"{name} has text columns {bad}"
+        assert not any(df[c].astype(str).str.contains(r"\.(?:jpg|png|mp4|wav)$|/Users/|cache/").any()
+                       for c in df.columns if df[c].dtype == object), f"{name} has file paths"
+    ids = set(t.imdb_id)
+    for name in ["alignment.parquet", "trailer_shots.parquet"]:
+        assert set(tables[name].imdb_id) == ids, f"{name} films differ from trailers.csv"
+    assert t.imdb_id.is_unique and t.url.str.startswith("https://www.youtube.com/watch?v=").all()
+    a, sh = tables["alignment.parquet"], tables["trailer_shots.parquet"]
+    assert len(a) == len(sh), "alignment and trailer shots disagree on the number of shots"
+    print(f"check ok: {len(tables)} tables, {len(ids)} films, {len(a):,} trailer shots, no text or file paths")
+
+
+def push(repo, public):
+    from huggingface_hub import HfApi
+    api = HfApi()
+    api.create_repo(repo, repo_type="dataset", private=not public, exist_ok=True)
+    api.upload_folder(folder_path=str(OUT), repo_id=repo, repo_type="dataset", commit_message="Release")
+    print(f"uploaded -> https://huggingface.co/datasets/{repo} ({'public' if public else 'private'})")
+
+
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--push", metavar="USER/NAME", help="upload to this Hugging Face dataset repo")
+    ap.add_argument("--public", action="store_true", help="make the repo public (default private)")
+    a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     t = trailers()
     t.to_csv(OUT / "trailers.csv", index=False)
-    stack("trailer_shots").to_parquet(OUT / "trailer_shots.parquet", index=False)
+    shots = stack("trailer_shots")
+    shots.to_parquet(OUT / "trailer_shots.parquet", index=False)
     stack("alignment").to_parquet(OUT / "alignment.parquet", index=False)
     stack("dialogue_alignment").to_parquet(OUT / "dialogue_alignment.parquet", index=False)
     pd.read_csv(FEATURES / "av_sync.csv").to_csv(OUT / "av_sync.csv", index=False)
@@ -135,9 +192,18 @@ def main():
     names = {n: f"labeler_{k}" for k, n in enumerate(sorted(gold.labeler.unique()), start=1)}  # anonymized
     labels = [dict(imdb_id=k.split(":")[0], trailer_shot=int(k.split(":")[1]), label=v, labeler=names[l])
               for k, v, l in zip(gold.key, gold.label, gold.labeler)]
-    pd.DataFrame(labels).to_csv(OUT / "hand_labels.csv", index=False)
-    (OUT / "README.md").write_text(CARD.format(n=len(t), checked=t.checked.iloc[0], n_labels=len(labels)))
+    labels = pd.DataFrame(labels)
+    labels.to_csv(OUT / "hand_labels.csv", index=False)
+    ev = json.loads((FEATURES / "alignment_eval.json").read_text())["best_f1"]
+    diag = json.loads((FEATURES / "alignment_diagnostics.json").read_text())["cuts"]
+    (OUT / "README.md").write_text(CARD.format(
+        n=len(t), checked=t.checked.iloc[0], n_shots=len(shots), n_labels=len(labels),
+        n_label_trailers=labels.imdb_id.nunique(), below_floor=diag["trailer_below_floor"],
+        prec=ev["precision"], rec=ev["recall"], thr=ev["threshold"], wrong=1 - ev["precision"]))
     print(f"{len(t)} films -> {OUT}")
+    check(t)
+    if a.push:
+        push(a.push, a.public)
 
 
 if __name__ == "__main__":
