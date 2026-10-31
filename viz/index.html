@@ -46,8 +46,12 @@ button[aria-pressed="false"] { opacity: .45; }
 
 /* stage: video and the shot under the playhead, side by side, above the timeline */
 
-.player { margin: 0 0 12px; }
-.player video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: max(220px, calc(100vh - 570px)); border-radius: 6px; background: #000; cursor: pointer; }
+.stage { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+@media (min-width: 1000px) { .stage { grid-template-columns: auto minmax(320px, 1fr); } }
+.player { margin: 0; }
+.player video { display: block; height: max(260px, calc(100vh - 560px)); width: auto; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; cursor: pointer; }
+@media (max-width: 999px) { .player video { width: 100%; height: auto; } }
+#now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, calc(100vh - 560px)) + 52px); }
 .player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 .controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
 
@@ -57,9 +61,9 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
 #now .head b { font-size: 15px; }
 #now .tag { font-size: 12px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--ink-2); }
 /* the shot under the playhead: frames on the left, the model's reasons on the right */
-#now .body { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 8px; }
-@media (min-width: 1000px) { #now .body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
-#now .frames { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#now .body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 8px; }
+#now svg { max-width: 100%; }
+#now .frames { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 #now figure { margin: 0; }
 #now img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; display: block; background: var(--grid); }
 #now figcaption { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -117,6 +121,7 @@ details#tbl summary { cursor: pointer; color: var(--ink-2); }
     <a href="rq1.html">All films →</a>
   </header>
 
+  <div class="stage">
   <section class="card player">
       <video id="vid" preload="metadata" tabindex="0"></video>
       <div class="controls">
@@ -129,6 +134,8 @@ details#tbl summary { cursor: pointer; color: var(--ink-2); }
         <button id="mute" aria-pressed="true" aria-label="Sound">♪</button>
       </div>
   </section>
+  <section class="card" id="now" aria-live="polite"></section>
+  </div>
 
   <section class="card">
     <div class="legend">
@@ -142,8 +149,6 @@ details#tbl summary { cursor: pointer; color: var(--ink-2); }
       <div class="tbl-wrap"><table><thead><tr><th>shot</th><th>start</th><th>end</th><th>match</th><th>film shot</th><th>film position</th><th>score</th></tr></thead><tbody></tbody></table></div>
     </details>
   </section>
-
-  <section class="card" id="now" aria-live="polite"></section>
 
   <div class="grid2">
     <section class="card"><h2>Trailer order vs film order</h2><svg id="order"></svg></section>
@@ -342,14 +347,21 @@ function drawNow(h) {
   }
   box.html(`<div class="head">${head}</div><div class="body"><div class="frames">${frames}</div><div class="why">` +
     `<div class="why-h"><span>What moved the model's score, vs the average shot</span><span>blue: toward the trailer · red: away</span></div><svg id="shap"></svg></div></div>`);
+  shapFor = j;
   drawShap(j);
 }
+// the reasons chart is sized to the panel; redraw it whenever the panel's width settles or changes
+let shapFor = null, panelW = 0;
+new ResizeObserver(([e]) => {
+  const w = Math.round(e.contentRect.width);
+  if (w !== panelW) { panelW = w; if (D) drawShap(shapFor); }
+}).observe(document.getElementById("now"));
 
 function drawShap(i) {
   const f = D.film, svg = d3.select("#shap");
   if (i === null || !f.shap || f.trailerness[i] == null) { d3.select("#now .why").remove(); return; }
   svg.selectAll("*").remove();
-  const w = document.querySelector("#now .why").clientWidth;
+  const w = document.getElementById("now").clientWidth - 30;  // the panel's inner width (padding 14px each side)
   // a few reasons read better than all of them: top 3 groups, the rest behind "more"
   let rows = f.shap_groups.map((g, k) => ({ key: g, label: GROUP_LABEL[g], v: f.shap[i][k], group: true }));
   rows.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
