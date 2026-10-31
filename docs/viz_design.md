@@ -1,7 +1,8 @@
 # Viz design system
 
 The rules both D3 pages (`viz/index.html`, `viz/rq1.html`) and the static figures (`figures/*.png`)
-follow, the lessons that led to them, and each page's own design decisions (at the end). Method and
+follow, and each page's own design decisions (at the end); the lessons behind them are in
+[learnings.md](learnings.md). Method and
 pipeline decisions stay in [design.md](design.md).
 
 ## Tokens
@@ -99,17 +100,7 @@ its frame's average color.
 
 ## Lessons
 
-- **Blue and violet looked different and weren't.** Under red-green colorblindness the matched and
-  dialogue colors collapsed to ΔE 1.9 (dark), right where both kinds of link cross. Found only by
-  running the validator; fixed with the palette's green.
-- **A click that doesn't move the video breaks the view.** Locking a highlight while the video
-  stayed elsewhere (and a strip click that seeked twice) made the picture and the chart disagree.
-- **Rebuilding a panel on every mouse move is what "choppy" looks like.** Compare before re-rendering.
-- **Fixed axis ranges clip silently.** The EBM curves had a hard 0.55 to 2.3× range; the range now
-  comes from the data, shared across panels.
-- **Low-contrast "no data" fills hide the data.** Leaving cells empty read better than any gray.
-- **Look at the render.** Each of the issues above was obvious in a screenshot and invisible in the
-  code.
+Moved to [learnings.md](learnings.md) (views and charts).
 
 ## Page decisions
 

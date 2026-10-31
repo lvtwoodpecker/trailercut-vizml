@@ -21,7 +21,7 @@ current block lives in `plan.md`.
 - [ ] Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
 - [ ] D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
-- [ ] Course guidelines, open items (`course_guidelines.md`): projector check; error slices; RQ1 levels linked to example shots; a small user evaluation (3 to 5 people); EBM at a second smoothness; grouped SHAP stability across folds; report figures and contributions per the paper-writing lab
+- [ ] Course guidelines, open items (`course_learnings.md`): projector check; error slices; RQ1 levels linked to example shots; a small user evaluation (3 to 5 people); EBM at a second smoothness; grouped SHAP stability across folds; report figures and contributions per the paper-writing lab
 
 ## Next (Nov 17 to Dec 1)
 
