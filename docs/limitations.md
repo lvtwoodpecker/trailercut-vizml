@@ -97,6 +97,7 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   at ±3), and extra features or a ranker don't move it (`model_tune.json`).
 - **Clusters are weakly separated** (silhouette 0.10 to 0.31). We report them as reproducible splits,
   not as distinct trailer types.
+- **Correlated features share credit.** CLIP and the content concepts (both from the same embedding), and story position and act, overlap, so SHAP and EBM split their effect between them; read a group's attribution together with its partner, and as association, not cause.
 - **Decade confounds style.** Pacing follows decade, and decade correlates with almost everything.
   Residual clustering is planned.
 - **Spoilers.** Final-act share is a proxy for spoilers, not a measure: a final-act shot can be harmless
