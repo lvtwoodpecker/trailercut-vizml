@@ -1,0 +1,58 @@
+{
+  "lift": {
+    "default": 2.7662734423203843,
+    "smooth": 2.708128423292412
+  },
+  "curves": [
+    {
+      "feature": "c_scream",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "shot_len",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "story_pos",
+      "spearman": 0.99,
+      "same_direction": true
+    },
+    {
+      "feature": "visual_change",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "c_night",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "c_blood",
+      "spearman": 0.99,
+      "same_direction": true
+    },
+    {
+      "feature": "c_laugh",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "c_space",
+      "spearman": 1.0,
+      "same_direction": true
+    },
+    {
+      "feature": "c_creature",
+      "spearman": 0.99,
+      "same_direction": true
+    },
+    {
+      "feature": "c_explosion",
+      "spearman": 0.97,
+      "same_direction": true
+    }
+  ]
+}

@@ -79,6 +79,8 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   validation set for the 20 concepts. Treat them as soft descriptors.
 - **Subtitle dialogue is a proxy.** The `dialogue` group reads the film's subtitles under matched
   shots, not what the trailer plays. The `speech` group uses the trailer's own audio instead.
+- **285 films have no MovieNet subtitles.** Their `dialogue` features and sync rates are missing, not
+  zero; the models treat them as missing, and the RQ1 dialogue row uses only the 797 films with subtitles.
 - **Whisper errors.** It can merge up to ~30 s of speech into one segment and adds stray words. A
   merged segment is matched as one line; only 29% of speech segments are found in the subtitles.
 - **Sync uses a 30 s window.** A line counts as playing over its own scene if its film time is within
