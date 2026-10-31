@@ -3,7 +3,6 @@
 Notes from the VisML lectures and labs ([course site](https://ctsilva.github.io/2026-VisML-CDS/)), one
 section per lecture: what it said, then what it means for this project. Suggestions, not rules; when we
 go against one on purpose, the reason is in [design.md](design.md) or [viz_design.md](viz_design.md).
-Our own lessons from building the project are in [learnings.md](learnings.md).
 
 ✅ we do it · 🔧 fixed after reading the slides (2026-10-30) · ⬜ still open
 

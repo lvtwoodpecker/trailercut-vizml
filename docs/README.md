@@ -9,7 +9,6 @@
 | [design.md](design.md) | you wonder why something in the method or pipeline is done the way it is |
 | [viz_design.md](viz_design.md) | you're building or changing a chart or page (design system, lessons, page decisions) |
 | [course_learnings.md](course_learnings.md) | class notes from the VisML lectures, and where our work stands on each |
-| [learnings.md](learnings.md) | what we learned building this (views, data checks, pipeline jobs) |
 | [experiments.md](experiments.md) | you're about to try something; check it wasn't tried already |
 | [results.md](results.md) | you need a number for the report or slides |
 | [limitations.md](limitations.md) | you're writing claims and don't want to overclaim |
