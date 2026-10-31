@@ -47,6 +47,9 @@ svg { display: block; overflow: visible; }
 .lbl-2 { fill: var(--muted); font-size: 11px; }
 .ci { stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
 .hit { fill: transparent; cursor: default; }
+.hit.has-ex { cursor: pointer; }
+.ex { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; min-height: 1.4em; }
+.ex a, .tbl-wrap a { color: var(--pos); }
 #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; z-index: 10;
   font-variant-numeric: tabular-nums; }
@@ -74,7 +77,8 @@ details.tbl summary { cursor: pointer; color: var(--ink-2); }
   <p class="lede" id="lede"></p>
   <div class="legend"><span><i style="background:var(--pos)"></i>picked more often than the average shot</span>
     <span><i style="background:var(--neg)"></i>less often</span>
-    <span><i style="background:var(--muted)"></i>no clear difference (interval crosses 1×)</span></div>
+    <span><i style="background:var(--muted)"></i>no clear difference (interval crosses 1×)</span>
+    <span>click a row for examples in trailers</span></div>
 
   <div class="card">
     <h2>Can a model pick the trailer's shots?</h2>
@@ -135,10 +139,21 @@ function table(id, cols, rows) {
   d.append("summary").text("Table");
   const t = d.append("div").attr("class", "tbl-wrap").append("table");
   t.append("thead").append("tr").selectAll("th").data(cols).join("th").text(c => c[0]);
-  t.append("tbody").selectAll("tr").data(rows).join("tr").selectAll("td").data(r => cols.map(c => c[1](r))).join("td").text(v => v);
+  t.append("tbody").selectAll("tr").data(rows).join("tr").selectAll("td").data(r => cols.map(c => [c[1](r), c[2]])).join("td")
+    .each(function ([v, html]) { if (html) this.innerHTML = v; else this.textContent = v; });
 }
 const ci = r => r.lo != null ? `${fmtL(r.lo)} to ${fmtL(r.hi)}` : "–";
 const nfmt = r => r.n != null ? d3.format(",")(r.n) : "–";
+const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+// examples: shots of this kind that made a trailer, linked to that moment in the Trailer View
+const exLinks = ex => (ex || []).map(e => `<a href="index.html?id=${encodeURIComponent(e.id)}&t=${e.t}">${esc(e.film)} · ${fmtT(e.t)}</a>`).join(" · ");
+const exCol = ["examples", r => exLinks(r.ex) || "–", true];
+function showEx(id, label, ex) {
+  const card = document.getElementById(id).closest(".card");
+  let p = card.querySelector("p.ex");
+  if (!p) { p = document.createElement("p"); p.className = "ex"; document.getElementById(id).after(p); }
+  p.innerHTML = ex && ex.length ? `<b>${esc(label)}</b> in trailers: ${exLinks(ex)}` : "";
+}
 
 // a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
 function bar(x0, x1, y, h) {
@@ -159,11 +174,13 @@ function dotPlot(id, rows, labelW = 150) {
   g.append("circle").attr("cx", r => x(r.lift)).attr("r", 5.5).attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
   g.append("text").attr("class", "lbl-2").attr("x", r => Math.max(x(r.hi), x(r.lift) + 6) + 8).attr("dy", "0.32em").text(r => times(r.lift));
   g.append("rect").attr("class", "hit").attr("x", 0).attr("y", -rh / 2).attr("width", w).attr("height", rh)
+    .classed("has-ex", r => r.ex && r.ex.length)
     .on("mousemove", (ev, r) => showTip(ev, `<b>${times(r.lift)}</b> ${esc(r.level)}<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}<br>${d3.format(",")(r.n)} shots`))
-    .on("mouseleave", hideTip);
+    .on("mouseleave", hideTip)
+    .on("click", (ev, r) => showEx(id, r.level, r.ex));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`)
     .call(d3.axisBottom(x).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
-  table(id, [["", r => r.level], ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt]], rows);
+  table(id, [["", r => r.level], ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt], exCol], rows);
 }
 
 // quote only clear effects: the strongest above 1x and the strongest below
@@ -190,14 +207,16 @@ function story(rows) {
     .attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
   svg.selectAll("rect.hit").data(rows).join("rect").attr("class", "hit").attr("x", r => x(r.level - 0.025)).attr("width", x(0.05) - x(0))
     .attr("y", m.t).attr("height", H - m.t - m.b)
+    .classed("has-ex", r => r.ex && r.ex.length)
     .on("mousemove", (ev, r) => showTip(ev, `<b>${times(r.lift)}</b> ${Math.round(100 * (r.level - 0.025))} to ${Math.round(100 * (r.level + 0.025))}% into the film<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}`))
-    .on("mouseleave", hideTip);
+    .on("mouseleave", hideTip)
+    .on("click", (ev, r) => showEx("story", `${Math.round(100 * (r.level - 0.025))}–${Math.round(100 * (r.level + 0.025))}% into the film`, r.ex));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
   svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text("position in the film");
   const first = rows[0], late = rows.reduce((a, b) => b.lift < a.lift ? b : a);
   table("story", [["position in film", r => `${Math.round(100 * (r.level - 0.025))}–${Math.round(100 * (r.level + 0.025))}%`],
-    ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt]], rows);
+    ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt], exCol], rows);
   d3.select("#story-sub").text(`Start of the film: ${times(first.lift)}. Around ${Math.round(100 * late.level)}%: ${times(late.lift)}.`);
 }
 
