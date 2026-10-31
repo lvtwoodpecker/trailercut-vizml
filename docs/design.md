@@ -463,7 +463,7 @@ speech into one segment, so `viewer_export` splits cues at about 6 s, 12 words o
 using the word timestamps.
 
 **One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
-it, tinted violet where a line was found in the film's dialogue. One sound link at a time runs from the
+it, tinted green where a line was found in the film's dialogue (it was violet until a palette check showed blue vs violet collapses under red-green colorblindness: ΔE 1.9 to 4.5; blue, orange and green pass). One sound link at a time runs from the
 current or hovered line to its film moment; picture links are drawn only in the main chart. A "Sound
 vs picture" panel plots each found line's film time against its picture's film time and counts lines
 within 30 s. Drawing every sound link next to every picture link was too crowded to read, so sound shows on demand and the sync panel carries the overview.

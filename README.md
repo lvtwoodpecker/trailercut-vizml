@@ -153,7 +153,7 @@ Type your name in the Labeler box (empty exports `gold_anon.json`, which counts 
 
 D3 page for one trailer at a time. The trailer plays next to a "now" panel (the current trailer frame
 vs the film frame it matched, and why the model rates that film shot), above the trailer's cuts, a
-sound track (loudness, violet where a line comes from the film's dialogue), the film as a movie
+sound track (loudness, green where a line comes from the film's dialogue), the film as a movie
 barcode (average color per shot) and a curve from each matched trailer shot to where it sits in the
 film. The video drives everything: drag the strip or sound track to scrub, click a film shot to jump to
 the trailer shot that uses it (click again for its next use), click a dot in the order scatter or the
