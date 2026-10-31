@@ -294,6 +294,7 @@ d3.json("data/rq1.json").then(D => {
     ebm(D.ebm, D.ebm_lift);
     story(D.story);
     for (const k of ["scale", "length", "distinct", "dialogue"]) { dotPlot(k, D[k]); sub(k + "-sub", D[k]); }
+    if (D.dialogue_films) { const el = d3.select("#dialogue-sub"); el.text(`${el.text()} ${D.dialogue_films} films with subtitles.`); }
     dotPlot("content", D.content, 120);
     d3.select("#content-sub").text("Top 10% of each film's shots for the concept.");
   };

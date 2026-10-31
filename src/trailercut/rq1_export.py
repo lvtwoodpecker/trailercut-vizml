@@ -112,8 +112,11 @@ def main():
     out["length"] = with_examples(lift_table(df, "len_q", a.boot, rng), df, "len_q", "length")
     df["distinct_q"] = quint("rel_distinct", ["most typical 20%", "typical", "middle", "unusual", "most unusual 20%"])
     out["distinct"] = with_examples(lift_table(df, "distinct_q", a.boot, rng), df, "distinct_q", "distinct")
-    df["dialogue"] = np.where(df.dlg_has > 0, "has dialogue", "no dialogue")
-    out["dialogue"] = with_examples(lift_table(df, "dialogue", a.boot, rng), df, "dialogue", "dialogue")
+    # only films with subtitles: without them, dialogue is unknown rather than absent
+    dd = df[df.dlg_has.notna()].copy()
+    dd["dialogue"] = np.where(dd.dlg_has > 0, "has dialogue", "no dialogue")
+    out["dialogue"] = with_examples(lift_table(dd, "dialogue", a.boot, rng), dd, "dialogue", "dialogue")
+    out["dialogue_films"] = int(dd.imdb_id.nunique())
     # concept: shots in the film's top 10% for that concept vs the rest
     rows = []
     for c in concepts.CONTENT:

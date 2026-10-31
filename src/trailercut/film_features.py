@@ -26,6 +26,11 @@ VADER = SentimentIntensityAnalyzer()
 
 
 def dialogue_features(shots, subs):
+    # a film without a subtitle file (285 of the new films) has unknown dialogue, not none: NaN, which
+    # the models treat as missing; filling 0 would read as "silent" and confound the dialogue features
+    if not len(subs):
+        nan = np.full(len(shots), np.nan)
+        return dict(dlg_words=nan, dlg_rate=nan, dlg_has=nan, dlg_sentiment=nan)
     words = np.zeros(len(shots))
     sent = np.full(len(shots), np.nan)
     if len(subs):

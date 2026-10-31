@@ -9,6 +9,10 @@ Outputs
   data/features/model_ebm.json   metrics (out of fold) + one curve per feature from a fit on all films
   figures/ebm_shapes.png         the curves of the most important features
 
+  --smooth: the same model with much heavier smoothing and coarser bins, written to
+  data/features/model_ebm_smooth.json (no figure); then --compare says which curve shapes survive it
+  (a shape is only a finding if it doesn't depend on the smoothing setting).
+
   python -m trailercut.model_ebm [--folds 5]
 """
 import argparse
@@ -33,7 +37,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--plot-only", action="store_true", help="redraw the figure from model_ebm.json")
+    ap.add_argument("--smooth", action="store_true", help="heavier smoothing, written to model_ebm_smooth.json")
+    ap.add_argument("--compare", action="store_true", help="compare model_ebm.json with model_ebm_smooth.json")
     a = ap.parse_args()
+    if a.compare:
+        return compare()
+    params = dict(PARAMS, max_bins=32, smoothing_rounds=1000) if a.smooth else PARAMS
+    out = FEATURES / ("model_ebm_smooth.json" if a.smooth else "model_ebm.json")
     df = load(pcs=2)
     if a.plot_only:
         return plot(json.loads((FEATURES / "model_ebm.json").read_text())["curves"], df)
@@ -42,13 +52,13 @@ def main():
     scores = df[["imdb_id", "shot_idx", "shot_len", "in_trailer"]].copy()
     p = np.zeros(len(df))
     for tr, te in tqdm(list(GroupKFold(a.folds).split(df, y, df.imdb_id.values)), desc="folds"):
-        m = ExplainableBoostingClassifier(**PARAMS).fit(df.iloc[tr][cols], y[tr])
+        m = ExplainableBoostingClassifier(**params).fit(df.iloc[tr][cols], y[tr])
         p[te] = m.predict_proba(df.iloc[te][cols])[:, 1]
     scores["ebm"] = p
     res = metrics(scores, "ebm")
     res["lift"] = res["r_prec"] / float(y.mean())
 
-    m = ExplainableBoostingClassifier(**PARAMS).fit(df[cols], y)
+    m = ExplainableBoostingClassifier(**params).fit(df[cols], y)
     g = m.explain_global().data()
     imp = dict(zip(g["names"], g["scores"]))
     curves = {}
@@ -62,10 +72,35 @@ def main():
                             hi=[float(v) for v in d.get("upper_bounds", d["scores"])],
                             n=[int(v) for v in dens.get("scores", [])])
     lgb = json.loads((FEATURES / "model_eval.json").read_text())["k0"]["readable"]["lift"]
-    (FEATURES / "model_ebm.json").write_text(json.dumps(dict(metrics=res, lightgbm_readable_lift=lgb, curves=curves), indent=2))
+    out.write_text(json.dumps(dict(metrics=res, lightgbm_readable_lift=lgb, params={k: v for k, v in params.items() if k != "n_jobs"},
+                                   curves=curves), indent=2))
     print(f"EBM lift {res['lift']:.2f} (LightGBM, same features: {lgb:.2f}); ap_film {res['ap_film']:.3f}")
 
-    plot(curves, df)
+    if not a.smooth:
+        plot(curves, df)
+
+
+def compare(top=10):
+    """For the most important features: does the curve keep its shape under heavy smoothing? Both curves
+    are read on a common grid (1st to 99th percentile of the default model's bins); agreement = Spearman
+    correlation of the two curves, plus whether the overall direction (first vs last third) matches."""
+    from scipy.stats import spearmanr
+    a, b = (json.loads((FEATURES / f).read_text()) for f in ("model_ebm.json", "model_ebm_smooth.json"))
+    print(f"lift: default {a['metrics']['lift']:.2f}, smooth {b['metrics']['lift']:.2f}")
+    rows = []
+    for name in sorted(a["curves"], key=lambda n: -a["curves"][n]["importance"])[:top]:
+        ca, cb = a["curves"][name], b["curves"][name]
+        xa, xb = np.array(ca["x"], dtype=float), np.array(cb["x"], dtype=float)
+        grid = np.quantile(xa[1:-1], np.linspace(0.01, 0.99, 50))
+        ya = np.array(ca["score"])[np.clip(np.searchsorted(xa, grid, "right") - 1, 0, len(ca["score"]) - 1)]
+        yb = np.array(cb["score"])[np.clip(np.searchsorted(xb, grid, "right") - 1, 0, len(cb["score"]) - 1)]
+        rho = spearmanr(ya, yb).statistic
+        direction = lambda y: np.sign(y[-17:].mean() - y[:17].mean())
+        rows.append(dict(feature=name, spearman=round(float(rho), 2), same_direction=bool(direction(ya) == direction(yb))))
+    report = dict(lift=dict(default=a["metrics"]["lift"], smooth=b["metrics"]["lift"]), curves=rows)
+    (FEATURES / "model_ebm_compare.json").write_text(json.dumps(report, indent=2))
+    for r in rows:
+        print(f"{r['feature']:<16} spearman {r['spearman']:>5}  same direction: {r['same_direction']}")
 
 
 def plot(curves, df):
