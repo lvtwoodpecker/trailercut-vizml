@@ -8,9 +8,9 @@
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6d68;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
-  --matched: #2a78d6; --used: #eb6834; --unmatched: #d6d5ce; --speech: #6250d6;
+  --matched: #2a78d6; --used: #eb6834; --unmatched: #d6d5ce; --speech: #1baf7a;
   --pos: #2a78d6; --neg: #e34948;
 }
 @media (prefers-color-scheme: dark) {
@@ -18,7 +18,7 @@
     color-scheme: dark;
     --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --matched: #3987e5; --used: #d95926; --unmatched: #383835; --speech: #9085e9;
+    --matched: #3987e5; --used: #d95926; --unmatched: #383835; --speech: #199e70;
     --pos: #3987e5; --neg: #e66767;
   }
 }
@@ -26,7 +26,7 @@
   color-scheme: dark;
   --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-  --matched: #3987e5; --used: #d95926; --unmatched: #383835; --speech: #9085e9;
+  --matched: #3987e5; --used: #d95926; --unmatched: #383835; --speech: #199e70;
   --pos: #3987e5; --neg: #e66767;
 }
 * { box-sizing: border-box; }
@@ -83,14 +83,23 @@ svg { display: block; overflow: visible; }
 .hit { cursor: pointer; }
 .outline { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
 #playhead { stroke: var(--ink); stroke-width: 2; pointer-events: none; }
-.dot { fill: var(--matched); stroke: var(--surface); stroke-width: 1.5; pointer-events: none; }
-.sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 1.5; pointer-events: none; }
-.dot.cur, .sdot.cur { stroke: var(--ink); stroke-width: 2; }
+.dot { fill: var(--matched); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
+.sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
+.dot.cur, .sdot.cur { stroke: var(--ink); stroke-width: 2.5; }
 .diag { stroke: var(--axis); stroke-dasharray: 4 4; }
 .note { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
 .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 1000px) { .grid2 { grid-template-columns: 1fr 1fr; } }
 
+details#tbl { margin-top: 6px; font-size: 12px; }
+details#tbl summary { cursor: pointer; color: var(--ink-2); }
+.tbl-wrap { max-height: 260px; overflow: auto; margin-top: 6px; border-top: 1px solid var(--grid); }
+#tbl table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+#tbl th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+#tbl td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); color: var(--ink); }
+#tbl tbody tr { cursor: pointer; }
+#tbl tbody tr:hover { background: var(--grid); }
+#tbl tr.cur td { background: var(--grid); font-weight: 600; }
 #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; max-width: 380px; z-index: 10; }
 #tip .pair { display: flex; gap: 4px; margin-bottom: 4px; }
@@ -128,11 +137,14 @@ svg { display: block; overflow: visible; }
   <section class="card">
     <div class="legend">
       <span><i style="background:var(--matched)"></i>matched</span>
-      <span><i style="background:var(--unmatched)"></i>no match</span>
+      <span><i style="border:1px solid var(--axis)"></i>no match</span>
       <span><i style="background:var(--used)"></i>used in trailer</span>
       <span><i style="background:var(--speech)"></i>dialogue from the film</span>
     </div>
     <div id="main-wrap"><svg id="main" role="img" aria-label="Trailer shots linked to where they come from in the film"></svg></div>
+    <details id="tbl"><summary>Shots table</summary>
+      <div class="tbl-wrap"><table><thead><tr><th>shot</th><th>start</th><th>end</th><th>match</th><th>film shot</th><th>film position</th><th>score</th></tr></thead><tbody></tbody></table></div>
+    </details>
   </section>
 
   <div class="grid2">
@@ -297,6 +309,11 @@ function highlight(h) {
     cells.classed("dim", (s, i) => t !== null ? i !== t : s[3] !== f);
   }
   d3.selectAll("#sync .sdot").classed("cur", p => p.i === t);
+  const rows = d3.select("#tbl tbody").selectAll("tr").classed("cur", (_, i) => i === t);
+  if (t !== null && document.getElementById("tbl").open) {
+    const r = rows.nodes()[t], box = r && r.closest(".tbl-wrap");
+    if (box && (r.offsetTop < box.scrollTop + 24 || r.offsetTop > box.scrollTop + box.clientHeight - 24)) box.scrollTop = r.offsetTop - box.clientHeight / 2;
+  }
   const th = d3.select("#trailer-hi"), fh = d3.select("#film-hi");
   if (t === null) th.style("display", "none");
   else { const s = D.shots[t]; th.style("display", null).attr("x", tx(s[0]) - 2).attr("width", Math.max(5, tx(s[1]) - tx(s[0]) + 4)); }
@@ -351,11 +368,16 @@ function drawShap(i) {
     .on("click", (ev, r) => { if (r.group && r.key !== "clip" && detail) { expanded = expanded === r.key ? null : r.key; drawShap(i); } });
   g.append("text").attr("y", 14).style("font-weight", r => r.group ? 600 : 400)
     .text(r => r.group ? `${r.key === expanded ? "▾" : r.key === "clip" || !detail ? " " : "▸"} ${r.label}` : r.label);
-  g.append("rect").attr("y", 4).attr("height", 12).attr("rx", 2)
-    .attr("x", r => Math.min(x(0), x(r.v))).attr("width", r => Math.max(1, Math.abs(x(r.v) - x(0))))
+  g.append("path").attr("d", r => bar(x(0), x(r.v), 4, 12))
     .attr("fill", r => r.v >= 0 ? "var(--pos)" : "var(--neg)").attr("opacity", r => r.group ? 1 : 0.7);
   g.append("text").attr("class", "val").attr("y", 14).attr("x", r => r.v >= 0 ? x(r.v) + 4 : x(r.v) - 4)
     .attr("text-anchor", r => r.v >= 0 ? "start" : "end").text(r => d3.format("+.2f")(r.v));
+}
+// a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
+function bar(x0, x1, y, h) {
+  const d = x1 - x0, w = Math.abs(d), r = Math.min(4, w / 2, h / 2), k = Math.sign(d) || 1;
+  if (w < 1) return `M${x0},${y}h${k}v${h}h${-k}Z`;
+  return `M${x0},${y}H${x1 - k * r}Q${x1},${y} ${x1},${y + r}V${y + h - r}Q${x1},${y + h} ${x1 - k * r},${y + h}H${x0}Z`;
 }
 function groupOf(n) {
   if (n.startsWith("c_")) return "content";
@@ -373,7 +395,16 @@ function soundLink(k) {
   path.style("display", null).attr("d", `M${a},${y0} C${a},${m} ${b},${m} ${b},${Y.barcode[1]}`);
 }
 
-function drawAll() { drawMain(); drawOrder(); drawSync(); render(); }
+function drawAll() { drawMain(); drawOrder(); drawSync(); drawTable(); render(); }
+
+// the same shots as a table (the accessible twin of the timeline); a row click seeks there
+function drawTable() {
+  const f = D.film;
+  d3.select("#tbl tbody").selectAll("tr").data(D.shots).join("tr")
+    .html((s, i) => `<td>${i + 1}</td><td>${fmtT(s[0])}</td><td>${fmtT(s[1])}</td><td>${s[2] ? "yes" : "no"}</td>` +
+      `<td>${s[3] >= 0 ? s[3] : "–"}</td><td>${s[3] >= 0 ? Math.round(100 * f.story_pos[s[3]]) + "%" : "–"}</td><td>${s[4] != null ? s[4].toFixed(2) : "–"}</td>`)
+    .on("click", (ev, s) => { preview = null; seek(s[0] + 0.01); });
+}
 
 // ---- timeline: sound and trailer on top (the scrubber), film below, links between ----
 function drawMain() {
@@ -404,9 +435,9 @@ function drawMain() {
     .attr("x", s => tx(s[0])).attr("width", s => Math.max(0.5, tx(s[1]) - tx(s[0])))
     .attr("y", Y.tcolor[0]).attr("height", Y.tcolor[1] - Y.tcolor[0]).attr("fill", (_, i) => tcol[i] || "var(--unmatched)");
   svg.append("g").attr("class", "tcells").selectAll("rect").data(D.shots).join("rect")
-    .attr("x", s => tx(s[0]) + 0.5).attr("width", s => Math.max(1, tx(s[1]) - tx(s[0]) - 1))
+    .attr("x", s => tx(s[0]) + 1).attr("width", s => Math.max(1, tx(s[1]) - tx(s[0]) - 2))
     .attr("y", Y.tmatch[0]).attr("height", Y.tmatch[1] - Y.tmatch[0])
-    .attr("fill", s => s[2] ? "var(--matched)" : "var(--unmatched)");
+    .attr("fill", s => s[2] ? "var(--matched)" : "none");  // no match is left empty
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.tAxis})`)
     .call(d3.axisBottom(tx).ticks(Math.round(W / 110)).tickFormat(fmtT).tickSizeOuter(0));
 

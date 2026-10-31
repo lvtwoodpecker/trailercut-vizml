@@ -48,7 +48,7 @@ small{color:#999}
 </style></head><body>
 <div id="bar">Reviewer <input id="who" size="10"> <span id="prog"></span>
 <button onclick="exp()">Export JSON</button><br><span id="chips"></span>
-<small>s swap · k keep · j/h next/prev · n next unreviewed · space play</small></div>
+<small>s swap · x keep · j/k next/prev · n next unreviewed · space play</small></div>
 <div id="view"></div>
 <script>
 const ALL = __ITEMS__, HARD = ['not_trailer', 'ad', 'clip', 'dub', 'subtitled', 'short'];
@@ -76,8 +76,8 @@ function draw(){
 }
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
-  if (e.key === 's') set('swap'); else if (e.key === 'k') set('keep');
-  else if (e.key === 'j') go(1); else if (e.key === 'h') go(-1); else if (e.key === 'n') nextOpen();
+  if (e.key === 's') set('swap'); else if (e.key === 'x') set('keep');
+  else if (e.key === 'j') go(1); else if (e.key === 'k') go(-1); else if (e.key === 'n') nextOpen();
   else if (e.key === ' ') { e.preventDefault(); const v = document.getElementById('vid'); v.paused ? v.play() : v.pause(); }
 });
 function exp(){
