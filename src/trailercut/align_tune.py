@@ -68,12 +68,13 @@ def main():
              for t, lam, tau in itertools.product(THRESHOLDS, LAMS, TAUS)]
     df = pd.DataFrame(rows)
     best = {m: df[df.method == m].sort_values("f1").iloc[-1].dropna().to_dict() for m in ["raw", "smooth"]}
-    impostor = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]
-    at_impostor = df[(df.method == "raw") & (np.isclose(df.threshold, round(impostor, 2)))].iloc[0].to_dict()
-    report = dict(n=int(n), trailers=len(films), current=at_impostor, best=best, grid=rows)
+    in_use = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]  # the cutoff align ran with
+    raw = df[df.method == "raw"]
+    at_current = raw.iloc[(raw.threshold - in_use).abs().argmin()].to_dict()  # nearest grid point
+    report = dict(n=int(n), trailers=len(films), current=at_current, best=best, grid=rows)
     (FEATURES / "align_tune.json").write_text(json.dumps(report, indent=2))
     cols = ["method", "threshold", "lam", "tau", "precision", "recall", "f1", "near_precision"]
-    print("current (raw, impostor threshold):", {k: round(v, 3) if isinstance(v, float) else v for k, v in at_impostor.items() if k in cols})
+    print(f"current (raw, cutoff in use {in_use:.3f}):", {k: round(v, 3) if isinstance(v, float) else v for k, v in at_current.items() if k in cols})
     for m, b in best.items():
         print(f"best {m}:", {k: round(v, 3) if isinstance(v, float) else v for k, v in b.items() if k in cols})
 
