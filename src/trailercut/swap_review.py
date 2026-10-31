@@ -24,9 +24,14 @@ IMG = LABELS / "swap_img"
 PAIRS = 8
 
 
+IMPOSTOR = json.loads((FEATURES / "alignment_threshold.json").read_text())["impostor_threshold"]
+
+
 def share(i):
+    """Share of shots above the impostor cutoff (the swap check's strict test)."""
     al = pd.read_csv(FEATURES / "alignment" / f"{i}.csv")
-    return round(float(al.matched[~al.blank].mean()), 3)
+    al = al[~al.blank]
+    return round(float((al.score >= IMPOSTOR).mean()), 3)
 
 
 def pairs(i):
