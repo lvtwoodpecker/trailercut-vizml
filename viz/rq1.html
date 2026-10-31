@@ -8,7 +8,7 @@
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6d68;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
   --pos: #2a78d6; --neg: #e34948; --band: rgba(42,120,214,0.15);
 }
@@ -53,6 +53,16 @@ svg { display: block; overflow: visible; }
 .note { color: var(--muted); font-size: 12px; }
 .ebm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 16px; }
 .ebm-grid h3 { font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin: 0 0 12px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.xhair { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
+details.tbl { margin-top: 6px; font-size: 12px; }
+details.tbl summary { cursor: pointer; color: var(--ink-2); }
+.tbl-wrap { max-height: 240px; overflow: auto; margin-top: 6px; border-top: 1px solid var(--grid); }
+.tbl-wrap table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tbl-wrap th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+.tbl-wrap td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
+.tbl-wrap th:first-child, .tbl-wrap td:first-child { text-align: left; }
 </style>
 </head>
 <body>
@@ -62,6 +72,9 @@ svg { display: block; overflow: visible; }
     <nav><a href="index.html">Explore one trailer →</a></nav>
   </header>
   <p class="lede" id="lede"></p>
+  <div class="legend"><span><i style="background:var(--pos)"></i>picked more often than the average shot</span>
+    <span><i style="background:var(--neg)"></i>less often</span>
+    <span><i style="background:var(--muted)"></i>no clear difference (interval crosses 1×)</span></div>
 
   <div class="card">
     <h2>Can a model pick the trailer's shots?</h2>
@@ -112,6 +125,27 @@ const TICKS = [0.5, 0.75, 1, 1.5, 2];
 // grey when the interval crosses 1x: no clear difference
 const color = (l, lo = l, hi = l) => lo > 1 ? "var(--pos)" : hi < 1 ? "var(--neg)" : "var(--muted)";
 const times = l => `${fmtL(l)}×`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// every chart gets a table twin under it (collapsed): the same numbers without hovering
+function table(id, cols, rows) {
+  const card = d3.select(document.getElementById(id).closest(".card"));
+  card.select("details.tbl").remove();
+  const d = card.append("details").attr("class", "tbl");
+  d.append("summary").text("Table");
+  const t = d.append("div").attr("class", "tbl-wrap").append("table");
+  t.append("thead").append("tr").selectAll("th").data(cols).join("th").text(c => c[0]);
+  t.append("tbody").selectAll("tr").data(rows).join("tr").selectAll("td").data(r => cols.map(c => c[1](r))).join("td").text(v => v);
+}
+const ci = r => r.lo != null ? `${fmtL(r.lo)} to ${fmtL(r.hi)}` : "–";
+const nfmt = r => r.n != null ? d3.format(",")(r.n) : "–";
+
+// a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
+function bar(x0, x1, y, h) {
+  const w = x1 - x0, r = Math.min(4, Math.abs(w) / 2, h / 2);
+  if (Math.abs(w) < 1) return `M${x0},${y}h1v${h}h-1Z`;
+  return `M${x0},${y}H${x1 - r}Q${x1},${y} ${x1},${y + r}V${y + h - r}Q${x1},${y + h} ${x1 - r},${y + h}H${x0}Z`;
+}
 
 function dotPlot(id, rows, labelW = 150) {
   const w = width(id), rh = 26, m = { t: 6, b: 26 }, H = rows.length * rh + m.t + m.b;
@@ -125,10 +159,11 @@ function dotPlot(id, rows, labelW = 150) {
   g.append("circle").attr("cx", r => x(r.lift)).attr("r", 5.5).attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
   g.append("text").attr("class", "lbl-2").attr("x", r => Math.max(x(r.hi), x(r.lift) + 6) + 8).attr("dy", "0.32em").text(r => times(r.lift));
   g.append("rect").attr("class", "hit").attr("x", 0).attr("y", -rh / 2).attr("width", w).attr("height", rh)
-    .on("mousemove", (ev, r) => showTip(ev, `<b>${r.level}</b><br>picked ${times(r.lift)} as often as the average shot<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}<br>${d3.format(",")(r.n)} shots`))
+    .on("mousemove", (ev, r) => showTip(ev, `<b>${times(r.lift)}</b> ${esc(r.level)}<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}<br>${d3.format(",")(r.n)} shots`))
     .on("mouseleave", hideTip);
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`)
     .call(d3.axisBottom(x).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
+  table(id, [["", r => r.level], ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt]], rows);
 }
 
 // quote only clear effects: the strongest above 1x and the strongest below
@@ -155,12 +190,14 @@ function story(rows) {
     .attr("fill", r => color(r.lift, r.lo, r.hi)).attr("stroke", "var(--surface)").attr("stroke-width", 2);
   svg.selectAll("rect.hit").data(rows).join("rect").attr("class", "hit").attr("x", r => x(r.level - 0.025)).attr("width", x(0.05) - x(0))
     .attr("y", m.t).attr("height", H - m.t - m.b)
-    .on("mousemove", (ev, r) => showTip(ev, `<b>${Math.round(100 * (r.level - 0.025))} to ${Math.round(100 * (r.level + 0.025))}% into the film</b><br>picked ${times(r.lift)} as often as the average shot<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}`))
+    .on("mousemove", (ev, r) => showTip(ev, `<b>${times(r.lift)}</b> ${Math.round(100 * (r.level - 0.025))} to ${Math.round(100 * (r.level + 0.025))}% into the film<br>95% interval ${fmtL(r.lo)} to ${fmtL(r.hi)}`))
     .on("mouseleave", hideTip);
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
   svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text("position in the film");
   const first = rows[0], late = rows.reduce((a, b) => b.lift < a.lift ? b : a);
+  table("story", [["position in film", r => `${Math.round(100 * (r.level - 0.025))}–${Math.round(100 * (r.level + 0.025))}%`],
+    ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt]], rows);
   d3.select("#story-sub").text(`Start of the film: ${times(first.lift)}. Around ${Math.round(100 * late.level)}%: ${times(late.lift)}.`);
 }
 
@@ -174,10 +211,11 @@ function models(rows, best) {
   x.ticks(5).forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", x(t)).attr("x2", x(t)).attr("y1", m.t).attr("y2", H - m.b));
   const g = svg.selectAll("g.row").data(all).join("g").attr("transform", (_, i) => `translate(0,${m.t + i * rh + rh / 2})`);
   g.append("text").attr("class", "lbl").attr("x", lw - 10).attr("dy", "0.32em").attr("text-anchor", "end").text(r => r.level);
-  g.append("rect").attr("x", x(0)).attr("y", -7).attr("height", 14).attr("rx", 2).attr("width", r => x(r.lift) - x(0)).attr("fill", "var(--pos)")
+  g.append("path").attr("d", r => bar(x(0), x(r.lift), -7, 14)).attr("fill", "var(--pos)")
     .attr("opacity", (_, i) => i === 0 ? 0.35 : 1);
   g.append("text").attr("class", "lbl-2").attr("x", r => x(r.lift) + 6).attr("dy", "0.32em").text(r => times(r.lift));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`).call(d3.axisBottom(x).ticks(5).tickFormat(t => `${t}×`).tickSizeOuter(0));
+  table("models", [["model", r => r.level], ["precision vs random", r => times(r.lift)]], all);
 }
 const label = n => ({ random: "random picks", position_only: "story position only", length_only: "shot length only",
   clip_only: "CLIP look only", readable: "named features (no CLIP)", full: "named features + CLIP" }[n] || n);
@@ -187,7 +225,9 @@ function ebm(curves, lift) {
   const box = d3.select("#ebm").html("");
   if (!curves) { d3.select("#ebm-card").style("display", "none"); return; }
   d3.select("#ebm-sub").text(`Odds of making the trailer, from an interpretable model (${times(lift)} lift, about the same as the black-box model).`);
-  const Y = [0.55, 2.3], ticks = [0.6, 0.8, 1, 1.25, 1.6, 2];
+  // one y range for every panel, from the data, so nothing is clipped and panels compare
+  const all = curves.flatMap(c => c.y), Y = [Math.min(0.8, d3.min(all) / 1.08), Math.max(1.25, d3.max(all) * 1.08)];
+  const ticks = [0.25, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.6, 2, 2.5, 3, 4].filter(t => t >= Y[0] && t <= Y[1]);
   curves.forEach(c => {
     const cell = box.append("div");
     cell.append("h3").text(c.name);
@@ -200,17 +240,23 @@ function ebm(curves, lift) {
       .attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1])).curve(d3.curveStepAfter)(pts));
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(4).tickSizeOuter(0));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(ticks).tickFormat(t => `${t}×`).tickSizeOuter(0));
+    const hair = svg.append("line").attr("class", "xhair").attr("y1", m.t).attr("y2", H - m.b).style("display", "none");
+    const dot = svg.append("circle").attr("r", 4).attr("fill", "var(--pos)").attr("stroke", "var(--surface)").attr("stroke-width", 2).style("display", "none");
     svg.append("rect").attr("class", "hit").attr("x", m.l).attr("width", w - m.l - m.r).attr("y", m.t).attr("height", H - m.t - m.b)
       .on("mousemove", ev => {
-        const v = x.invert(d3.pointer(ev)[0]), k = Math.max(0, d3.bisectRight(c.x, v) - 1);
-        showTip(ev, `${c.name} ${d3.format(".3~g")(c.x[k])}: ${times(c.y[k])}`);
+        const px = d3.pointer(ev)[0], v = x.invert(px), k = Math.max(0, d3.bisectRight(c.x, v) - 1);
+        hair.style("display", null).attr("x1", px).attr("x2", px);
+        dot.style("display", null).attr("cx", px).attr("cy", y(c.y[k]));
+        showTip(ev, `<b>${times(c.y[k])}</b> ${esc(c.name)} ${d3.format(".3~g")(c.x[k])}`);
       })
-      .on("mouseleave", hideTip);
+      .on("mouseleave", () => { hideTip(); hair.style("display", "none"); dot.style("display", "none"); });
   });
+  table("ebm", [["feature", r => r.name], ["value from", r => d3.format(".3~g")(r.x)], ["odds vs average", r => times(r.y)]],
+    curves.flatMap(c => c.x.map((v, i) => ({ name: c.name, x: v, y: c.y[i] }))));
 }
 
 d3.json("data/rq1.json").then(D => {
-  d3.select("#lede").text(`How often each kind of shot makes the trailer, vs the average shot. ${D.n_films} films. Grey: no clear difference.`);
+  d3.select("#lede").text(`How often each kind of shot makes the trailer, vs the average shot, across ${D.n_films} films.`);
   const draw = () => {
     if (D.models) models(D.models, D.best_model);
     ebm(D.ebm, D.ebm_lift);
