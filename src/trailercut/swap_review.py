@@ -1,12 +1,15 @@
 """A page for checking replaced trailers by eye, one film at a time.
 
-For every film whose trailer is a replacement (source=search): the old and new YouTube title, the new
+Weakest matches first. For every film whose trailer is a replacement (source=search): the old and new YouTube title, the new
 trailer itself (local file), and its 8 best-matching shots next to the film keyframes they matched.
 Mark each film good (g), bad (b) or unsure (u); Export saves labels/swap_review_<name>.json.
+Every replaced core trailer is on the page; of the films new to the dataset only a random sample (--new,
+default 30), enough to estimate how often a new film's trailer is wrong.
 Images are copied to labels/swap_img/ (gitignored, film frames); open the page from labels/.
 
-  python -m trailercut.swap_review
+  python -m trailercut.swap_review [--new 30]
 """
+import argparse
 import json
 import shutil
 
@@ -19,6 +22,11 @@ from .release import youtube_meta
 PAGE = LABELS / "swap_review.html"
 IMG = LABELS / "swap_img"
 PAIRS = 8
+
+
+def share(i):
+    al = pd.read_csv(FEATURES / "alignment" / f"{i}.csv")
+    return round(float(al.matched[~al.blank].mean()), 3)
 
 
 def pairs(i):
@@ -44,22 +52,27 @@ def pairs(i):
     return out
 
 
-def main():
+def main(n_new):
     status = pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)
-    films = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).set_index("imdb_id").youtube_id
+    f = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).set_index("imdb_id")
+    films, core = f.youtube_id, set(f.index[f.core == "1"])
     meta = youtube_meta()
+    swapped = status[(status.source == "search") & (status.status == "ok")]
+    new = swapped[~swapped.imdb_id.isin(core)]
+    pick = swapped[swapped.imdb_id.isin(core) | swapped.imdb_id.isin(new.sample(min(n_new, len(new)), random_state=0).imdb_id)]
     items = []
-    for r in status[(status.source == "search") & (status.status == "ok")].itertuples():
+    for r in pick.itertuples():
         i, old = r.imdb_id, films.get(r.imdb_id)
         if not (FEATURES / "alignment" / f"{i}.csv").exists():
             continue
         old = old if isinstance(old, str) else ""
         new = meta.get(r.youtube_id, {})
-        items.append(dict(id=i, film=mn.meta(i)["title"],
+        items.append(dict(id=i, film=mn.meta(i)["title"] + ("" if i in core else " (new film)"),
                           old=meta.get(old, {}).get("title") or ("dead link" if old else "no MovieNet link"),
                           old_url=f"https://www.youtube.com/watch?v={old}" if old else "",
                           new=new.get("title") or r.title, channel=new.get("channel") or "",
-                          url=f"https://www.youtube.com/watch?v={r.youtube_id}", pairs=pairs(i)))
+                          url=f"https://www.youtube.com/watch?v={r.youtube_id}", pairs=pairs(i), share=share(i)))
+    items.sort(key=lambda x: x["share"])  # weakest matches first: the likeliest wrong trailers
     PAGE.write_text(HTML.replace("__ITEMS__", json.dumps(items)))
     print(f"{len(items)} replaced trailers -> {PAGE}")
 
@@ -125,4 +138,6 @@ draw();
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--new", type=int, default=30, help="random sample of new films' trailers to include")
+    main(ap.parse_args().new)
