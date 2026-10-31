@@ -1,0 +1,102 @@
+{
+ "_about": "Hand-picked example films per RQ1 row, shown first on the RQ1 page (then automatic picks). Chosen from contact sheets of each candidate's trailer frame at the linked moment: the frame has to show the concept. Keys: <section>:<row level>; values: IMDb IDs in display order.",
+ "content:explosion": [
+  "tt0434409",
+  "tt0462499",
+  "tt0103064"
+ ],
+ "content:gun": [
+  "tt0183649",
+  "tt0425210",
+  "tt0299658"
+ ],
+ "content:fight": [
+  "tt1386932",
+  "tt0450259",
+  "tt0091867"
+ ],
+ "content:chase": [
+  "tt0113277",
+  "tt0187078",
+  "tt0088247"
+ ],
+ "content:running": [
+  "tt0061811",
+  "tt0942385",
+  "tt0109830"
+ ],
+ "content:kiss": [
+  "tt0117509",
+  "tt0109831",
+  "tt0800080"
+ ],
+ "content:crying": [
+  "tt0824758",
+  "tt1355683",
+  "tt3553442"
+ ],
+ "content:scream": [
+  "tt5726086",
+  "tt0309698",
+  "tt0114558"
+ ],
+ "content:laugh": [
+  "tt0190590",
+  "tt0317198",
+  "tt0331811"
+ ],
+ "content:crowd": [
+  "tt0072890",
+  "tt0083987",
+  "tt0095765"
+ ],
+ "content:night": [
+  "tt0077651",
+  "tt1438176",
+  "tt0103776"
+ ],
+ "content:day outdoor": [
+  "tt1205489",
+  "tt1318514",
+  "tt0963794"
+ ],
+ "content:creature": [
+  "tt0383574",
+  "tt0370263",
+  "tt0167190"
+ ],
+ "content:space": [
+  "tt0112384",
+  "tt1446714",
+  "tt0086190"
+ ],
+ "content:water": [
+  "tt1190080",
+  "tt0449088",
+  "tt0454876"
+ ],
+ "content:city": [
+  "tt2911666",
+  "tt0116629",
+  "tt0343818"
+ ],
+ "content:interior": [
+  "tt1895587",
+  "tt1148204",
+  "tt0053579"
+ ],
+ "content:text card": [
+  "tt0133093",
+  "tt1179904",
+  "tt0120735"
+ ],
+ "content:logo": [
+  "tt1211837",
+  "tt0290334",
+  "tt0054167"
+ ],
+ "content:blood": [
+  "tt0123755",
+  "tt0289879"
+ ]
+}

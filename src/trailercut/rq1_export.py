@@ -20,7 +20,7 @@ import pandas as pd
 from . import concepts
 from . import movienet_io as mn
 from .model import load
-from .paths import FEATURES, ROOT
+from .paths import FEATURES, LABELS, ROOT
 
 OUT = ROOT / "viz" / "data" / "rq1.json"
 EBM_LABEL = {"story_pos": "position in film", "shot_len": "shot length (s)", "visual_change": "visual change",
@@ -60,12 +60,21 @@ def trailer_time(imdb_id, shot):
     return _times[imdb_id].get(shot)
 
 
-def examples(df, mask, k=3, seed=0, best=None):
+# hand-picked example films per row ("<section>:<level>" -> IMDb IDs), shown before the automatic picks
+CURATED = LABELS / "rq1_examples.json"
+_curated = json.loads(CURATED.read_text()) if CURATED.exists() else {}
+
+
+def examples(df, mask, k=3, seed=0, best=None, key=None):
     """A few shots of this kind that made a trailer, from different films, with the trailer moment
     they appear at, so the RQ1 page can link a row to the Trailer View. Random by default; with `best`
     (a column), the shots that score highest on it, so a concept's examples clearly show the concept."""
     pick = df.loc[mask & (df.in_trailer == 1), ["imdb_id", "shot_idx"] + ([best] if best else [])]
     pick = pick.sort_values(best, ascending=False) if best else pick.sample(frac=1, random_state=seed)
+    prefer = _curated.get(key, [])
+    if prefer:  # hand-picked films first, in their order; each still shows its best shot of this kind
+        rank = {i: n for n, i in enumerate(prefer)}
+        pick = pick.assign(_r=pick.imdb_id.map(rank).fillna(len(prefer))).sort_values("_r", kind="stable")
     out, seen = [], set()
     for r in pick.itertuples():
         if r.imdb_id in seen:
@@ -80,9 +89,9 @@ def examples(df, mask, k=3, seed=0, best=None):
     return out
 
 
-def with_examples(rows, df, key):
+def with_examples(rows, df, key, section):
     for r in rows:
-        r["ex"] = examples(df, df[key] == r["level"])
+        r["ex"] = examples(df, df[key] == r["level"], key=f"{section}:{r['level']}")
     return rows
 
 
@@ -95,22 +104,22 @@ def main():
     out = dict(n_shots=len(df), n_films=int(df.imdb_id.nunique()), positive_rate=float(df.in_trailer.mean()))
 
     df["pos_bin"] = (np.clip(df.story_pos, 0, 0.9999) * 20).astype(int) / 20 + 0.025
-    out["story"] = with_examples(lift_table(df, "pos_bin", a.boot, rng), df, "pos_bin")
+    out["story"] = with_examples(lift_table(df, "pos_bin", a.boot, rng), df, "pos_bin", "story")
     df["scale"] = df[list(SCALES)].idxmax(axis=1).map(SCALES)
-    out["scale"] = sorted(with_examples(lift_table(df, "scale", a.boot, rng), df, "scale"), key=lambda r: list(SCALES.values()).index(r["level"]))
+    out["scale"] = sorted(with_examples(lift_table(df, "scale", a.boot, rng), df, "scale", "scale"), key=lambda r: list(SCALES.values()).index(r["level"]))
     quint = lambda c, names: pd.cut(df[c], [0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=names, include_lowest=True).astype(str)
     df["len_q"] = quint("rel_shot_len", ["shortest 20%", "short", "middle", "long", "longest 20%"])
-    out["length"] = with_examples(lift_table(df, "len_q", a.boot, rng), df, "len_q")
+    out["length"] = with_examples(lift_table(df, "len_q", a.boot, rng), df, "len_q", "length")
     df["distinct_q"] = quint("rel_distinct", ["most typical 20%", "typical", "middle", "unusual", "most unusual 20%"])
-    out["distinct"] = with_examples(lift_table(df, "distinct_q", a.boot, rng), df, "distinct_q")
+    out["distinct"] = with_examples(lift_table(df, "distinct_q", a.boot, rng), df, "distinct_q", "distinct")
     df["dialogue"] = np.where(df.dlg_has > 0, "has dialogue", "no dialogue")
-    out["dialogue"] = with_examples(lift_table(df, "dialogue", a.boot, rng), df, "dialogue")
+    out["dialogue"] = with_examples(lift_table(df, "dialogue", a.boot, rng), df, "dialogue", "dialogue")
     # concept: shots in the film's top 10% for that concept vs the rest
     rows = []
     for c in concepts.CONTENT:
         df["_top"] = np.where(df[f"rel_{c}"] >= 0.9, "top", "rest")
         t = {r["level"]: r for r in lift_table(df, "_top", a.boot, rng)}["top"]
-        rows.append(dict(t, level=c.removeprefix("c_").replace("_", " "), ex=examples(df, df["_top"] == "top", best=c)))
+        rows.append(dict(t, level=c.removeprefix("c_").replace("_", " "), ex=examples(df, df["_top"] == "top", best=c, key="content:" + c.removeprefix("c_").replace("_", " "))))
     out["content"] = sorted(rows, key=lambda r: -r["lift"])
     for k in ["length", "distinct", "dialogue"]:
         order = {"length": ["shortest 20%", "short", "middle", "long", "longest 20%"],
