@@ -1,0 +1,11 @@
+seg_idx,t_start,t_end,n_words,film_t_start,film_t_end,score,margin,matched
+0,8.02,12.62,24,,,,,False
+1,12.62,16.66,16,,,,,False
+2,17.74,23.42,26,,,,,False
+3,23.52,24.18,3,,,,,False
+4,33.58,36.08,8,,,,,False
+5,42.62,61.73,8,,,,,False
+6,65.92,72.32,12,,,,,False
+7,85.56,99.87,10,,,,,False
+8,102.1,114.74,18,,,,,False
+9,115.44,123.7,20,,,,,False

@@ -2,24 +2,24 @@
   "funnel": {
     "MovieNet films w/ keyframes": 1100,
     "+ trailer link in MovieNet": 993,
-    "working trailer (MovieNet or replaced)": 293,
-    "trailer aligned to film": 293
+    "working trailer (MovieNet or replaced)": 1058,
+    "trailer aligned to film": 1058
   },
   "corpus": {
-    "trailers": 293,
-    "trailer_len_median": 138.0546,
-    "shots_per_trailer_median": 82.0,
+    "trailers": 1058,
+    "trailer_len_median": 136.95915000000002,
+    "shots_per_trailer_median": 85.0,
     "shot_len_median": 1.1678
   },
   "story_depth": {
-    "pooled_final_quarter": 0.18008512950552436,
-    "pooled_first_quarter": 0.32960514399565294,
-    "median_trailer_final_act_share": 0.17073170731707318
+    "pooled_final_quarter": 0.18140828503865616,
+    "pooled_first_quarter": 0.3335824644375559,
+    "median_trailer_final_act_share": 0.17083593912862205
   },
   "alignment": {
-    "trailer_shots": 24188,
-    "blank": 0.02327600463039524,
-    "matched": 0.9130147180420043,
-    "match_rate_per_trailer_median": 0.9191176470588235
+    "trailer_shots": 90750,
+    "blank": 0.03316804407713499,
+    "matched": 0.8993608815426998,
+    "match_rate_per_trailer_median": 0.9059326294620412
   }
 }

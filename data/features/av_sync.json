@@ -1,11 +1,11 @@
 {
-  "trailers": 968,
-  "trailers_with_found_lines": 641,
-  "lines_paired": 8034,
-  "pooled_sync_rate": 0.49713716704007965,
+  "trailers": 1058,
+  "trailers_with_found_lines": 674,
+  "lines_paired": 8415,
+  "pooled_sync_rate": 0.49292929292929294,
   "median_sync_rate_3plus": 0.5,
-  "trailers_3plus": 565,
-  "median_speech_share": 0.5088097886468084,
+  "trailers_3plus": 594,
+  "median_speech_share": 0.507164065445646,
   "median_words_per_min": 83.09297778288425,
   "sync_seconds": 30,
   "labels": {
