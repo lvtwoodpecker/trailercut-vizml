@@ -47,7 +47,7 @@ button[aria-pressed="false"] { opacity: .45; }
 /* stage: video and the shot under the playhead, side by side, above the timeline */
 
 .player { margin: 0 0 12px; }
-.player video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: max(180px, calc(100vh - 690px)); border-radius: 6px; background: #000; cursor: pointer; }
+.player video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: max(220px, calc(100vh - 570px)); border-radius: 6px; background: #000; cursor: pointer; }
 .player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 .controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
 
@@ -420,7 +420,7 @@ function drawTable() {
 function drawMain() {
   W = Math.max(560, document.getElementById("main-wrap").clientWidth);
   const f = D.film;
-  Y = { audio: [6, 70], tcolor: [78, 150], tmatch: [153, 161], tAxis: 166, link: [192, 396], used: [398, 410], barcode: [412, 492] };
+  Y = { audio: [4, 50], tcolor: [56, 112], tmatch: [115, 122], tAxis: 126, link: [150, 300], used: [302, 312], barcode: [314, 370] };
   Y.fAxis = Y.barcode[1] + 4;
   const H = Y.fAxis + 26;
   const svg = d3.select("#main").attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
