@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RQ2 Trailer Archetypes</title>
+
+    <!-- Poppins Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            /* background: #1e293b; */
+            padding: 14px 5px;
+            /* border-radius: 8px; */
+            margin-bottom: 16px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #f8fafc;
+        }
+
+        .header-subtitle {
+            margin: 0;
+            font-size: 0.8125rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .header-badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        /* Full-width controls bar */
+        #controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        select,
+        input,
+        button {
+            font-family: inherit;
+            background: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #334155;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: #3b82f6;
+        }
+
+        /* Main Workspace */
+        .workspace {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        #viz-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .svg-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        svg {
+            width: 100%;
+            height: 540px;
+            background: #1e293b;
+            border-radius: 8px;
+            display: block;
+        }
+
+        /* Circle Highlight States */
+        .dot {
+            stroke: #0f172a;
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: opacity 0.2s, r 0.2s, stroke 0.2s;
+        }
+
+        .dot:hover {
+            stroke: #ffffff;
+            stroke-width: 2px;
+        }
+
+        .dot.selected {
+            stroke: #38bdf8 !important;
+            stroke-width: 3px !important;
+            r: 9px !important;
+            opacity: 1 !important;
+            filter: drop-shadow(0 0 6px #38bdf8);
+        }
+
+        .has-selection .dot:not(.selected) {
+            opacity: 0.25;
+        }
+
+        /* Modality Documentation Box under scatterplot */
+        .info-box {
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .info-box h3 {
+            margin: 0 0 4px 0;
+            font-size: 0.875rem;
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 0.8125rem;
+            line-height: 1.4;
+            color: #94a3b8;
+        }
+
+        /* Hover Tooltip */
+        .tooltip {
+            position: absolute;
+            padding: 6px 10px;
+            background: rgba(9, 13, 22, 0.95);
+            backdrop-filter: blur(4px);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 0.8125rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transition: opacity 0.1s ease-in-out;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        /* Right Column Container */
+        .right-panel {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Externalized Cluster Legend */
+        .legend-container {
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 0.8125rem;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8125rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Right Side Detail Drawer */
+        .detail-drawer {
+            background: #1e293b;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        #detail-title {
+            margin: 0;
+            font-size: 0.8rem;
+            flex: 1;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .imdb-link {
+            padding: 4px 10px;
+            background: #f5c518;
+            color: #000000;
+            font-weight: 700;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            text-decoration: none;
+            align-items: center;
+        }
+
+        .trailer-link {
+            display: block;
+            padding: 8px 12px;
+            background: #ff0000;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            text-align: center;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+
+        .cluster-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #334155;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- App Header / Navbar -->
+    <header class="header-bar">
+        <div class="header-title-group">
+            <h1 class="header-title">TrailerScope</h1>
+            <p class="header-subtitle">Multi-Modal Archetype Exploration &amp; Feature Analysis</p>
+        </div>
+        <span class="header-badge">RQ2 Interactive Dashboard</span>
+    </header>
+
+    <!-- Controls Bar -->
+    <div id="controls">
+        <div class="control-group">
+            <label for="modality-select">Modality Space</label>
+            <select id="modality-select">
+                <option value="all">Overall Composite (All)</option>
+                <option value="pacing">Pacing & Edit Velocity</option>
+                <option value="audio">Audio & Dynamic Range</option>
+                <option value="story">Story & Narrative Alignment</option>
+                <option value="dialogue">Dialogue & Subtitles</option>
+                <option value="visual">Visual Concept Scaling</option>
+                <option value="speech">Speech Synchronization</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="space-select">Space Projection</label>
+            <select id="space-select">
+                <option value="res">Residualized (Bias Purged)</option>
+                <option value="base">Baseline (Raw Features)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="genre-select">Filter Genre</label>
+            <select id="genre-select">
+                <option value="all">All Genres</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="search-input">Search Title</label>
+            <input type="text" id="search-input" placeholder="Search movie title...">
+        </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        <div id="viz-container">
+            <!-- Modality Documentation Box -->
+            <div class="info-box">
+                <h3 id="info-heading">Overall Composite (All)</h3>
+                <p id="info-description">
+                    Combines all extracted features into a single UMAP projection to group trailers by overall
+                    structural marketing archetype.
+                </p>
+            </div>
+            <div class="svg-wrapper">
+                <svg id="scatterplot"></svg>
+                <div id="tooltip" class="tooltip"></div>
+            </div>
+        </div>
+
+        <!-- Right Side Column -->
+        <div class="right-panel">
+            <!-- Cluster Legend (Positioned directly above Select a Trailer) -->
+            <div class="legend-container">
+                <div class="legend-title" id="legend-title">Cluster Legend</div>
+                <div id="legend-items" class="legend-items"></div>
+            </div>
+
+            <!-- Selected Trailer Detail Drawer -->
+            <div id="detail-drawer" class="detail-drawer">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <h2 id="detail-title">Select a
+                        trailer to begin...</h2>
+                    <a id="imdb-link" href="#" target="_blank" rel="noopener noreferrer" class="imdb-link"
+                        style="display: none;">
+                        IMDb ↗
+                    </a>
+                </div>
+
+                <p id="detail-meta" style="color: #94a3b8; font-size: 0.8125rem; margin: 4px 0 0 0;"></p>
+
+                <div id="detail-content" class="detail-content">
+                    <div id="detail-clusters" style="margin-top: 12px;"></div>
+
+                    <!-- Embedded YouTube Player -->
+                    <div id="trailer-player-container" style="margin-top: 16px; display: none;">
+                        <iframe id="trailer-player" width="100%" height="180" src="" title="YouTube video player"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen style="border-radius: 6px; border: 1px solid #334155;">
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/overview.js"></script>
+</body>
+
+</html>

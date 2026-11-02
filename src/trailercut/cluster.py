@@ -26,7 +26,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import OneHotEncoder
 
-from .paths import FEATURES, FIGURES
+from .paths import FEATURES, FIGURES, IDS
 from .trailer_features import GROUPS
 
 RNG = np.random.default_rng(0)
@@ -151,7 +151,12 @@ def main():
     report_residual = []
 
     all_cols = [c for g in GROUPS.values() for c in g]
-    out = df[["imdb_id", "title", "year", "primary_genre"]].copy()
+
+    # Load the trailer status manifest alongside trailers.parquet
+    status_df = pd.read_csv(IDS.parent / "trailer_status.csv")[["imdb_id", "youtube_id"]]
+
+    # Include youtube_id when creating the export dataframe
+    out = df[["imdb_id", "title", "year", "primary_genre"]].merge(status_df, on="imdb_id", how="left")
 
     print("=== RUNNING BASELINE CLUSTERING ===")
     for name, cols in [("all", all_cols), *GROUPS.items()]:
@@ -186,7 +191,7 @@ def main():
     out["umap_x_base"], out["umap_y_base"] = xy_base[:, 0], xy_base[:, 1]
     out["umap_x_res"], out["umap_y_res"] = xy_res[:, 0], xy_res[:, 1]
 
-    # out.to_csv(FEATURES / "clusters.csv", index=False)
+    out.to_csv(FEATURES / "clusters.csv", index=False)
     # (FEATURES / "cluster_report.json").write_text(json.dumps(report, indent=2))
 
 
