@@ -17,8 +17,6 @@ current block lives in `plan.md`.
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
-- [ ] Residual clustering: regress genre and decade out of the trailer features, re-cluster, same stability/NMI checks. Note: dialogue clusters follow genre (NMI 0.103 vs 0.033 null); the speech group follows decade and its k = 8 is at the edge of the search range
-- [ ] Decide what the Overview shows if structure stays weak (continuous axes vs clusters)
 - [ ] D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
 - [ ] Course guidelines, open items (`course_learnings.md`): projector check; error slices; RQ1 levels linked to example shots; a small user evaluation (3 to 5 people); EBM at a second smoothness; grouped SHAP stability across folds; report figures and contributions per the paper-writing lab
@@ -56,6 +54,7 @@ current block lives in `plan.md`.
 
 ## Done
 
+- 2026-10-30: Residual clustering: regressed genre and decade out of feature matrix via Ridge regression; metadata NMI dropped to near zero (<= 0.011), while 2-cluster structure and high stability (overall ARI 0.86, visual ARI 0.95) persisted, proving independent structural editing styles (RQ2)
 - 2026-10-30: Trailer View redesign: the video clock drives every highlight (clicks seek, no click lock), video and a "now" panel side by side above the timeline, keyboard controls, `?t=` deep links
 - 2026-10-30: `release`: dataset card numbers from the pipeline outputs, Hugging Face viewer configs, `check()` (no text columns or file paths, tables agree), `--push USER/NAME`; built locally (1,058 films, 90,750 trailer shots)
 - 2026-10-30: swap review page shows all core swaps plus a random sample of new films (`--new`, default 30), weakest matches first
