@@ -379,10 +379,15 @@ function drawShap(i) {
   svg.attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
   const m = d3.max(rows, r => Math.abs(r.v)) || 1, x = d3.scaleLinear([-m, m], [Math.min(150, w * 0.42) + 40, w - 40]);
   svg.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 0).attr("y2", H).attr("stroke", "var(--axis)");
+  if (rows.length > 1) svg.append("line").attr("x1", 0).attr("x2", w).attr("y1", rh + 1).attr("y2", rh + 1).attr("stroke", "var(--grid)");
   const g = svg.selectAll("g.shap-row").data(rows).join("g").attr("class", "shap-row")
     .attr("transform", (_, k) => `translate(0,${k * rh})`)
     .on("click", (ev, r) => { if (r.group && r.key !== "clip" && detail) { expanded = expanded === r.key ? null : r.key; drawShap(i); } });
-  g.append("text").attr("y", 14).style("font-weight", r => r.group ? 600 : 400)
+  // only the top reason is reliable across retrained models (76% vs 55% for the top-3 set, shap_stability.json):
+  // it gets the weight, the rest read as secondary
+  const top = rows[0];
+  g.append("text").attr("y", 14).style("font-weight", r => r === top ? 600 : 400)
+    .style("fill", r => r === top ? null : "var(--ink-2)")
     .text(r => r.group ? `${r.key === expanded ? "▾" : r.key === "clip" || !detail ? " " : "▸"} ${r.label}` : r.label);
   g.append("path").attr("d", r => bar(x(0), x(r.v), 4, 12))
     .attr("fill", r => r.v >= 0 ? "var(--pos)" : "var(--neg)").attr("opacity", r => r.group ? 1 : 0.7);
