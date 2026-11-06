@@ -69,8 +69,9 @@ For us
 - ✅ Lift vs random picks; PR curves and the ±k tolerance figure next to the single lift number.
 - ✅ Scores are only used as ranks (top-k per film), never shown as a chance.
 - 🔧 `model_pr.png` now draws the chance line at the positive rate.
-- ⬜ Error slices: which films, genres or decades the model misses, with significance.
-- ⬜ RQ1 page rows (e.g. "explosion") don't link to example shots yet.
+- ✅ Error slices (`error_slices.py`): lift is lower for films with few shots and for comedy, romance and
+  drama; the comedy/romance gap holds at equal film length, the action/adventure edge does not.
+- ✅ RQ1 page rows link to example shots.
 - ⬜ No user evaluation of the views yet (3 to 5 people, timed questions).
 
 ## White-box models (GAM, EBM)
@@ -87,7 +88,7 @@ For us
 - ✅ Curves shown as odds multipliers vs the average shot; EBM lift shown next to LightGBM's.
 - 🔧 EBM curves had no band and no density → band (spread over the bags) + shots-per-bin strip (shows
   after the EBM rerun).
-- ⬜ EBM at a second smoothness; keep only the stories that survive.
+- ✅ EBM at a second smoothness: every top curve keeps its shape (Spearman ≥ 0.97).
 
 ## Black-box explanations (SHAP, LIME, PDP)
 
@@ -150,9 +151,9 @@ For us
 ## Open items
 
 - [ ] Projector check of both pages and the figures
-- [ ] Error slices: where the model misses
-- [ ] RQ1 page: link each level to example shots in the Trailer View
+- [x] Error slices: where the model misses
+- [x] RQ1 page: link each level to example shots in the Trailer View
 - [ ] Small user evaluation (3 to 5 people, timed questions)
-- [ ] EBM at a second smoothness
+- [x] EBM at a second smoothness
 - [ ] Grouped SHAP stability across folds
 - [ ] Report: numbers in the abstract, contribution bullets, design goals → views, annotated figures
