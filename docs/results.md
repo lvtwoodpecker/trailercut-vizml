@@ -3,6 +3,44 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-06: all 1,082 films, lift now relative to random, error slices
+
+RQ1 rerun on 1,082 films with missing subtitles coded as missing (not "no dialogue"). **Lift changed
+definition:** precision at trailer length over the films' *mean* positive rate, so random scores 1.00x.
+Entries below divide by the positive rate pooled over shots, which gives random about 1.1x to 1.2x
+(short films have higher positive rates and each film counts once); divide an old lift by its random
+row to compare.
+
+**RQ1** [`model_report.json`, `model_eval.json`]: 1,570,548 film shots, 1,082 films, 4.6% positive.
+
+| model | AP | precision at trailer length | lift k=0 | lift ±1 | lift ±3 | lift ±5 |
+|---|---|---|---|---|---|---|
+| random | 0.046 | 0.054 | 1.00 | 1.01 | 1.01 | 1.01 |
+| position only | 0.053 | 0.072 | 1.34 | 1.27 | 1.21 | 1.18 |
+| length only | 0.065 | 0.093 | 1.73 | 1.36 | 1.21 | 1.14 |
+| CLIP only | 0.080 | 0.127 | 2.35 | 1.73 | 1.45 | 1.33 |
+| readable | 0.091 | 0.139 | 2.59 | 1.85 | 1.53 | 1.38 |
+| full | 0.099 | 0.148 | 2.75 | 1.92 | 1.56 | 1.41 |
+
+Base rate (pooled share of shots within ±k of a used shot): 0.046, 0.117, 0.228, 0.316. Precision at
+trailer length lost when one group is dropped: editing 0.012, CLIP 0.009, position 0.003, others ≤ 0.
+SHAP mean |value| by group: CLIP 0.25, editing 0.23, position 0.19, content 0.08, dialogue 0.06, scale 0.04.
+
+**EBM vs LightGBM** [`model_ebm.json`, `model_ebm_smooth.json`, `model_ebm_compare.json`]: lift 2.36
+vs 2.59 on the same readable features; with heavy smoothing 2.31, and the 10 most important curves
+keep their shape (Spearman 0.97 to 1.0, same direction).
+
+**Error slices** [`error_slices.json`, `figures/error_slices.png`]: lift per slice of films vs the
+rest, bootstrap intervals, permutation tests with BH correction.
+- film length matters most: 2.23x for the quarter with fewest shots, 3.70x for the most
+- Action, Adventure, Fantasy, Sci-Fi above; Drama, Comedy, Romance below
+- at equal film length the action edge disappears (most-shots quarter: 3.69x vs 3.72x), the comedy gap stays (2.74x vs 3.90x)
+- films without subtitles 2.42x vs 2.90x, but mostly because they are short films; the gap shows in the CLIP-only model too
+- decade and trailer size: within noise
+
+Read: the model works best on long, fast-cut films and struggles with comedy and romance, whose
+trailer shots (jokes, looks, lines) look like any other shot to CLIP.
+
 ## 2026-10-30: new films, splits applied, rebuild on 968 trailers
 
 The overnight batch for the films new to the dataset, the CLIP splits applied, then `align`, `audio`

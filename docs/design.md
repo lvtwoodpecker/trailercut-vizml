@@ -386,6 +386,9 @@ outermost bins hold a handful of shots and swing. It takes ~30 min, so it is an 
 mixes films with different base rates (trailer length vs film shot count), so films with many used
 shots dominate it. Per-film precision at trailer length asks each film the editor's question, and lift
 makes it comparable across tolerances. Pooled AP stays in the tables as a secondary number.
+The lift denominator is the films' mean positive rate, not the rate pooled over shots: precision is
+averaged per film, so the base has to be too, or random scores 1.18x (short films have high positive
+rates and count once each). Changed 2026-11-06; older logged lifts use the pooled rate.
 
 ## RQ2 clustering (`cluster.py`)
 

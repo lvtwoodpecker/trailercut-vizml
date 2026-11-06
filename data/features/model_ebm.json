@@ -4,9 +4,9 @@
     "ap_film": 0.10587844351401382,
     "r_prec": 0.1268695232812606,
     "ap_lenadj": 0.07603332335371091,
-    "lift": 2.7662734423203843
+    "lift": 2.354930643304073
   },
-  "lightgbm_readable_lift": 3.0401894288824742,
+  "lightgbm_readable_lift": 2.5881155268291285,
   "params": {
     "interactions": 0,
     "max_bins": 64,

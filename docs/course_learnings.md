@@ -143,7 +143,7 @@ For us
 
 For us
 - ✅ Every method choice has its "why" in design.md and viz_design.md.
-- ⬜ Abstract numbers (lift 3.30× on 1,058 films; alignment P 0.87 / R 0.92), contribution bullets,
+- ⬜ Abstract numbers (lift 2.75× over random on 1,082 films; alignment P 0.87 / R 0.92), contribution bullets,
   design goals mapped to views, annotated figures (`?t=` links make Trailer View shots reproducible).
 
 ---

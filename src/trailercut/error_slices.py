@@ -1,8 +1,7 @@
 """Where the RQ1 model misses: lift per slice of films (genre, decade, film and trailer size, subtitles).
 
-Lift in a slice = mean per-film precision at trailer length / the films' mean positive rate. Unlike
-model_eval.py (which pools the positive rate over shots, so random gets 1.18x), random scores 1x here
-in every slice; the overall figure equals model_eval's lift divided by random's. Each slice is compared with the rest of the films:
+Lift in a slice = mean per-film precision at trailer length / the films' mean positive rate, the same
+measure as model_eval.py at k=0 (random scores 1x in every slice). Each slice is compared with the rest of the films:
   ci        95% bootstrap interval over films (2,000 resamples)
   p         permutation test on the lift difference, films shuffled between slice and rest
   q         Benjamini-Hochberg over all slices; q < 0.05 = a real gap, not noise
@@ -130,9 +129,7 @@ def main():
     films["subs"] = films.imdb_id.map(subs).fillna(False).astype(bool)
 
     rng = np.random.default_rng(0)
-    # equal film weights: random then scores 1x in every slice. model_eval pools the positive rate over
-    # shots instead, which gives random 1.18x overall; this lift is that headline divided by random's
-    w = np.ones(len(films))
+    w = np.ones(len(films))  # films count equally, as in model_eval
     prec, base, rprec = films.prec.values, films.base.values, rand.set_index("imdb_id").loc[films.imdb_id].prec.values
     rows = []
     for (kind, name), mask in slices(films).items():

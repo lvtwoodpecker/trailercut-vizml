@@ -92,11 +92,12 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 ## Analysis
 
-- **The RQ1 signal is weak.** The full model's AP is 0.083 against 0.042 for random, and at trailer
-  length about 13 in 100 top-ranked shots are in the trailer (lift 3.15x). It ranks better than chance,
-  not well enough to say which shots an editor will pick. Readable features carry most of what the
-  model finds (AP 0.076 vs 0.083 with CLIP). Allowing ±k shots of slack doesn't rescue it (lift 1.70x
-  at ±3), and extra features or a ranker don't move it (`model_tune.json`).
+- **The RQ1 signal is weak.** The full model's AP is 0.099 against 0.046 for random, and at trailer
+  length about 15 in 100 top-ranked shots are in the trailer (lift 2.75x over random). It ranks better
+  than chance, not well enough to say which shots an editor will pick. Readable features carry most of
+  what the model finds (lift 2.59x). Allowing ±k shots of slack doesn't rescue it (lift 1.56x at ±3), and extra features or a ranker don't move it (`model_tune.json`).
+- **Uneven across films.** Lift is 2.2x on the quarter of films with the fewest shots and 3.7x on the
+  most; comedy and romance stay below the rest even at equal film length (`error_slices.json`).
 - **Clusters are weakly separated** (silhouette 0.10 to 0.31). We report them as reproducible splits,
   not as distinct trailer types.
 - **Correlated features share credit.** CLIP and the content concepts (both from the same embedding), and story position and act, overlap, so SHAP and EBM split their effect between them; read a group's attribution together with its partner, and as association, not cause.

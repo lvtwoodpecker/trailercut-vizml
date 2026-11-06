@@ -8,11 +8,13 @@ with k=3 a random shot is ~7x more likely to be "near" a used shot too.
 Uses the out-of-fold scores saved by model.py, so nothing is retrained.
 
 Metrics per model and k (k=0 is the exact-shot score from model.py)
-  base_rate   share of shots within ±k of a used shot (what random scores as precision)
+  base_rate   share of shots within ±k of a used shot, pooled over shots
   ap          average precision against the ±k label, pooled
   prec_at_k   per film, precision of the top-m shots (m = number of used shots), averaged
   recall_at_k per film, share of used shots with a top-m shot within ±k, averaged
-  lift        prec_at_k / base_rate
+  lift        prec_at_k / the films' mean ±k positive rate, so random scores 1x. (Dividing by the
+              pooled base_rate instead, as before 2026-11-06, gave random 1.18x: short films have
+              higher positive rates and count once each in prec_at_k.)
 
 Writes data/features/model_eval.json (committed)
 
@@ -44,20 +46,27 @@ def film_scores(y, s, k):
     return y_tol[top].mean(), hit.mean()
 
 
+def film_base_rate(df):
+    """Mean positive rate over films with a used shot: the lift denominator."""
+    r = df.groupby("imdb_id").in_trailer.mean()
+    return float(r[r > 0].mean())
+
+
 def evaluate(preds, model, k):
-    y_tol, prec, rec = [], [], []
+    y_tol, prec, rec, film_base = [], [], [], []
     for _, g in preds.groupby("imdb_id", sort=False):
         y = g.in_trailer.values
         y_tol.append(near(y, k))
         if y.any():
             p, r = film_scores(y, g[model].values, k)
+            film_base.append(y_tol[-1].mean())
             prec.append(p)
             rec.append(r)
     y_tol = np.concatenate(y_tol)
     base = float(y_tol.mean())
     return dict(base_rate=base, ap=float(average_precision_score(y_tol, preds[model])),
                 prec_at_k=float(np.mean(prec)), recall_at_k=float(np.mean(rec)),
-                lift=float(np.mean(prec) / base))
+                lift=float(np.mean(prec) / np.mean(film_base)))
 
 
 def main():

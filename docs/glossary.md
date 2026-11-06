@@ -23,7 +23,7 @@
 | AP / PR-AUC | average precision, area under the precision/recall curve; used because only about 4% of shots are positive |
 | precision at trailer length | per film, precision of the top-k shots where k is how many shots the trailer used (R-precision) |
 | tolerance (±k shots) | in `model_eval`, a top-ranked film shot counts as a hit if a used shot is within k film shots of it; random gets the same tolerance |
-| lift | a rate over the rate you'd get by chance. Model: precision at trailer length over the base rate, at the same tolerance. RQ1 page: pick rate of a kind of shot over the average shot's pick rate (1x = no difference) |
+| lift | a rate over the rate you'd get by chance. Model: precision at trailer length over the films' mean base rate, at the same tolerance (random = 1x). RQ1 page: pick rate of a kind of shot over the average shot's pick rate (1x = no difference) |
 | edge shots | film shots in the first and last 1% of a film (studio logos, credits); left out of the RQ1 model and page |
 | context features | `distinct` (unlike the film's average shot), `novelty` (unlike the 2 shots on each side), `recurrence` (the look comes back more than 10 shots away); from CLIP |
 | relative features | `rel_*`: a feature's percentile rank within its own film |

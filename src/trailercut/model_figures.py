@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import precision_recall_curve
 
+from .model_eval import film_base_rate
 from .paths import FEATURES, FIGURES
 
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False, "font.size": 9})
@@ -48,8 +49,7 @@ def pr_curves(preds):
     plt.close(fig)
 
 
-def ablation(report):
-    rate = report["positive_rate"]
+def ablation(report, rate):
     full = report["models"]["full"]["r_prec"] / rate
     drop = {g: d["r_prec"] / rate for g, d in report["ablation_drop"].items()}
     order = sorted(drop, key=drop.get)
@@ -125,7 +125,7 @@ def main():
     preds = pd.read_parquet(FEATURES / "model_preds.parquet")
     shapes()
     pr_curves(preds)
-    ablation(json.loads((FEATURES / "model_report.json").read_text()))
+    ablation(json.loads((FEATURES / "model_report.json").read_text()), film_base_rate(preds))
     tolerance(json.loads((FEATURES / "model_eval.json").read_text()))
     print("figures/model_pr.png, model_ablation.png, model_tolerance.png")
 

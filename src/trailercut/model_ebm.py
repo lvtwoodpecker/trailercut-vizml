@@ -25,6 +25,7 @@ from sklearn.model_selection import GroupKFold
 from tqdm import tqdm
 
 from .model import READABLE, feats, load, metrics
+from .model_eval import film_base_rate
 from .paths import FEATURES, FIGURES
 
 PARAMS = dict(interactions=0, max_bins=64, outer_bags=4, n_jobs=8, random_state=0)
@@ -56,7 +57,7 @@ def main():
         p[te] = m.predict_proba(df.iloc[te][cols])[:, 1]
     scores["ebm"] = p
     res = metrics(scores, "ebm")
-    res["lift"] = res["r_prec"] / float(y.mean())
+    res["lift"] = res["r_prec"] / film_base_rate(df)
 
     m = ExplainableBoostingClassifier(**params).fit(df[cols], y)
     g = m.explain_global().data()

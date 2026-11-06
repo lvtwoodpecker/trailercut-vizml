@@ -187,7 +187,8 @@ model (`random`, `position_only`, `length_only`, `clip_only`, `readable`, `full`
 (share of shots within ±k of a used shot; what random scores as precision), `ap` (pooled AP against
 the ±k label), `prec_at_k` (per film, share of the top-m shots within ±k of a used shot, m = shots the
 trailer used, averaged over films), `recall_at_k` (per film, share of used shots with a top-m shot
-within ±k, averaged) and `lift` (`prec_at_k / base_rate`). `k0` is the exact-shot score.
+within ±k, averaged) and `lift` (`prec_at_k` over the films' mean ±k positive rate, so random is 1x;
+before 2026-11-06 it was over the pooled `base_rate`, which gave random ~1.18x). `k0` is the exact-shot score.
 
 **`model_tune.json`** (C): `n_shots`, `n_films`, `positive_rate`, `variants` (per variant: `ap`,
 `ap_film`, `r_prec`, `ap_lenadj`, and `lift` = `r_prec / positive_rate`). Variants: `random`, `full`,
@@ -196,7 +197,7 @@ learning`, `rank, smaller trees`. The committed file was computed at threshold 0
 re-alignment at 0.535.
 
 **`model_ebm.json`** (C, `model_ebm`): `metrics` (out of fold, same folds as `model.py`: `ap`, `ap_film`,
-`r_prec`, `ap_lenadj`, `lift` = `r_prec` over the positive rate), `lightgbm_readable_lift` (the
+`r_prec`, `ap_lenadj`, `lift` = `r_prec` over the films' mean positive rate), `lightgbm_readable_lift` (the
 `readable` lift at k0 from `model_eval.json`), `curves` (per readable feature, from a fit on all films:
 `x` bin edges, `score` per bin in log-odds, `importance` = mean absolute score).
 
