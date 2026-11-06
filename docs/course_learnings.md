@@ -103,7 +103,8 @@ For us
 - 🔧 "+0.69" (log-odds) → "×1.99" (odds vs the average shot); the panel is titled "What moved the
   model's score, vs the average shot", not "Why"; the RQ1 page says "associations, not causes".
 - 🔧 Correlated groups (CLIP vs content concepts, story position vs act) noted in limitations.md.
-- ⬜ Grouped SHAP across folds: are the top reasons stable?
+- ✅ Grouped SHAP stability (`shap_stability.py`): retrained on different films, the top reason stays
+  the same for 76% of shots (16% by chance), the top-3 set for 55% (5%).
 
 ## Clustering and dimensionality reduction (reference for the clustering part)
 
@@ -155,5 +156,5 @@ For us
 - [x] RQ1 page: link each level to example shots in the Trailer View
 - [ ] Small user evaluation (3 to 5 people, timed questions)
 - [x] EBM at a second smoothness
-- [ ] Grouped SHAP stability across folds
+- [x] Grouped SHAP stability across folds
 - [ ] Report: numbers in the abstract, contribution bullets, design goals → views, annotated figures

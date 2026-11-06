@@ -38,6 +38,16 @@ rest, bootstrap intervals, permutation tests with BH correction.
 - films without subtitles 2.42x vs 2.90x, but mostly because they are short films; the gap shows in the CLIP-only model too
 - decade and trailer size: within noise
 
+**SHAP stability** [`shap_stability.json`]: per fold, 3 full models on different 80% subsets of
+the training films explain the same 6,000 held-out shots; the 6 Trailer View reason groups compared
+per shot, pair by pair (chance in brackets).
+- same top reason 76% (16%), same top reason and direction 75% (8%)
+- same top-3 set 55% (5%), top-3 overlap (Jaccard) 0.77 (0.36), rank agreement over all 6: 0.78
+- used and other shots alike; the global order (CLIP, editing, position first) is the same in all 15 models
+
+Read: the first reason is reliable, the third often swaps with a neighbor. The models share most of
+their training films, so this is an upper bound on stability.
+
 Read: the model works best on long, fast-cut films and struggles with comedy and romance, whose
 trailer shots (jokes, looks, lines) look like any other shot to CLIP.
 

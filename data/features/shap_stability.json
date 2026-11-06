@@ -1,0 +1,165 @@
+{
+  "all": {
+    "top1": 0.7553888888888889,
+    "top1_sign": 0.7519777777777776,
+    "top3": 0.5539777777777777,
+    "jaccard": 0.7699944444444444,
+    "spearman": 0.7837022222222224
+  },
+  "used": {
+    "top1": 0.7681111111111111,
+    "top1_sign": 0.7653333333333332,
+    "top3": 0.5623555555555556,
+    "jaccard": 0.7744222222222221,
+    "spearman": 0.7874019047619049
+  },
+  "other": {
+    "top1": 0.7426666666666666,
+    "top1_sign": 0.7386222222222223,
+    "top3": 0.5456,
+    "jaccard": 0.7655666666666666,
+    "spearman": 0.7800025396825397
+  },
+  "chance": {
+    "top1": 0.16265,
+    "top1_sign": 0.08125,
+    "top3": 0.04945,
+    "jaccard": 0.360235,
+    "spearman": -0.009634285714285713
+  },
+  "global_rank": {
+    "kendall_tau_mean": 0.9999999999999999,
+    "order_per_model": [
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ],
+      [
+        "clip",
+        "editing",
+        "position",
+        "content",
+        "dialogue",
+        "scale"
+      ]
+    ]
+  },
+  "models_per_fold": 3,
+  "folds": 5,
+  "groups": [
+    "position",
+    "dialogue",
+    "scale",
+    "content",
+    "editing",
+    "clip"
+  ]
+}
