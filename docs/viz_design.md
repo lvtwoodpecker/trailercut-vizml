@@ -45,7 +45,7 @@ its frame's average color.
 | mark | spec |
 |---|---|
 | bars | ≤ 24px thick; 4px rounded data end, square at the baseline (`bar()` helper in both pages) |
-| lines | 2px; curves of many links 1.2px at 35% opacity, the highlighted one 2.5px solid |
+| lines | 2px; curves of many links 1.2px at 35% opacity, the highlighted one 3px solid |
 | dots | r ≥ 4 with a 2px ring in the surface color; the current one gets an ink ring |
 | areas | the series hue as a light wash (≈ 10 to 20% opacity), never a saturated block |
 | touching cells | a 2px surface gap, no borders |
@@ -58,6 +58,11 @@ its frame's average color.
 - **Subtitles come from the data**, so they can't drift after a rerun (e.g. the strongest effect whose
   interval excludes 1×).
 - `tabular-nums` only where numbers line up (axes, tables, clocks).
+- **One type scale on both pages:** h1 20px/600; card title 15px/600 ink; subtitle and captions 13px
+  ink-2; chart labels `.lbl` 12px ink, secondary `.lbl-2` 11px muted; axis ticks 11px muted; body
+  14px/1.45.
+- **Values in a column.** Dot-plot values sit right-aligned in the plot's right gutter, not next to the
+  dot, so they never land on the 1× line.
 - Escape anything that comes from data before it goes into HTML (transcripts, concept names).
 
 ## Interaction
@@ -69,8 +74,9 @@ its frame's average color.
 - **Hit targets ≥ 24px** (transparent circles behind 9px dots, full-row targets on dot plots).
 - **Crosshair on lines** (hairline + dot on the curve), per-mark tooltips on bars and dots; the value
   leads the tooltip, the label follows.
-- **Keyboard:** space or `k` play, `←`/`→` one shot, `⇧←`/`⇧→` 5 s, `c` captions, `m` sound, Esc. A
-  focused button keeps its own space/Enter; buttons don't take focus on mouse click.
+- **Keyboard:** space or `k` play, `←`/`→` one shot, Home, `c` captions, `m` sound, Esc (no 5 s jump:
+  shot steps were enough). A focused control (button, table row, reason row, summary) keeps its own
+  space/Enter; buttons don't take focus on mouse click. Everything clickable is also focusable.
 - **Review pages share keys:** `j`/`k` next/prev, `n` next unreviewed, then one verdict letter per
   choice (`x` = leave it as is: keep the trailer, don't split).
 - **Deep links:** `?id=` and `?t=` open a trailer at a moment (for the report and screenshots).
@@ -80,14 +86,26 @@ its frame's average color.
 - Every chart has a **table twin** (collapsed `Table` under it); a value is never hover-only.
 - A legend for every chart with ≥ 2 colors; color is never the only channel (dash, outline, position).
 - Dark mode is its own token set, validated against the dark surface, not an automatic flip.
+- **No opacity to mean "off" or "less".** Faded marks and text fail contrast (the old 35% random bar and
+  45% toggles were 1.6:1 and 3.1:1). A baseline is a grey (`--muted`) bar; an off toggle is muted and
+  struck through; secondary text is `--ink-2`. Neutral marks that must read in dark mode use
+  `--muted`, not `--axis`.
+- **Live regions stay quiet.** The "now" panel is not `aria-live` (it redraws every shot during
+  playback); a hidden line announces the shot only when the video is paused or seeked.
 
 ## Layout
 
-- Cards on the page background, 8px radius, one hairline border.
+- Cards on the page background, one hairline border, padding 12px 16px; main padding 16px 16px 24px.
+- Radius scale: 8px cards, 6px media / inputs / tooltips, 4px buttons and thumbnails, pills 999px.
+- Legend swatches follow the mark: squares for bars and areas, circles for dots.
 - On the Trailer View, the video and the "now" panel sit side by side above the timeline, so the
-  playing video and its highlight are on screen together at ~900px height; video capped at 42vh.
-- Reserve space for media (`aspect-ratio: 16/9`) so switching films doesn't jump the layout.
-- Desktop first (the timeline needs ~560px); no phone layout.
+  playing video and its highlight are on screen together: video height
+  `max(260px, min(42vh, 100vh - 560px))` at 16:9, the panel capped to match.
+- Reserve space for media (`aspect-ratio: 16/9`) so switching films doesn't jump the layout. Missing
+  media gets an empty state in the same box ("No video for this film", a dashed "no frame"), never a
+  hidden element or a blank hole.
+- Desktop first (the timeline needs ~560px); no phone layout yet. Planned: the timeline scrolls inside
+  its card, everything else reflows.
 
 ## Before shipping a view
 
@@ -109,6 +127,14 @@ its frame's average color.
 - **Fixed axis ranges clip silently.** The EBM panels had a hard 0.55 to 2.3× range. → Domains from the
   data, shared across small multiples.
 - **Faint grey "no data" hides the data.** → Leave it empty.
+- **Hard-coded subtitles go stale.** The EBM subtitle said "about the same as the black-box model"
+  after the numbers moved to 2.36× vs 2.75×. → Write subtitles from the data, or don't write the claim.
+- **A step curve needs its last bin's end.** Drawn from bin starts only, the last bin became a vertical
+  spike at the edge. → Export each bin's end (capped at the 99th percentile) and draw flat steps.
+- **Hiding a broken element breaks the next one.** A video error hid the player for every later film.
+  → Keep the box, show an empty state, reset it on load.
+- **Two auditors beat one.** A contract check (finish-gate review against this doc) and a visual design
+  pass found different things; run both before a demo.
 - **Look at the render.** Every issue above was obvious in a screenshot and invisible in the code.
   Headless Chrome screenshots in both themes are cheap. (Headless can't decode mp4, so the video box is
   black there; that's not a bug.)
@@ -157,8 +183,8 @@ screen.
 
 **Video and "now" panel side by side, above the timeline.** The panel shows the current trailer frame
 next to the film frame it matched and the "why this shot" bars, so judging a match needs no extra
-click. Keyboard: space or `k` play/pause, left/right step one shot, shift+left/right 5 s, Home to the
-start, `c` captions, `m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked.
+click. Keyboard: space or `k` play/pause, left/right step one shot, Home to the start, `c` captions,
+`m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked.
 
 **Thumbnails are local only.** Frame images load from the viewer's own `data/movienet/frames/` and
 `data/cache/trailer_frames/`. Frames are copyrighted, so they are never committed, exported into
@@ -208,10 +234,14 @@ below 1x whose interval excludes 1x, or says there is no clear difference. Text 
 numbers after a rerun.
 
 **Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
-get together, next to the single-feature lifts.
+get together, next to the single-feature lifts. The EBM sits in the same chart as its own bar, so its
+gap to LightGBM is visible instead of described. Random is the grey baseline; the axis runs to 1.1× the
+best model.
 
 **Effect of each feature: EBM curves** (from `model_ebm.json`). The lifts above look at one feature at
 a time; the EBM curves show each feature's effect with the others held fixed. The page shows the 6
 curves with the highest importance, as odds multipliers on one shared log scale (same reason as the
-lift bars), its range taken from the data so no curve is clipped, cut to the feature's 1st to 99th percentile since the outer bins hold few shots. The
+lift bars), its range taken from the data so no curve is clipped, cut to the feature's 1st to 99th percentile since the outer bins hold few shots. Each bin draws as
+a flat step to its own end. Concept features are raw CLIP similarities, which mean nothing as numbers,
+so their x axis reads only "low" and "high". The
 section is hidden when `model_ebm.json` doesn't exist.

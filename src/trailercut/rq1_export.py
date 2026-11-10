@@ -145,7 +145,11 @@ def main():
             lo, hi = df[name].quantile([0.01, 0.99])
             keep = (edges[:-1] >= lo) & (edges[:-1] <= hi)
             r4 = lambda a: [round(float(v), 4) for v in np.asarray(a)[keep]]
-            cur = dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")), x=r4(edges[:-1]), y=r4(score))
+            # x = bin start, x_end = bin end (capped at the 99th percentile), so the last bin draws as a
+            # step, not a spike at the edge;
+            # concept scores are raw CLIP similarities, so the page shows them as low -> high only
+            cur = dict(name=EBM_LABEL.get(name, name.removeprefix("c_").replace("_", " ")), x=r4(edges[:-1]),
+                       x_end=r4(np.minimum(edges[1:], hi)), y=r4(score), concept=name.startswith("c_"))
             if "lo" in c:  # band (spread over the outer bags) and shots per bin (support)
                 cur.update(lo=r4(np.exp(c["lo"])), hi=r4(np.exp(c["hi"])))
             # shots per bin, counted on the same shots as everything else on the page (support for the curve)

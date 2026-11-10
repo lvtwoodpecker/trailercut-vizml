@@ -30,28 +30,33 @@
   --pos: #3987e5; --neg: #e66767;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { padding: 12px 16px 24px; max-width: 1600px; margin: 0 auto; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { padding: 16px 16px 24px; max-width: 1600px; margin: 0 auto; }
 header { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 10px; }
-h1 { font-size: 18px; margin: 0; }
+h1 { font-size: 20px; margin: 0; }
 .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 header a { color: var(--ink-2); font-size: 13px; }
 input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
-.card h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--ink-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
 button { font: 13px system-ui, sans-serif; color: var(--ink); background: var(--surface); border: 1px solid var(--border);
   border-radius: 4px; padding: 3px 10px; cursor: pointer; }
 button:focus-visible, input:focus-visible, video:focus-visible { outline: 2px solid var(--matched); outline-offset: 1px; }
-button[aria-pressed="false"] { opacity: .45; }
+button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+.linkish { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 4px 0; min-height: 24px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* stage: video and the shot under the playhead, side by side, above the timeline */
 
 .stage { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
 @media (min-width: 1000px) { .stage { grid-template-columns: auto minmax(320px, 1fr); } }
 .player { margin: 0; }
-.player video { display: block; height: max(260px, calc(100vh - 560px)); width: auto; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; cursor: pointer; }
+.screen { position: relative; }
+.player video { display: block; height: max(260px, min(42vh, calc(100vh - 560px))); width: auto; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; cursor: pointer; }
 @media (max-width: 999px) { .player video { width: 100%; height: auto; } }
-#now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, calc(100vh - 560px)) + 52px); }
+#now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, min(42vh, calc(100vh - 560px))) + 52px); }
+.novid { display: none; position: absolute; inset: 0; place-items: center; color: #c3c2b7; font-size: 13px; }
+.player.novideo .novid { display: grid; }
 .player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 .controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
 
@@ -59,7 +64,7 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
 
 #now .head { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
 #now .head b { font-size: 15px; }
-#now .tag { font-size: 12px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--ink-2); }
+#now .tag { font-size: 12px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-2); }
 /* the shot under the playhead: frames on the left, the model's reasons on the right */
 #now .body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 8px; }
 #now svg { max-width: 100%; }
@@ -68,18 +73,21 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
 #now img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; display: block; background: var(--grid); }
 #now figcaption { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
 #now .empty { aspect-ratio: 16 / 9; border-radius: 4px; border: 1px dashed var(--axis); display: grid; place-items: center; color: var(--muted); font-size: 12px; }
-.why-h { font-size: 12px; color: var(--ink-2); margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+.why-h { font-size: 12px; color: var(--ink-2); margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: baseline; }
+.why-h .legend { margin: 0; }
+.shap-row:focus { outline: none; }
+.shap-row:focus-visible .focus { stroke: var(--matched); stroke-width: 2; }
 .shap-row { cursor: pointer; }
 .shap-row text { fill: var(--ink); font-size: 12px; }
 .shap-row .val { fill: var(--ink-2); font-variant-numeric: tabular-nums; }
 
-.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 svg { display: block; overflow: visible; }
 #main { touch-action: none; user-select: none; }
 .axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .axis path, .axis line { stroke: var(--axis); }
-.lbl { fill: var(--muted); font-size: 11px; }
+.lbl-2 { fill: var(--muted); font-size: 11px; }
 .link { stroke: var(--matched); stroke-opacity: 0.35; stroke-width: 1.2; fill: none; }
 .link.hi { stroke-opacity: 1; stroke-width: 3; }
 .slink { stroke: var(--speech); stroke-width: 2.5; stroke-dasharray: 5 3; fill: none; }
@@ -95,14 +103,15 @@ svg { display: block; overflow: visible; }
 .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 1000px) { .grid2 { grid-template-columns: 1fr 1fr; } }
 
-details#tbl { margin-top: 6px; font-size: 12px; }
-details#tbl summary { cursor: pointer; color: var(--ink-2); }
+details.tbl { margin-top: 6px; font-size: 12px; }
+details.tbl summary { cursor: pointer; color: var(--ink-2); }
+summary:focus-visible { outline: 2px solid var(--matched); outline-offset: 2px; }
 .tbl-wrap { max-height: 260px; overflow: auto; margin-top: 6px; border-top: 1px solid var(--grid); }
-#tbl table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-#tbl th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
-#tbl td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); color: var(--ink); }
-#tbl tbody tr { cursor: pointer; }
-#tbl tbody tr:hover { background: var(--grid); }
+.tbl table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tbl th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+.tbl td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); color: var(--ink); }
+.tbl tbody tr { cursor: pointer; }
+.tbl tbody tr:hover, .tbl tbody tr:focus-visible { background: var(--grid); outline: none; }
 #tbl tr.cur td { background: var(--grid); font-weight: 600; }
 #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; max-width: 380px; z-index: 10; }
@@ -123,7 +132,7 @@ details#tbl summary { cursor: pointer; color: var(--ink-2); }
 
   <div class="stage">
   <section class="card player">
-      <video id="vid" preload="metadata" tabindex="0"></video>
+      <div class="screen"><video id="vid" preload="metadata" tabindex="0"></video><div class="novid">No video for this film</div></div>
       <div class="controls">
         <button id="prev" aria-label="Previous shot">⏮</button>
         <button id="pp" aria-label="Play">▶</button>
@@ -134,25 +143,29 @@ details#tbl summary { cursor: pointer; color: var(--ink-2); }
         <button id="mute" aria-pressed="true" aria-label="Sound">♪</button>
       </div>
   </section>
-  <section class="card" id="now" aria-live="polite"></section>
+  <section class="card" id="now"></section>
+  <p class="sr" id="sr" aria-live="polite"></p>
   </div>
 
   <section class="card">
     <div class="legend">
       <span><i style="background:var(--matched)"></i>matched</span>
-      <span><i style="border:1px solid var(--axis)"></i>no match</span>
+      <span><i style="border:1px solid var(--muted)"></i>no match</span>
       <span><i style="background:var(--used)"></i>used in trailer</span>
       <span><i style="background:var(--speech)"></i>dialogue from the film</span>
     </div>
     <div id="main-wrap"><svg id="main" role="img" aria-label="Trailer shots linked to where they come from in the film"></svg></div>
-    <details id="tbl"><summary>Shots table</summary>
+    <details id="tbl" class="tbl"><summary>Shots table</summary>
       <div class="tbl-wrap"><table><thead><tr><th>shot</th><th>start</th><th>end</th><th>match</th><th>film shot</th><th>film position</th><th>score</th></tr></thead><tbody></tbody></table></div>
     </details>
   </section>
 
   <div class="grid2">
     <section class="card"><h2>Trailer order vs film order</h2><svg id="order"></svg></section>
-    <section class="card"><h2>Sound vs picture</h2><svg id="sync"></svg><p class="note" id="sync-note"></p></section>
+    <section class="card"><h2>Sound vs picture</h2><svg id="sync"></svg><p class="note" id="sync-note"></p>
+      <details id="sync-tbl" class="tbl"><summary>Lines table</summary>
+        <div class="tbl-wrap"><table><thead><tr><th>line</th><th>trailer time</th><th>picture</th><th>sound</th><th>same scene</th></tr></thead><tbody></tbody></table></div>
+      </details></section>
   </div>
 </main>
 <div id="tip"></div>
@@ -176,7 +189,7 @@ const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2
 const pad4 = i => String(i).padStart(4, "0");
 const tImg = (i, k = 1) => `../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
 const fImg = (i, k = 1) => `../data/movienet/frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
-const img = src => `<img src="${src}" alt="" onerror="this.style.visibility='hidden'">`;
+const img = src => `<img src="${src}" alt="" onerror="this.outerHTML='<div class=&quot;empty&quot;>no frame</div>'">`;
 const shotAt = t => Math.max(0, d3.bisectRight(starts, t) - 1);
 const lineAt = t => {
   const k = d3.bisectRight(lineStarts, t) - 1;
@@ -212,6 +225,7 @@ async function load(id) {
   d3.select("#title").text(D.title);
   d3.select("#meta").text(`${(D.genres || []).slice(0, 2).join(", ")} · ${D.shots.length} shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed}/${D.film.n} film shots used`);
+  d3.select(".player").classed("novideo", false);
   vid.src = `../data/trailers/${id}.mp4`;
   vid.querySelectorAll("track").forEach(t => t.remove());
   const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
@@ -242,7 +256,7 @@ vid.addEventListener("play", () => {
   if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(loopVFC); else requestAnimationFrame(loopRAF);
 });
 vid.addEventListener("seeked", () => { if (vid.paused) follow(vid.currentTime); });
-vid.addEventListener("error", () => d3.select(".player").style("display", "none"));
+vid.addEventListener("error", () => d3.select(".player").classed("novideo", true));
 
 // ---- controls ----
 const pp = document.getElementById("pp"), clock = document.getElementById("clock");
@@ -275,7 +289,7 @@ muteBtn.addEventListener("click", toggleMute);
 addEventListener("keydown", ev => {
   if (ev.target.tagName === "INPUT" || ev.metaKey || ev.ctrlKey || ev.altKey || !D) return;
   const k = ev.key;
-  if (ev.target.tagName === "BUTTON" && (k === " " || k === "Enter")) return;  // a focused button handles its own key
+  if (["BUTTON", "TR", "SUMMARY"].includes(ev.target.tagName) && (k === " " || k === "Enter")) return;  // a focused control handles its own key
   if (k === " " || k === "k") { ev.preventDefault(); toggle(); }
   else if (k === "ArrowRight" || k === "ArrowLeft") {
     ev.preventDefault();
@@ -299,7 +313,14 @@ function current() {
 const same = (a, b) => a === b || (a && b && a.trailer === b.trailer && a.film === b.film);
 function hover(h) { if (vid.paused && !same(h, preview)) { preview = h; render(); } }
 function unhover() { hideTip(); if (preview) { preview = null; render(); } }
-function render() { const h = current(); highlight(h); drawNow(h); }
+function render() { const h = current(); highlight(h); drawNow(h); announce(h); }
+// screen readers: say the shot only when paused (during playback it would re-read every second)
+function announce(h) {
+  if (!vid.paused || !h) return;
+  const j = h.film >= 0 ? h.film : null;
+  document.getElementById("sr").textContent = (h.trailer !== undefined ? `Shot ${h.trailer + 1}, ` : `Film shot ${j}, `) +
+    (j !== null ? `${Math.round(100 * D.film.story_pos[j])}% into the film` : "not found in the film");
+}
 
 function highlight(h) {
   const t = h && h.trailer !== undefined ? h.trailer : null, f = h && h.film >= 0 ? h.film : null;
@@ -346,7 +367,8 @@ function drawNow(h) {
       (users.length ? `<figure>${img(tImg(users[0]))}<figcaption>trailer · shot ${users[0] + 1}</figcaption></figure>` : "");
   }
   box.html(`<div class="head">${head}</div><div class="body"><div class="frames">${frames}</div><div class="why">` +
-    `<div class="why-h"><span>What moved the model's score, vs the average shot</span><span>blue: toward the trailer · red: away</span></div><svg id="shap"></svg></div></div>`);
+    `<div class="why-h"><span>Odds vs average shot</span><span class="legend"><span><i style="background:var(--pos)"></i>toward trailer</span><span><i style="background:var(--neg)"></i>away</span></span></div>` +
+    `<svg id="shap"></svg><button class="linkish" id="more" hidden></button></div></div>`);
   shapFor = j;
   drawShap(j);
 }
@@ -361,7 +383,7 @@ function drawShap(i) {
   const f = D.film, svg = d3.select("#shap");
   if (i === null || !f.shap || f.trailerness[i] == null) { d3.select("#now .why").remove(); return; }
   svg.selectAll("*").remove();
-  const w = document.getElementById("now").clientWidth - 30;  // the panel's inner width (padding 14px each side)
+  const w = document.getElementById("now").clientWidth - 34;  // the panel's inner width (padding 16px each side)
   // a few reasons read better than all of them: top 3 groups, the rest behind "more"
   let rows = f.shap_groups.map((g, k) => ({ key: g, label: GROUP_LABEL[g], v: f.shap[i][k], group: true }));
   rows.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
@@ -380,9 +402,16 @@ function drawShap(i) {
   const m = d3.max(rows, r => Math.abs(r.v)) || 1, x = d3.scaleLinear([-m, m], [Math.min(150, w * 0.42) + 40, w - 40]);
   svg.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 0).attr("y2", H).attr("stroke", "var(--axis)");
   if (rows.length > 1) svg.append("line").attr("x1", 0).attr("x2", w).attr("y1", rh + 1).attr("y2", rh + 1).attr("stroke", "var(--grid)");
+  // group rows open their features: by click, or focus + Enter/Space (a hit rect carries the focus ring)
+  const opens = r => r.group && r.key !== "clip" && detail;
+  const open = r => { if (opens(r)) { expanded = expanded === r.key ? null : r.key; drawShap(i); } };
   const g = svg.selectAll("g.shap-row").data(rows).join("g").attr("class", "shap-row")
     .attr("transform", (_, k) => `translate(0,${k * rh})`)
-    .on("click", (ev, r) => { if (r.group && r.key !== "clip" && detail) { expanded = expanded === r.key ? null : r.key; drawShap(i); } });
+    .attr("tabindex", r => opens(r) ? 0 : null).attr("role", r => opens(r) ? "button" : null)
+    .attr("aria-expanded", r => opens(r) ? r.key === expanded : null)
+    .on("click", (ev, r) => open(r))
+    .on("keydown", (ev, r) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); open(r); } });
+  g.append("rect").attr("class", "focus").attr("x", 0).attr("y", 1).attr("width", w).attr("height", rh - 2).attr("rx", 4).attr("fill", "none");
   // only the top reason is reliable across retrained models (76% vs 55% for the top-3 set, shap_stability.json):
   // it gets the weight, the rest read as secondary
   const top = rows[0];
@@ -390,15 +419,12 @@ function drawShap(i) {
     .style("fill", r => r === top ? null : "var(--ink-2)")
     .text(r => r.group ? `${r.key === expanded ? "▾" : r.key === "clip" || !detail ? " " : "▸"} ${r.label}` : r.label);
   g.append("path").attr("d", r => bar(x(0), x(r.v), 4, 12))
-    .attr("fill", r => r.v >= 0 ? "var(--pos)" : "var(--neg)").attr("opacity", r => r.group ? 1 : 0.7);
+    .attr("fill", r => r.v >= 0 ? "var(--pos)" : "var(--neg)");
   // values are log-odds contributions; shown as what they do to the odds (×1.5 = 50% better odds)
   g.append("text").attr("class", "val").attr("y", 14).attr("x", r => r.v >= 0 ? x(r.v) + 4 : x(r.v) - 4)
     .attr("text-anchor", r => r.v >= 0 ? "start" : "end").text(r => `×${d3.format(".2f")(Math.exp(r.v))}`);
-  if (hidden > 0) {
-    svg.attr("height", H + 18).attr("viewBox", `0 0 ${w} ${H + 18}`);
-    svg.append("text").attr("class", "lbl").attr("y", H + 12).style("cursor", "pointer")
-      .text(allGroups ? "▴ fewer" : `▾ ${hidden} more`).on("click", () => { allGroups = !allGroups; drawShap(i); });
-  }
+  d3.select("#more").attr("hidden", hidden > 0 ? null : "").text(allGroups ? "▴ fewer" : `▾ ${hidden} more`)
+    .on("click", () => { allGroups = !allGroups; drawShap(i); });
 }
 // a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
 function bar(x0, x1, y, h) {
@@ -430,7 +456,9 @@ function drawTable() {
   d3.select("#tbl tbody").selectAll("tr").data(D.shots).join("tr")
     .html((s, i) => `<td>${i + 1}</td><td>${fmtT(s[0])}</td><td>${fmtT(s[1])}</td><td>${s[2] ? "yes" : "no"}</td>` +
       `<td>${s[3] >= 0 ? s[3] : "–"}</td><td>${s[3] >= 0 ? Math.round(100 * f.story_pos[s[3]]) + "%" : "–"}</td><td>${s[4] != null ? s[4].toFixed(2) : "–"}</td>`)
-    .on("click", (ev, s) => { preview = null; seek(s[0] + 0.01); });
+    .attr("tabindex", 0)
+    .on("click", (ev, s) => { preview = null; seek(s[0] + 0.01); })
+    .on("keydown", (ev, s) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); preview = null; seek(s[0] + 0.01); } });
 }
 
 // ---- timeline: sound and trailer on top (the scrubber), film below, links between ----
@@ -444,9 +472,9 @@ function drawMain() {
   svg.selectAll("*").remove();
   tx = d3.scaleLinear([0, D.duration], [PAD.l, W - PAD.r]);
   fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
-  const label = (y, t) => svg.append("text").attr("class", "lbl").attr("x", PAD.l - 8).attr("y", y).attr("text-anchor", "end").text(t);
+  const label = (y, t) => svg.append("text").attr("class", "lbl-2").attr("x", PAD.l - 8).attr("y", y).attr("text-anchor", "end").text(t);
 
-  // sound: loudness, violet where a spoken line comes from the film's dialogue
+  // sound: loudness, green where a spoken line comes from the film's dialogue
   if (D.curves) {
     const db = D.curves.rms_db, lo = d3.quantile([...db].sort(d3.ascending), 0.1);
     const y = d3.scaleLinear([lo, d3.max(db)], [Y.audio[1], Y.audio[0]]).clamp(true);
@@ -485,7 +513,7 @@ function drawMain() {
       .attr("y", Y.barcode[0]).attr("height", Y.barcode[1] - Y.barcode[0]).attr("fill", i => f.color[i] || "var(--unmatched)");
   }
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.fAxis})`)
-    .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+    .call(d3.axisBottom(fx).ticks(Math.min(10, Math.floor(W / 70))).tickFormat(d3.format(".0%")).tickSizeOuter(0));
 
   svg.append("path").attr("id", "slink").attr("class", "slink").style("display", "none");
   svg.append("rect").attr("id", "trailer-hi").attr("class", "outline").attr("rx", 1)
@@ -539,17 +567,17 @@ function scatter(svg, data, cls, cx, cy, on) {
 function axes(svg, x, y, w, H, m, xf, xl, yl) {
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(5).tickFormat(xf).tickSizeOuter(0));
   svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
-  svg.append("text").attr("class", "lbl").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text(xl);
-  svg.append("text").attr("class", "lbl").attr("x", m.l).attr("y", 10).attr("text-anchor", "middle").text(yl);
+  svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", H - 4).attr("text-anchor", "end").text(xl);
+  svg.append("text").attr("class", "lbl-2").attr("x", m.l).attr("y", 10).attr("text-anchor", "middle").text(yl);
 }
 
 function drawOrder() {
-  const w = document.getElementById("order").parentNode.clientWidth - 28, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
+  const w = document.getElementById("order").parentNode.clientWidth - 34, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
   const svg = d3.select("#order").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
   svg.selectAll("*").remove();
   const x = d3.scaleLinear([0, D.duration], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
   svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(D.duration)).attr("y2", y(1));
-  svg.append("text").attr("class", "lbl").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
+  svg.append("text").attr("class", "lbl-2").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
   const pts = D.shots.map((s, i) => [s, i]).filter(d => d[0][3] >= 0);
   scatter(svg, pts, "dot", ([s]) => x((s[0] + s[1]) / 2), ([s]) => y(D.film.story_pos[s[3]]), {
     move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${img(tImg(i))}${img(fImg(s[3]))}</div><div>Shot ${i + 1}</div>`); },
@@ -561,7 +589,7 @@ function drawOrder() {
 
 // per matched line: where its sound is in the film vs where the picture on screen is from
 function drawSync() {
-  const w = document.getElementById("sync").parentNode.clientWidth - 28, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
+  const w = document.getElementById("sync").parentNode.clientWidth - 34, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
   const svg = d3.select("#sync").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
   svg.selectAll("*").remove();
   const f = D.film, rt = f.runtime || 1, pts = [];
@@ -572,13 +600,21 @@ function drawSync() {
   });
   const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
   svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(1)).attr("y2", y(1));
-  svg.append("text").attr("class", "lbl").attr("x", x(1) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("same moment");
+  svg.append("text").attr("class", "lbl-2").attr("x", x(1) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("same moment");
   scatter(svg, pts, "sdot", p => x(p.x), p => y(p.y), {
     move: (ev, p) => { hover({ trailer: p.i, film: D.shots[p.i][3] }); soundLink(p.k); showTip(ev, `“${esc(D.speech[p.k][4])}”`); },
     leave: () => { unhover(); soundLink(curLine); },
     click: (ev, p) => { preview = null; hideTip(); seek(D.speech[p.k][0] + 0.01); },
   });
   axes(svg, x, y, w, H, m, d3.format(".0%"), "picture", "sound");
+  // its table twin: the same lines, a row click seeks there
+  const seekLine = p => { preview = null; seek(D.speech[p.k][0] + 0.01); };
+  d3.select("#sync-tbl tbody").selectAll("tr").data(pts).join("tr").attr("tabindex", 0)
+    .html(p => `<td style="text-align:left">${esc(D.speech[p.k][4])}</td><td>${fmtT(D.speech[p.k][0])}</td><td>${Math.round(100 * p.x)}%</td>` +
+      `<td>${Math.round(100 * p.y)}%</td><td>${p.sync ? "yes" : "no"}</td>`)
+    .on("click", (ev, p) => seekLine(p))
+    .on("keydown", (ev, p) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); seekLine(p); } });
+  d3.select("#sync-tbl").style("display", pts.length ? null : "none");
   const nSync = pts.filter(p => p.sync).length, nLines = D.speech.filter(d => d[2]).length;
   d3.select("#sync-note").text(!nLines ? "No film dialogue in this trailer." : `${nSync} of ${pts.length} lines play over their own scene.`);
 }
