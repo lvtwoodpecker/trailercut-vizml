@@ -20,8 +20,9 @@ From NYU's HPC docs and what has worked in our other Torch projects:
 - **Give the Slurm account on the command line:** `sbatch --export=NONE --account=<account> ...`.
   Accounts are per project or course; `sacctmgr show assoc user=$USER format=account%30` lists yours.
   Don't borrow another project's.
-- **Temp files on scratch, never `/tmp`**: the login node's `/tmp` is not the compute node's.
-  `env.sh` sets `TMPDIR` under scratch.
+- **Temp files: never the login node's `/tmp`** (it is not the compute node's). Inside a job,
+  `env.sh` points `TMPDIR` at the node-local `$SLURM_TMPDIR`; PyTorch worker temp files on scratch's
+  network filesystem fail to delete at exit ("Device or resource busy"). Outside a job, `.cache/tmp`.
 - **Copy data through a transfer node**, not the login node. `dtn.torch.hpc.nyu.edu` lands on either
   `dtn011.hpc.nyu.edu` or `dtn012.hpc.nyu.edu`, which have different host keys, so ssh warns that the
   key "changed" when it switches. Pick one node by name and use it every time. Before accepting its

@@ -13,8 +13,9 @@ export HF_HOME=$REPO/.cache/hf
 export TORCH_HOME=$REPO/.cache/torch
 export UV_CACHE_DIR=$REPO/.cache/uv
 export UV_PROJECT_ENVIRONMENT=$REPO/.venv
-# temp files on scratch: /tmp on the login node is not the compute node's /tmp
-export TMPDIR=$REPO/.cache/tmp
+# temp files: in a job, the node-local $SLURM_TMPDIR (worker temp files on scratch's network
+# filesystem can't always be deleted at exit); outside a job, scratch. Never the login node's /tmp.
+export TMPDIR=${SLURM_TMPDIR:-$REPO/.cache/tmp}
 
 PY=$UV_PROJECT_ENVIRONMENT/bin/python
 mkdir -p "$TRAILERCUT_DATA" "$HF_HOME" "$TORCH_HOME" "$TMPDIR" "$REPO/logs"
