@@ -74,7 +74,7 @@ YouTube tends to block cluster IPs, so download locally and copy the videos up (
 
 ```bash
 # laptop, from the repo root
-rsync -av --progress data/trailers/ <netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml/data/trailers/
+rsync -av --progress data/trailers/ <netid>@dtn012.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml/data/trailers/
 ```
 
 ## 3. Keyframes
@@ -99,7 +99,7 @@ them from there or copy them down), and embeddings to `$TRAILERCUT_DATA/cache/cl
 ## 5. Copy results down (from your laptop)
 
 ```bash
-R=<netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
+R=<netid>@dtn012.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
 rsync -av --progress $R/data/cache/clip/h14/        data/cache/clip/h14/
 rsync -av --progress $R/data/cache/trailer_frames/  data/cache/trailer_frames/
 rsync -av --progress $R/data/cache/trailer_audio/   data/cache/trailer_audio/
