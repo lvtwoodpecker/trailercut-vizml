@@ -19,7 +19,7 @@ source hpc/env.sh
 echo "job $SLURM_JOB_ID on $(hostname), started $(date)"
 nvidia-smi --query-gpu=name,memory.total --format=csv
 echo "CLIP backbone: $TRAILERCUT_CLIP"
-export HF_HUB_OFFLINE=1
+# not offline: a backbone setup.sh did not cache (e.g. b32 as a control) downloads its weights here
 
 IDS=$($PY -c "from trailercut.label_eval import load_gold, one_per_shot; print(' '.join(sorted(one_per_shot(load_gold()).imdb_id.unique())))" | tail -1)
 echo "films: $IDS"
