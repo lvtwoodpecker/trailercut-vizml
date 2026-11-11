@@ -14,4 +14,6 @@ export UV_PROJECT_ENVIRONMENT=$SCRATCH_ROOT/trailercut/venv
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 PY=$UV_PROJECT_ENVIRONMENT/bin/python
-mkdir -p "$TRAILERCUT_DATA" "$HF_HOME" "$TORCH_HOME"
+# temp files on scratch: /tmp on the login node is not the compute node's /tmp
+export TMPDIR=$SCRATCH_ROOT/trailercut/tmp
+mkdir -p "$TRAILERCUT_DATA" "$HF_HOME" "$TORCH_HOME" "$TMPDIR"
