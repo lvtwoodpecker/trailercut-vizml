@@ -25,7 +25,7 @@ current block lives in `plan.md`.
 
 - [ ] Publish the dataset on Hugging Face: `release` builds and checks `data/release/` (1,058 films, ~6 MB); needs a go and a repo name, then `release --push USER/NAME` (private unless `--public`)
 
-- [ ] Cluster: get HPC access, set the `CHANGE_ME` account in `hpc/*.sbatch`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
+- [ ] Cluster: get HPC access, pass the Slurm account with `sbatch --account`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
 - [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
 - [ ] VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
 - [ ] Overview linked to the Trailer View

@@ -2,13 +2,16 @@
 # GPU job: TransNetV2 shots for every trailer, then CLIP embeddings for film + trailer keyframes.
 # Needs: trailers rsynced to $TRAILERCUT_DATA/trailers and fetch_keyframes.sbatch finished.
 # Resumable: every step skips trailers/films that are already done.
+#   sbatch --export=NONE --account=<account> hpc/gpu_preprocess.sbatch
 #SBATCH --job-name=tc-gpu
-#SBATCH --account=CHANGE_ME
 #SBATCH --gres=gpu:1
+#SBATCH --constraint="l40s|h200"
+#SBATCH --requeue
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=06:00:00
-#SBATCH --output=logs/%x-%j.out
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
 
 set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"

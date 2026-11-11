@@ -4,20 +4,58 @@ Only the heavy steps run on the cluster: keyframe download, TransNetV2 shot dete
 embeddings. Everything after that (alignment features, clustering, figures, labeling) runs on a laptop
 in minutes. The default backbone on the cluster is CLIP ViT-H/14, matching Argaw et al.
 
-## 0. Set your account
+## 0. Rules on the cluster (NYU Torch)
 
-Replace `CHANGE_ME` in both `.sbatch` files with your Slurm account, and check the scratch path in
-`env.sh` (defaults to `$SCRATCH`, else `/scratch/$USER`). GPU partition flags vary by cluster; add
-`#SBATCH --partition=...` or a GPU type (e.g. `--gres=gpu:a100:1`) if yours needs it.
+From NYU's HPC docs and what has worked in our other Torch projects:
 
-## 1. Clone and set up (login node)
+- **The login node is for git, editing and Slurm commands only.** Setup, installs, downloads and
+  every Python run go through `sbatch` (or `srun --pty` for interactive debugging, which lands on a
+  compute node). For a one-off check, write the script to a file on scratch and submit that, instead
+  of a long `python -c "..."` with fragile quoting.
+- **Submit with `sbatch --export=NONE`**, so your login shell's variables don't leak into the job;
+  the jobs `source hpc/env.sh` themselves. To pass one variable, use `--export=VAR=value` (that
+  also exports nothing else).
+- **Give the Slurm account on the command line:** `sbatch --export=NONE --account=<account> ...`.
+  Accounts are per project or course; `sacctmgr show assoc user=$USER format=account%30` lists yours.
+  Don't borrow another project's.
+- **Temp files on scratch, never `/tmp`**: the login node's `/tmp` is not the compute node's.
+  `env.sh` sets `TMPDIR` under scratch.
+- **Copy data through the transfer node** `dtn.torch.hpc.nyu.edu`, not the login node.
+- **Storage** (check with `myquota`):
+
+  | where | for | limit | backed up | purged |
+  |---|---|---|---|---|
+  | `$HOME` | small config | 50 GB, 30k files | yes | no |
+  | `$SCRATCH` | data, venv, caches, this repo's checkout | 5 TB, 5M files | **no** | **after 60 days without access** |
+  | `$ARCHIVE` | finished data as one tar (login nodes only) | 2 TB, 20k files | yes | no |
+
+  Code lives in git and results get copied down, so a purge only costs a re-download. Touching files
+  to dodge the purge is a policy violation. No environments or model caches in `$HOME` (`env.sh`
+  puts the venv, uv, Hugging Face and torch caches on scratch).
+- **Few big files, not many small ones.** Keyframes stay one uncompressed zip per film, read in place.
+- **Data rules.** HPC is approved for moderate-risk data only. Film keyframes, trailers and frames are
+  copyrighted: they stay in your own scratch, never in a shared or public location.
+- **GPU jobs** ask for `--gres=gpu:1 --constraint="l40s|h200" --requeue`; logs go to
+  `logs/<job>_<id>.out` and `.err`.
+- **Watching jobs:** `squeue -u $USER`, `tail -f logs/<job>_*.out`, and after a run
+  `sacct -j <id> --format=JobID,Elapsed,MaxRSS,State` or `seff <id>` to right-size time and memory.
+  Chain steps with `sbatch --parsable` and `--dependency=afterok:<id>`.
+
+`env.sh` defaults to `$SCRATCH/trailercut` for data (else `/scratch/$USER/trailercut`); change
+`SCRATCH_ROOT` there to put it elsewhere, and point the rsync commands below at the same place.
+
+## 1. Clone and set up
 
 ```bash
-cd /scratch/$USER          # or wherever you keep code
-git clone git@github.com:lvtwoodpecker/trailercut-vizml.git && cd trailercut-vizml
+# login node
+cd $SCRATCH
+git clone https://github.com/lvtwoodpecker/trailercut-vizml.git && cd trailercut-vizml
 mkdir -p logs
-bash hpc/setup.sh          # venv on scratch, MovieNet metadata, CLIP + TransNetV2 weights
+sbatch --export=NONE --account=<account> hpc/setup.sbatch   # venv on scratch, MovieNet metadata, CLIP + TransNetV2 weights
 ```
+
+`setup.sbatch` runs `setup.sh` as a job and needs internet on the compute node. If it fails on
+downloads, ask before falling back to anything on the login node.
 
 ## 2. Copy trailers up (from your laptop)
 
@@ -25,23 +63,23 @@ YouTube tends to block cluster IPs, so download locally and copy the videos up (
 
 ```bash
 # laptop, from the repo root
-rsync -av --progress data/trailers/ <user>@<cluster>:/scratch/<user>/trailercut/data/trailers/
+rsync -av --progress data/trailers/ <netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut/data/trailers/
 ```
 
 ## 3. Keyframes
 
 ```bash
-sbatch hpc/fetch_keyframes.sbatch
+sbatch --export=NONE --account=<account> hpc/fetch_keyframes.sbatch
 ```
 
-Stores one uncompressed zip per film (~880 files instead of ~1.3M JPEGs). If compute nodes have
-no internet, run the python line from the script on a login/transfer node inside `tmux` instead.
+Stores one uncompressed zip per film (~880 files instead of ~1.3M JPEGs). It needs internet on the
+compute node; if that fails, ask HPC support or run the download on the transfer node.
 
 ## 4. Shots + embeddings (GPU)
 
 ```bash
-sbatch hpc/gpu_preprocess.sbatch                     # h14 by default
-TRAILERCUT_CLIP=l14 sbatch hpc/gpu_preprocess.sbatch # or another backbone; caches don't collide
+sbatch --export=NONE --account=<account> hpc/gpu_preprocess.sbatch               # h14 by default
+sbatch --export=TRAILERCUT_CLIP=l14 --account=<account> hpc/gpu_preprocess.sbatch # another backbone; caches don't collide
 ```
 
 Writes `data/features/trailer_shots/` and `data/features/alignment/` in the repo checkout (commit
@@ -50,7 +88,7 @@ them from there or copy them down), and embeddings to `$TRAILERCUT_DATA/cache/cl
 ## 5. Copy results down (from your laptop)
 
 ```bash
-R=<user>@<cluster>:/scratch/<user>/trailercut
+R=<netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut
 rsync -av --progress $R/data/cache/clip/h14/        data/cache/clip/h14/
 rsync -av --progress $R/data/cache/trailer_frames/  data/cache/trailer_frames/
 rsync -av --progress $R/data/cache/trailer_audio/   data/cache/trailer_audio/
