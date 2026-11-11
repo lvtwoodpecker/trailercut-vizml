@@ -51,6 +51,16 @@ their training films, so this is an upper bound on stability.
 Read: the model works best on long, fast-cut films and struggles with comedy and romance, whose
 trailer shots (jokes, looks, lines) look like any other shot to CLIP.
 
+Correction (2026-11-11, length-adjusted re-check): lift rises with film length partly by arithmetic
+(long films have lower positive rates, so the same ranking gives a higher lift; a simulated model of
+equal quality on every film still goes 2.39x to 3.19x across the quarters). On per-film AUC, which
+doesn't move with the positive rate, long films are only slightly easier (0.68 vs 0.64). Controlling
+for film length, trailer size and decade: comedy stays below (AUC 0.014 lower, 95% CI 0.005 to 0.023),
+romance does not clearly (0.002, CI -0.006 to 0.011), action and adventure are within noise. The
+subtitle gap is film length on lift (0.00x after length deciles); a small AUC gap remains (0.010) that
+the CLIP-only model doesn't show, so it matches the missing dialogue features. The permutation tests
+reject when a slice's length mix differs, not only when ranking quality does.
+
 ## 2026-10-30: new films, splits applied, rebuild on 968 trailers
 
 The overnight batch for the films new to the dataset, the CLIP splits applied, then `align`, `audio`

@@ -79,7 +79,11 @@ its frame's average color.
   space/Enter; buttons don't take focus on mouse click. Everything clickable is also focusable.
 - **Review pages share keys:** `j`/`k` next/prev, `n` next unreviewed, then one verdict letter per
   choice (`x` = leave it as is: keep the trailer, don't split).
-- **Deep links:** `?id=` and `?t=` open a trailer at a moment (for the report and screenshots).
+- **Deep links:** `?id=` and `?t=` open a trailer at a moment (for the report and screenshots); RQ1
+  example links add `?why=explosion`, shown as a tag next to the title, so you know what to look for.
+- **Say what's clickable once.** Hiding the "click a row for example shots" hint made the examples
+  undiscoverable in a walkthrough; one muted legend line stays, and each panel opens with its strongest
+  row's examples.
 
 ## Accessibility
 
@@ -133,6 +137,10 @@ its frame's average color.
   spike at the edge. → Export each bin's end (capped at the 99th percentile) and draw flat steps.
 - **Hiding a broken element breaks the next one.** A video error hid the player for every later film.
   → Keep the box, show an empty state, reset it on load.
+- **One "×" per meaning.** Model bars (hits vs random) sat in the same blue as "picked more often"
+  dots. → Model bars are neutral ink and their axis says "hits vs random picks".
+- **Readers take raw names literally.** `c_explosion = 0.87` and "CLIP look" stopped a non-technical
+  reader. → Plain names everywhere ("overall look", "not found in film"); explanations stay in the docs.
 - **Two auditors beat one.** A contract check (finish-gate review against this doc) and a visual design
   pass found different things; run both before a demo.
 - **Look at the render.** Every issue above was obvious in a screenshot and invisible in the code.

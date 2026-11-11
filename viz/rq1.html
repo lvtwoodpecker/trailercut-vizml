@@ -79,7 +79,8 @@ details.tbl summary { cursor: pointer; color: var(--ink-2); }
   <p class="lede" id="lede"></p>
   <div class="legend"><span><i style="background:var(--pos)"></i>picked more often than the average shot</span>
     <span><i style="background:var(--neg)"></i>less often</span>
-    <span><i style="background:var(--muted)"></i>no clear difference (interval crosses 1×)</span></div>
+    <span><i style="background:var(--muted)"></i>no clear difference (interval crosses 1×)</span>
+    <span>click a row for example shots</span></div>
 
   <div class="card">
     <h2>Can a model pick the trailer's shots?</h2>
@@ -147,13 +148,14 @@ const ci = r => r.lo != null ? `${fmtL(r.lo)} to ${fmtL(r.hi)}` : "–";
 const nfmt = r => r.n != null ? d3.format(",")(r.n) : "–";
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 // examples: shots of this kind that made a trailer, linked to that moment in the Trailer View
-const exLinks = ex => (ex || []).map(e => `<a href="index.html?id=${encodeURIComponent(e.id)}&t=${e.t}">${esc(e.film)} · ${fmtT(e.t)}</a>`).join(" · ");
-const exCol = ["examples", r => exLinks(r.ex) || "–", true];
+const exLinks = (ex, why) => (ex || []).map(e => `<a href="index.html?id=${encodeURIComponent(e.id)}&t=${e.t}` +
+  `${why ? `&why=${encodeURIComponent(why)}` : ""}">${esc(e.film)} · ${fmtT(e.t)}</a>`).join(" · ");
+const exCol = ["examples", r => exLinks(r.ex, r.level) || "–", true];
 function showEx(id, label, ex) {
   const card = document.getElementById(id).closest(".card");
   let p = card.querySelector("p.ex");
   if (!p) { p = document.createElement("p"); p.className = "ex"; document.getElementById(id).after(p); }
-  p.innerHTML = ex && ex.length ? `<b>${esc(label)}</b> in trailers: ${exLinks(ex)}` : "";
+  p.innerHTML = ex && ex.length ? `<b>${esc(label)}</b> in trailers: ${exLinks(ex, label)}` : "";
 }
 
 // a horizontal bar from x0 (the baseline, square) to x1 (the data end, rounded 4px)
@@ -184,6 +186,8 @@ function dotPlot(id, rows, labelW = 150) {
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`)
     .call(d3.axisBottom(x).tickValues(TICKS).tickFormat(t => `${t}×`).tickSizeOuter(0));
   table(id, [["", r => r.level], ["picked vs average", r => times(r.lift)], ["95% interval", ci], ["shots", nfmt], exCol], rows);
+  const top = rows.filter(r => r.ex && r.ex.length).reduce((a, b) => (!a || b.lift > a.lift ? b : a), null);
+  if (top) showEx(id, top.level, top.ex);
 }
 
 // quote only clear effects: the strongest above 1x and the strongest below
@@ -226,7 +230,7 @@ function story(rows) {
 
 function models(rows, best, ebmLift) {
   const all = rows.map(r => ({ level: label(r.name), lift: r.lift, base: r.name === "random" }));
-  if (ebmLift) all.splice(all.length - 1, 0, { level: "interpretable model (EBM)", lift: ebmLift });
+  if (ebmLift) all.splice(all.length - 1, 0, { level: "glass-box model (EBM)", lift: ebmLift });
   if (best) all.push({ level: `tuned (${best.name})`, lift: best.lift });
   const w = width("models"), rh = 26, lw = Math.min(260, Math.round(w * 0.45)), m = { t: 6, b: 26 }, H = all.length * rh + m.t + m.b;
   const svg = d3.select("#models").attr("width", w).attr("height", H);
@@ -235,19 +239,20 @@ function models(rows, best, ebmLift) {
   x.ticks(nt).forEach(t => svg.append("line").attr("class", t === 1 ? "ref" : "gridline").attr("x1", x(t)).attr("x2", x(t)).attr("y1", m.t).attr("y2", H - m.b));
   const g = svg.selectAll("g.row").data(all).join("g").attr("transform", (_, i) => `translate(0,${m.t + i * rh + rh / 2})`);
   g.append("text").attr("class", "lbl").attr("x", lw - 10).attr("dy", "0.32em").attr("text-anchor", "end").text(r => r.level);
-  g.append("path").attr("d", r => bar(x(0), x(r.lift), -7, 14)).attr("fill", r => r.base ? "var(--muted)" : "var(--pos)");
+  g.append("path").attr("d", r => bar(x(0), x(r.lift), -7, 14)).attr("fill", r => r.base ? "var(--axis)" : "var(--ink-2)");
   g.append("text").attr("class", "lbl-2").attr("x", r => x(r.lift) + 6).attr("dy", "0.32em").text(r => times(r.lift));
   svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b + 4})`).call(d3.axisBottom(x).ticks(nt).tickFormat(t => `${t}×`).tickSizeOuter(0));
-  table("models", [["model", r => r.level], ["precision vs random", r => times(r.lift)]], all);
+  svg.append("text").attr("class", "lbl-2").attr("x", w - 60).attr("y", H).attr("text-anchor", "end").text("hits vs random picks");
+  table("models", [["model", r => r.level], ["hits vs random", r => times(r.lift)]], all);
 }
 const label = n => ({ random: "random picks", position_only: "story position only", length_only: "shot length only",
-  clip_only: "CLIP look only", readable: "named features (no CLIP)", full: "named features + CLIP" }[n] || n);
+  clip_only: "overall look only", readable: "named features", full: "named features + overall look" }[n] || n);
 
 // glass-box model (EBM): odds of making the trailer as one feature changes, others held fixed
 function ebm(curves, lift) {
   const box = d3.select("#ebm").html("");
   if (!curves) { d3.select("#ebm-card").style("display", "none"); return; }
-  d3.select("#ebm-sub").text("Odds vs the average shot, other features fixed. Grey strip: where the shots are.");
+  d3.select("#ebm-sub").text("Odds vs the average shot with the other features held fixed, so they differ from the charts below. Grey strip: where the shots are.");
   // one y range for every panel, from the data, so nothing is clipped and panels compare
   const all = curves.flatMap(c => c.y), Y = [Math.min(0.8, d3.min(all) / 1.08), Math.max(1.25, d3.max(all) * 1.08)];
   const ticks = [0.25, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.6, 2, 2.5, 3, 4].filter(t => t >= Y[0] && t <= Y[1]);
@@ -274,7 +279,8 @@ function ebm(curves, lift) {
       .attr("d", d3.area().x(d => x(d[0])).y0(d => y(d[1])).y1(d => y(d[2])).curve(d3.curveStepAfter)(step(c.lo).map((d, i) => [d[0], d[1], step(c.hi)[i][1]])));
     svg.append("path").attr("fill", "none").attr("stroke", "var(--pos)").attr("stroke-width", 2)
       .attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1])).curve(d3.curveStepAfter)(pts));
-    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(c.concept ? d3.axisBottom(x).tickValues(x.domain()).tickFormat((_, i) => i ? "high" : "low").tickSizeOuter(0)
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(c.concept || c.name === "visual change" ? d3.axisBottom(x).tickValues(x.domain()).tickFormat((_, i) => i ? "high" : "low").tickSizeOuter(0)
+        : c.name === "position in film" ? d3.axisBottom(x).ticks(4).tickFormat(d3.format(".0%")).tickSizeOuter(0)
         : d3.axisBottom(x).ticks(4).tickSizeOuter(0));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(ticks).tickFormat(t => `${t}×`).tickSizeOuter(0));
     const hair = svg.append("line").attr("class", "xhair").attr("y1", m.t).attr("y2", H - m.b).style("display", "none");

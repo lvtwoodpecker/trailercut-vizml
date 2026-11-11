@@ -80,7 +80,8 @@ def main():
     report["best_f1"] = dict(threshold=float(ts[best]), precision=float(prec[best]), recall=float(rec[best]), f1=float(f1[best]))
     if len(ok):
         report["precision_0.9"] = dict(threshold=float(ts[ok[0]]), recall=float(rec[ok[0]]))
-    impostor = json.loads((FEATURES / "alignment_threshold.json").read_text())["threshold"]
+    meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
+    impostor = meta.get("impostor_threshold", meta["threshold"])  # "threshold" is the cutoff in use, maybe the label one
     report["impostor_threshold"] = impostor
 
     fig, ax = plt.subplots(figsize=(5, 4))
