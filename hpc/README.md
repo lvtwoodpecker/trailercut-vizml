@@ -135,7 +135,7 @@ sbatch --export=NONE --account=<slurm account> hpc/setup.sbatch
 # 2. laptop, repo root: keyframes of the labeled films as one uncompressed zip per film (what the
 #    readers expect, and ~9 files instead of ~40k), plus their trailer frames (~25 MB)
 IDS="tt0032138 tt0049730 tt0052357 tt0061722 tt0065214 tt0067116 tt0086879 tt0119528 tt1411238"
-U=<netid>; R=$U@dtn.torch.hpc.nyu.edu:/scratch/$U/trailercut-vizml/data
+R=<netid>@dtn.torch.hpc.nyu.edu:<checkout path from pwd on the cluster>/data
 mkdir -p /tmp/tc_upload && for i in $IDS; do (cd data/movienet/frames/$i && zip -0qr /tmp/tc_upload/$i.zip .); done
 rsync -av --progress /tmp/tc_upload/ $R/movienet/frames/
 for i in $IDS; do rsync -a data/cache/trailer_frames/$i/ $R/cache/trailer_frames/$i/; done
