@@ -43,6 +43,40 @@ def load_gold():
     return gold
 
 
+def one_per_shot(gold):
+    """One label per trailer shot (first labeler wins on overlap), with imdb_id and shot_idx columns."""
+    gold = gold.drop_duplicates("key").copy()
+    gold["imdb_id"], gold["shot_idx"] = zip(*[(k.split(":")[0], int(k.split(":")[1])) for k in gold.key])
+    return gold
+
+
+def evaluate(gold, al):
+    """Labels vs alignment rows (imdb_id, shot_idx, film_shot, score, blank) -> report, thresholds, P, R, best index."""
+    ev = {}
+    d = gold.merge(al, on=["imdb_id", "shot_idx"])
+    d = d[d.label != "u"]
+    d["has_source"] = d.label.str.isdigit()
+    d["top1_right"] = d.has_source & (d.label == d.film_shot.astype(str))
+    ev["n"] = int(len(d))
+    ev["label_mix"] = {k: int(v) for k, v in d.label.where(~d.has_source, "film shot").value_counts().items()}
+    ev["top1_acc_when_source"] = float(d[d.has_source].top1_right.mean())
+
+    ts = np.linspace(0.4, 0.95, 111)
+    prec, rec = [], []
+    for t in ts:
+        pm = (d.score >= t) & ~d.blank
+        prec.append(d[pm].top1_right.mean() if pm.any() else np.nan)
+        rec.append((pm & d.top1_right).sum() / max(d.has_source.sum(), 1))
+    prec, rec = np.array(prec), np.array(rec)
+    f1 = 2 * prec * rec / (prec + rec)
+    best = int(np.nanargmax(f1))
+    ok = np.where(prec >= 0.9)[0]
+    ev["best_f1"] = dict(threshold=float(ts[best]), precision=float(prec[best]), recall=float(rec[best]), f1=float(f1[best]))
+    if len(ok):
+        ev["precision_0.9"] = dict(threshold=float(ts[ok[0]]), recall=float(rec[ok[0]]))
+    return ev, ts, prec, rec, best
+
+
 def main():
     gold = load_gold()
     if gold.empty:
@@ -55,31 +89,10 @@ def main():
         both = a.index.intersection(b.index)
         report["kappa"] = float(cohen_kappa_score(a[both], b[both])) if len(both) else None
         report["kappa_n"] = int(len(both))
-    # one label per shot: first labeler wins on overlap
-    gold = gold.drop_duplicates("key")
-    gold["imdb_id"], gold["shot_idx"] = zip(*[(k.split(":")[0], int(k.split(":")[1])) for k in gold.key])
+    gold = one_per_shot(gold)
     al = pd.concat([pd.read_csv(FEATURES / "alignment" / f"{i}.csv").assign(imdb_id=i) for i in gold.imdb_id.unique()])
-    d = gold.merge(al, on=["imdb_id", "shot_idx"])
-    d = d[d.label != "u"]
-    d["has_source"] = d.label.str.isdigit()
-    d["top1_right"] = d.has_source & (d.label == d.film_shot.astype(str))
-    report["n"] = int(len(d))
-    report["label_mix"] = {k: int(v) for k, v in d.label.where(~d.has_source, "film shot").value_counts().items()}
-    report["top1_acc_when_source"] = float(d[d.has_source].top1_right.mean())
-
-    ts = np.linspace(0.4, 0.95, 111)
-    prec, rec = [], []
-    for t in ts:
-        pm = (d.score >= t) & ~d.blank
-        prec.append(d[pm].top1_right.mean() if pm.any() else np.nan)
-        rec.append((pm & d.top1_right).sum() / max(d.has_source.sum(), 1))
-    prec, rec = np.array(prec), np.array(rec)
-    f1 = 2 * prec * rec / (prec + rec)
-    best = int(np.nanargmax(f1))
-    ok = np.where(prec >= 0.9)[0]
-    report["best_f1"] = dict(threshold=float(ts[best]), precision=float(prec[best]), recall=float(rec[best]), f1=float(f1[best]))
-    if len(ok):
-        report["precision_0.9"] = dict(threshold=float(ts[ok[0]]), recall=float(rec[ok[0]]))
+    ev, ts, prec, rec, best = evaluate(gold, al)
+    report.update(ev)
     meta = json.loads((FEATURES / "alignment_threshold.json").read_text())
     impostor = meta.get("impostor_threshold", meta["threshold"])  # "threshold" is the cutoff in use, maybe the label one
     report["impostor_threshold"] = impostor
@@ -90,7 +103,7 @@ def main():
     ax.axvline(impostor, ls="--", c="gray", lw=1, label="impostor 5% FPR")
     ax.axvline(ts[best], ls=":", c="k", lw=1, label="best F1")
     ax.set_xlabel("match score threshold")
-    ax.set_title(f"Alignment vs hand labels (n={len(d)})")
+    ax.set_title(f"Alignment vs hand labels (n={report['n']})")
     ax.legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(FIGURES / "alignment_pr.png", dpi=150)

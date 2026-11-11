@@ -69,3 +69,28 @@ python -m trailercut.label_tool --n 10   # needs film keyframes locally for the 
 
 Shot boundaries from GPU TransNetV2 can differ slightly from CPU runs, so copy `trailer_frames`
 and `trailer_audio` down together with `trailer_shots` instead of mixing them with local ones.
+
+## Backbone trial (is a bigger CLIP worth it?)
+
+Embeds only the 9 hand-labeled films and their trailers, then grades alignment against the labels
+the same way `label_eval` does (`trailercut.backbone_trial`). B/32 on a laptop scores best F1 0.893
+(precision 0.87, recall 0.92), and "text card" tracks "night" at rho 0.52 within a film. It reuses
+the repo's trailer shot lists, so don't run `trailer_prep` for this.
+
+```bash
+# laptop, from the repo root: keyframes of the labeled films (~1.3 GB) and their trailer frames (~25 MB)
+IDS=$(python -c "from trailercut.label_eval import load_gold, one_per_shot; print(' '.join(sorted(one_per_shot(load_gold()).imdb_id.unique())))" | tail -1)
+R=<user>@<cluster>:/scratch/<user>/trailercut/data
+for i in $IDS; do
+  rsync -a data/movienet/frames/$i/ $R/movienet/frames/$i/
+  rsync -a data/cache/trailer_frames/$i/ $R/cache/trailer_frames/$i/
+done
+
+# cluster
+sbatch hpc/backbone_trial.sbatch                       # h14
+TRAILERCUT_CLIP=l14 sbatch hpc/backbone_trial.sbatch   # or another backbone
+cat data/features/backbone_trial_h14.json
+```
+
+Worth a full rerun if F1 clearly beats 0.893 (say above 0.92) or the text card / night overlap drops.
+
