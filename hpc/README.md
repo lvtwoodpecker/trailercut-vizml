@@ -22,7 +22,12 @@ From NYU's HPC docs and what has worked in our other Torch projects:
   Don't borrow another project's.
 - **Temp files on scratch, never `/tmp`**: the login node's `/tmp` is not the compute node's.
   `env.sh` sets `TMPDIR` under scratch.
-- **Copy data through the transfer node** `dtn.torch.hpc.nyu.edu`, not the login node.
+- **Copy data through a transfer node**, not the login node. `dtn.torch.hpc.nyu.edu` lands on either
+  `dtn011.hpc.nyu.edu` or `dtn012.hpc.nyu.edu`, which have different host keys, so ssh warns that the
+  key "changed" when it switches. Pick one node by name and use it every time. Before accepting its
+  key the first time, compare with what the cluster sees: on the login node,
+  `ssh-keyscan -t ed25519 dtn012.hpc.nyu.edu 2>/dev/null | ssh-keygen -lf -`. Each new connection asks
+  for a device login, so copy everything in one `rsync`.
 - **Storage** (check with `myquota`):
 
   | where | for | limit | backed up | purged |
@@ -132,13 +137,17 @@ cd $SCRATCH && git clone -b h14-trial https://github.com/lvtwoodpecker/trailercu
 cd trailercut-vizml && mkdir -p logs
 sbatch --export=NONE --account=<slurm account> hpc/setup.sbatch
 
-# 2. laptop, repo root: keyframes of the labeled films as one uncompressed zip per film (what the
-#    readers expect, and ~9 files instead of ~40k), plus their trailer frames (~25 MB)
-IDS="tt0032138 tt0049730 tt0052357 tt0061722 tt0065214 tt0067116 tt0086879 tt0119528 tt1411238"
-R=<netid>@dtn.torch.hpc.nyu.edu:<checkout path from pwd on the cluster>/data
-mkdir -p /tmp/tc_upload && for i in $IDS; do (cd data/movienet/frames/$i && zip -0qr /tmp/tc_upload/$i.zip .); done
-rsync -av --progress /tmp/tc_upload/ $R/movienet/frames/
-for i in $IDS; do rsync -a data/cache/trailer_frames/$i/ $R/cache/trailer_frames/$i/; done
+# 2. laptop, repo root: stage keyframes of the labeled films as one uncompressed zip per film (what
+#    the readers expect, ~9 files instead of ~40k) plus their trailer frames (~25 MB), then copy it
+#    all in one rsync (one login). The array form works in both bash and zsh.
+IDS=(tt0032138 tt0049730 tt0052357 tt0061722 tt0065214 tt0067116 tt0086879 tt0119528 tt1411238)
+U=/tmp/tc_upload; rm -rf $U && mkdir -p $U/movienet/frames $U/cache/trailer_frames
+for i in "${IDS[@]}"; do
+  (cd data/movienet/frames/$i && zip -0qr $U/movienet/frames/$i.zip .)
+  cp -R data/cache/trailer_frames/$i $U/cache/trailer_frames/
+done
+rsync -av --progress $U/ <netid>@<dtn node>:<checkout path from pwd on the cluster>/data/
+rm -rf $U
 
 # 3. cluster: run and read
 sbatch --export=NONE --account=<slurm account> hpc/backbone_trial.sbatch                    # h14
