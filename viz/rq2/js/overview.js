@@ -26,9 +26,10 @@ let currentSpace = "res";
 let currentGenre = "all";
 let selectedImdbId = null;
 
+// first two are the named archetypes; the rest only for feature sets with k > 2 (dialogue, speech)
 const colorScale = d3.scaleOrdinal()
-    .domain([0, 1])
-    .range(["#f43f5e", "#3b82f6"]);
+    .domain(d3.range(8))
+    .range(["#f43f5e", "#3b82f6", "#f59e0b", "#10b981", "#a855f7", "#14b8a6", "#eab308", "#64748b"]);
 
 const modalityDocs = {
     all: {
@@ -87,11 +88,7 @@ d3.csv(csvPath).then(data => {
 function parseData(data) {
     data.forEach(d => {
         d.year = +d.year;
-        d.cluster_all = +d.cluster_all;
-        d.cluster_pacing = +d.cluster_pacing;
-        d.cluster_audio = +d.cluster_audio;
-        d.cluster_visual = +d.cluster_visual;
-        d.cluster_res_all = +d.cluster_res_all;
+        Object.keys(d).filter(k => k.startsWith("cluster_")).forEach(k => { d[k] = +d[k]; });
         d.genre_list = (d.genres || "").split("|").filter(Boolean);  // every genre, IMDb lists them alphabetically
 
         d.umap_x_base = +d.umap_x_base;
@@ -221,22 +218,19 @@ function resetSelection() {
 
 function updateLegendAndDocs() {
     const doc = modalityDocs[currentModality] || modalityDocs.all;
+    const clusterKey = currentSpace === "res" ? `cluster_res_${currentModality}` : `cluster_${currentModality}`;
+    const ids = Array.from(new Set(globalData.map(d => d[clusterKey]))).filter(v => !isNaN(v)).sort((a, b) => a - b);
 
     d3.select("#info-heading").text(doc.title);
     d3.select("#info-description").text(doc.desc);
 
     d3.select("#legend-title").text(`${doc.title} Archetypes`);
 
-    const legendHtml = `
+    const legendHtml = ids.map(c => `
     <div class="legend-item">
-      <div class="legend-color" style="background: ${colorScale(0)};"></div>
-      <span>${doc.labels[0]}</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color" style="background: ${colorScale(1)};"></div>
-      <span>${doc.labels[1]}</span>
-    </div>
-  `;
+      <div class="legend-color" style="background: ${colorScale(c)};"></div>
+      <span>${ids.length === 2 ? doc.labels[c] : `Cluster ${c}`}</span>
+    </div>`).join("");
     d3.select("#legend-items").html(legendHtml);
 }
 
@@ -256,12 +250,7 @@ function setupEventListeners() {
         applyFilters();
     });
 
-    d3.select("#search-input").on("input", function () {
-        const term = this.value.toLowerCase();
-        plotArea.selectAll(".dot")
-            .attr("opacity", d => d.title.toLowerCase().includes(term) ? 0.9 : 0.1)
-            .attr("r", d => d.title.toLowerCase().includes(term) ? (term ? 7 : 5) : 3);
-    });
+    d3.select("#search-input").on("input", applyFilters);
 }
 
 window.addEventListener("trailerSelect", (event) => {
@@ -295,7 +284,7 @@ window.addEventListener("trailerSelect", (event) => {
         .attr("href", `../index.html?id=${item.imdb_id}`);
 
     const playerContainer = d3.select("#trailer-player-container");
-    const trailerBtn = d3.select("#trailer-link").style("display", "block");
+    const trailerBtn = d3.select("#trailer-link").style("display", "none");
 
     if (item.youtube_id && item.youtube_id !== "" && item.youtube_id !== "undefined") {
         d3.select("#trailer-player")
@@ -307,6 +296,7 @@ window.addEventListener("trailerSelect", (event) => {
 
         const searchQuery = encodeURIComponent(`${item.title} ${item.year} official trailer`);
         trailerBtn
+            .style("display", "block")
             .attr("href", `https://www.youtube.com/results?search_query=${searchQuery}`)
             .text("Search YouTube ↗");
     }
