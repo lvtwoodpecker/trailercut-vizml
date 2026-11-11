@@ -61,7 +61,10 @@ button[aria-pressed="false"] { color: var(--muted); text-decoration: line-throug
 .player.novideo .novid { display: grid; }
 /* public site: YouTube player in the same box, our own captions, frames from thumbnail sheets */
 .player .yt { height: max(260px, min(42vh, calc(100vh - 560px))); aspect-ratio: 16 / 9; max-width: 100%; border-radius: 6px; overflow: hidden; background: #000; }
+.player .yt { position: relative; }
 .player .yt iframe { display: block; width: 100%; height: 100%; }
+/* clicks land here, not in YouTube's frame, so keyboard focus stays on the page */
+.yt-catch { position: absolute; inset: 0; cursor: pointer; }
 @media (max-width: 999px) { .player .yt { width: 100%; height: auto; } }
 .ytcc { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; pointer-events: none; }
 .ytcc span { font: 20px system-ui, -apple-system, sans-serif; color: #fff; background: rgba(0, 0, 0, 0.6); padding: 1px 6px; border-radius: 3px; }
@@ -202,6 +205,8 @@ if (SITE) {
   box.className = "yt";
   vid.replaceWith(box);
   const slot = box.appendChild(document.createElement("div"));
+  const catcher = box.appendChild(document.createElement("div"));
+  catcher.className = "yt-catch";
   vid = new YTMedia(slot);
   ytcc = d3.select(".screen").append("div").attr("class", "ytcc");
 }
@@ -314,6 +319,7 @@ function stepShot(dir) {
 }
 pp.addEventListener("click", toggle);
 vid.addEventListener("click", toggle);
+if (SITE) document.querySelector(".yt-catch").addEventListener("click", toggle);
 document.getElementById("prev").addEventListener("click", () => stepShot(-1));
 document.getElementById("next").addEventListener("click", () => stepShot(1));
 const syncBar = () => {
