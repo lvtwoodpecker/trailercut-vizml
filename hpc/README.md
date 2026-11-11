@@ -8,7 +8,9 @@ in minutes. The default backbone on the cluster is CLIP ViT-H/14, matching Argaw
 
 From NYU's HPC docs and what has worked in our other Torch projects:
 
-- **The login node is for git, editing and Slurm commands only.** Setup, installs, downloads and
+- **Work under `$SCRATCH`, never `$HOME`.** Clone the repo there; everything the pipeline needs
+  (data, venv, caches, logs) then lives inside that one checkout (`env.sh`), all gitignored.
+- **No work on the login node.** It is only for git, editing and submitting/watching jobs. Setup, installs, downloads and
   every Python run go through `sbatch` (or `srun --pty` for interactive debugging, which lands on a
   compute node). For a one-off check, write the script to a file on scratch and submit that, instead
   of a long `python -c "..."` with fragile quoting.
@@ -41,13 +43,14 @@ From NYU's HPC docs and what has worked in our other Torch projects:
   `sacct -j <id> --format=JobID,Elapsed,MaxRSS,State` or `seff <id>` to right-size time and memory.
   Chain steps with `sbatch --parsable` and `--dependency=afterok:<id>`.
 
-`env.sh` defaults to `$SCRATCH/trailercut` for data (else `/scratch/$USER/trailercut`); change
-`SCRATCH_ROOT` there to put it elsewhere, and point the rsync commands below at the same place.
+Layout on the cluster: the checkout at `$SCRATCH/trailercut-vizml`, with `data/` (MovieNet,
+keyframes, trailers, embeddings), `.venv/`, `.cache/` (model weights, package caches, temp files) and
+`logs/` inside it, the same layout as on a laptop. The rsync commands below assume that path.
 
 ## 1. Clone and set up
 
 ```bash
-# login node
+# login node (git only)
 cd $SCRATCH
 git clone https://github.com/lvtwoodpecker/trailercut-vizml.git && cd trailercut-vizml
 mkdir -p logs
@@ -63,7 +66,7 @@ YouTube tends to block cluster IPs, so download locally and copy the videos up (
 
 ```bash
 # laptop, from the repo root
-rsync -av --progress data/trailers/ <netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut/data/trailers/
+rsync -av --progress data/trailers/ <netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml/data/trailers/
 ```
 
 ## 3. Keyframes
@@ -88,7 +91,7 @@ them from there or copy them down), and embeddings to `$TRAILERCUT_DATA/cache/cl
 ## 5. Copy results down (from your laptop)
 
 ```bash
-R=<netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut
+R=<netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
 rsync -av --progress $R/data/cache/clip/h14/        data/cache/clip/h14/
 rsync -av --progress $R/data/cache/trailer_frames/  data/cache/trailer_frames/
 rsync -av --progress $R/data/cache/trailer_audio/   data/cache/trailer_audio/
