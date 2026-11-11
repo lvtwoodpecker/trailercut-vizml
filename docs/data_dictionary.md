@@ -88,8 +88,7 @@ One row per trailer shot.
 | `score` | similarity to that shot (mean over trailer keyframes of max cosine over film keyframes) |
 | `margin` | `score` minus the best score outside ±3 film shots of the best |
 | `blank` | mean over keyframes of the best CLIP similarity to a solid black/white/grey frame is > 0.9; never matched |
-| `card` | trailer title card or logo: `c_text_card` or `c_logo` above the film's 99th percentile over its own shots |
-| `matched` | `score >= threshold`, not blank, and for a card also `score >=` the impostor cutoff |
+| `matched` | `score >= threshold` and not blank |
 | `film_story_pos` | story position (0 to 1, film shot midpoint over film duration) of the matched film shot; empty if not matched |
 | `top5`, `top5_scores` | space-separated top-5 film shot indices and scores |
 

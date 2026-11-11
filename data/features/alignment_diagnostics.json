@@ -25,15 +25,15 @@
   "language": {
     "English": {
       "trailers": 904,
-      "median_match": 0.9130434782608695
+      "median_match": 0.9375
     },
     "other language": {
       "trailers": 149,
-      "median_match": 0.896551724137931
+      "median_match": 0.9384615384615385
     },
     "no speech": {
       "trailers": 29,
-      "median_match": 0.875
+      "median_match": 0.9024390243902439
     }
   },
   "cuts": {

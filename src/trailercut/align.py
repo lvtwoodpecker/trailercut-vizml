@@ -11,13 +11,6 @@ Blank shots (fades, black frames) match blank shots in any film and inflate the 
 Shots whose keyframes look like a solid black/white/grey frame are flagged on both sides:
 blank trailer shots are never matched, blank film shots are never candidates.
 
-Title cards and studio logos in the trailer (`card`) are never matched either. They match the film's
-credits or dark shots, not a shot the editor took: by eye 8 of 8 such matches were wrong, and they
-made "text card" and "logo" look like editing choices. A trailer shot is a card when its "text card"
-or "logo" concept score is above the 99th percentile of the film's own shots. Text the film itself shows
-(a newspaper, a sign) also scores high, so a card still matches when its score clears the impostor
-cutoff: a match that strong is the film's own shot.
-
 The impostor null can't measure the main real error (right film, wrong shot), so the final cutoff
 is picked from hand labels in labels/ (see trailercut.label_eval); raw scores are kept for that.
 smooth() (sequence matching) is not used by align: it scored lower F1 than raw against the labels
@@ -48,7 +41,6 @@ TOPK = 5
 # (shot/reverse-shot and continuous coverage make neighbours look alike)
 NEIGHBOR = 3
 BLANK = 0.9
-CARD_Q = 0.99
 BLANK_EMB = CACHE / f"blank_emb_{CLIP_TAG}.npy"
 
 
@@ -130,14 +122,7 @@ def smooth(S, blank, threshold, k=20, lam=0.05, tau=5):
     return shot, np.where(shot >= 0, S[np.arange(m), np.maximum(shot, 0)], np.nan)
 
 
-def cards(T, F):
-    """Trailer shots that look like a title card or studio logo, relative to the film's own shots."""
-    from . import concepts
-    t, f = concepts.scores(T.numpy()), concepts.scores(F.numpy())
-    return np.any([t[c] > np.quantile(f[c], CARD_Q) for c in ("c_text_card", "c_logo")], axis=0)
-
-
-def align_one(imdb_id, threshold, strong=np.inf):
+def align_one(imdb_id, threshold):
     T, F = load("trailer", imdb_id), load("film", imdb_id)
     S = shot_sim(T, F)
     top = S.topk(TOPK, dim=1)
@@ -153,8 +138,7 @@ def align_one(imdb_id, threshold, strong=np.inf):
     df["score"] = top.values[:, 0].numpy()
     df["margin"] = df.score - second.numpy()
     df["blank"] = (blankness(T) > BLANK).numpy()
-    df["card"] = cards(T, F)
-    df["matched"] = (df.score >= threshold) & ~df.blank & (~df.card | (df.score >= strong))
+    df["matched"] = (df.score >= threshold) & ~df.blank
     df["film_story_pos"] = fshots.story_pos.values[df.film_shot]
     df.loc[~df.matched, "film_story_pos"] = np.nan
     df["top5"] = [" ".join(map(str, r)) for r in top.indices.numpy()]
@@ -182,7 +166,7 @@ def main():
 
     OUT.mkdir(parents=True, exist_ok=True)
     for imdb_id in tqdm(ids, desc="align"):
-        align_one(imdb_id, threshold, meta["impostor_threshold"]).round(4).to_csv(OUT / f"{imdb_id}.csv", index=False)
+        align_one(imdb_id, threshold).round(4).to_csv(OUT / f"{imdb_id}.csv", index=False)
 
 
 if __name__ == "__main__":
