@@ -64,7 +64,7 @@ def trailers():
         m = mn.meta(i)
         now = meta.get(r.youtube_id, {})
         rows.append(dict(
-            imdb_id=i, film=m["title"], year=m["year"],
+            imdb_id=i, imdb_current=m["imdb_current"], film=m["title"], year=m["year"],
             url=url(r.youtube_id), title=now.get("title") or r.title, channel=now.get("channel", ""),
             duration_s=now.get("duration") or r.duration,
             trailer_shots=len(a) if a is not None else None,
@@ -106,7 +106,7 @@ to the film's subtitles, and {n_labels} hand-checked alignments.
 
 | file | what |
 |---|---|
-| `trailers.csv` | one row per film: the trailer link, its YouTube title, channel and length, and how well it matches the film (trailer shots, share of shots matched, span of the film covered) |
+| `trailers.csv` | one row per film: MovieNet's IMDb id and IMDb's current one (they differ for 1 film), the trailer link, its YouTube title, channel and length, and how well it matches the film (trailer shots, share of shots matched, span of the film covered) |
 | `trailer_shots.parquet` | trailer shot boundaries (frames and seconds) |
 | `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, matched flag, top-5 candidates |
 | `dialogue_alignment.parquet` | trailer speech segment -> film subtitle time; times and scores only |

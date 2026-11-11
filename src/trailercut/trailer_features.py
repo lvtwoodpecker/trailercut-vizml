@@ -114,7 +114,8 @@ def main():
         cut_curve = np.histogram(sh.trailer_pos, bins=GRID, range=(0, 1))[0]
         curves[imdb_id] = dict(rms_db=np.round(rms_curve, 2).tolist(), cuts=cut_curve.tolist())
         rows.append(dict(imdb_id=imdb_id, title=m["title"], year=m["year"],
-                         genres="|".join(m["genres"]), primary_genre=m["genres"][0] if m["genres"] else None,
+                         imdb_current=m["imdb_current"], genres="|".join(m["genres"]),
+                         genres_movienet="|".join(m["genres_movienet"]), primary_genre=m["genres"][0] if m["genres"] else None,
                          **p, **a, **story_and_dialogue(imdb_id), **visual(imdb_id)))
     df = pd.DataFrame(rows)
     df["decade"] = (df.year // 10 * 10).astype("Int64")

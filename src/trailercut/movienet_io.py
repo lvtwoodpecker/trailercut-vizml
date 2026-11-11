@@ -112,14 +112,16 @@ def subtitles(imdb_id):
     return pd.DataFrame(rows)
 
 
-# MovieNet cuts some titles at a hyphen or colon ("X" for X-Men) and drops their "(year)";
-# data/ids/title_fix.csv has IMDb's title and year for those (title.basics, IMDb non-commercial datasets)
+# data/ids/imdb_meta.csv, from IMDb's title.basics (non-commercial datasets): IMDb's current id, its
+# current genres (up to 3), and title and year for the films whose MovieNet title is cut at a hyphen
+# or colon ("X" for X-Men) and so has no "(year)"
 YEAR = re.compile(r"\((?:TV Movie |Video )?(\d{4})\)")
 
 
 @lru_cache(None)
-def title_fix():
-    return pd.read_csv(IDS_DIR / "title_fix.csv", dtype={"year": "Int64"}).set_index("imdb_id")
+def imdb_meta():
+    return pd.read_csv(IDS_DIR / "imdb_meta.csv", dtype={"year": "Int64"}, keep_default_na=False,
+                       na_values={"year": [""]}).set_index("imdb_id")
 
 
 def meta(imdb_id):
@@ -127,12 +129,16 @@ def meta(imdb_id):
     title = m.get("title") or ""
     year = YEAR.search(title)
     year = int(year.group(1)) if year else None
-    if year is None and imdb_id in title_fix().index:
-        fix = title_fix().loc[imdb_id]
+    fix = imdb_meta().loc[imdb_id] if imdb_id in imdb_meta().index else None
+    if year is None and fix is not None and fix.title:
         year = int(fix.year) if pd.notna(fix.year) else None
         title = f"{fix.title} ({year})" if year else fix.title
     genres = m.get("genres")
     genres = ast.literal_eval(genres) if isinstance(genres, str) and genres.startswith("[") else (genres or [])
+    # MovieNet's genres are an older IMDb snapshot: add the ones IMDb lists now (Jaws: Horror)
+    extra = fix.genres_imdb.split("|") if fix is not None and fix.genres_imdb else []
+    genres_movienet, genres = genres, sorted(set(genres) | set(extra))
     return dict(imdb_id=imdb_id, title=title, year=year,
-                genres=genres, rating=float(m["imdb_rating"]) if m.get("imdb_rating") else None,
+                imdb_current=fix.imdb_current if fix is not None else imdb_id,
+                genres=genres, genres_movienet=genres_movienet, rating=float(m["imdb_rating"]) if m.get("imdb_rating") else None,
                 duration=video_info()[imdb_id]["duration"])

@@ -104,8 +104,8 @@ What the current data and methods can't tell us, so we don't overclaim in the re
   76% of the time but its top-3 set only 55% (`shap_stability.json`); read the first reason, not the order of the rest.
 - **Uneven across films.** Lift is 2.2x on the quarter of films with the fewest shots and 3.7x on the
   most, but about half of that is arithmetic (lower positive rates in long films); on per-film AUC
-  the gap is 0.68 vs 0.64. Comedy stays below at equal film length (AUC 0.014 lower), and so do films
-  from before 1990 (0.035 lower); romance and action don't differ clearly once length is controlled (`error_slices.json`, results.md 2026-11-06).
+  the gap is 0.68 vs 0.64 (`results.md` 2026-11-11). Comedy stays below at equal film length (AUC 0.011 lower), and so do films
+  from before 1990 (0.036 lower); romance and action don't differ clearly once length is controlled (`error_slices.json`, results.md 2026-11-06).
 - **Slice tests mix length and quality.** `error_slices` lift is a ratio of means, and its permutation
   test rejects when a slice's films differ in length; read it with the length-adjusted numbers.
 - **Clusters are weakly separated** (silhouette 0.10 to 0.31). We report them as reproducible splits,

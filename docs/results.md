@@ -3,6 +3,28 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-11: film metadata from IMDb, RQ2 on all films with every genre
+
+**Metadata** [`data/ids/imdb_meta.csv`, design.md]: 22 truncated titles fixed and every film has a
+year; 175 films gained a genre from IMDb's current list (`genres` = MovieNet's plus IMDb's top 3);
+Force Majeure's dead id mapped to `imdb_current`. RQ1 reran unchanged (same predictions, full 2.75x).
+
+**Error slices** [`error_slices.json`]: with the merged genres, above the rest: Adventure 3.37x,
+Family 3.42x (52 films), Action 3.25x, Fantasy 3.15x, Sci-Fi 3.10x, Horror 3.09x, Thriller 3.04x,
+Mystery 3.00x; below: Comedy 2.48x, Romance 2.47x, Drama 2.62x; film shots 2.23x (fewest quarter) to
+3.70x (most). Length-adjusted: AUC 0.64 vs 0.68 by film-length quarter (gap 0.035, CI 0.024 to
+0.045); a model of equal quality on every film goes 2.32x to 3.11x; comedy still lower at equal
+length (AUC 0.011, CI 0.003 to 0.020), romance (-0.003) and action (+0.009, CI -0.001 to 0.018) not
+clear; films before 1990 lower (0.036, CI 0.023 to 0.049); subtitle lift gap 0.00x within length deciles.
+
+**RQ2 clusters** [`clusters.csv`, `cluster_report.json`]: first run on all 1,082 films (was 293), with
+every genre a film has as a control instead of the alphabetically first one. Genre and decade
+regressed out, all features: k = 2, silhouette 0.104, stability ARI 0.92 (293 films: 0.86); genre
+left in the clusters ~0.000 (mean NMI over genre flags). Pacing, audio, story, visual: k = 2,
+stability 0.90 to 0.97. Dialogue and speech are unstable in k (raw dialogue 8, residualized 2;
+speech 5 to 7 across runs). On the 293 old films, 78% to 89% keep their group; most of the change is
+the 789 added films. Merging IMDb's genres moved 2% to 3% of films in the genre-controlled clusters.
+
 ## 2026-11-11: title-card filter tried and dropped
 
 Tried: trailer shots above their film's 99th percentile on "text card" or "logo" (8,646 of 92,830)

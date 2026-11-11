@@ -13,9 +13,10 @@ steps that haven't produced a committed output so far.
 trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0). The
 pipeline's film list (`paths.IDS`; `TRAILERCUT_FILMS` overrides).
 
-**`title_fix.csv`** (C): IMDb title and year for the 22 films whose MovieNet title is cut short and
-has no year (`movienet_io.meta` uses it). `imdb_id`, `movienet_title`, `title`, `year`. Source: IMDb
-`title.basics` (non-commercial datasets).
+**`imdb_meta.csv`** (C): one row per film, from IMDb `title.basics` (non-commercial datasets), used by
+`movienet_io.meta`. `imdb_id` (MovieNet's, our key), `imdb_current` (IMDb's live id; differs for
+Force Majeure), `title` and `year` (only for the 22 films whose MovieNet title is cut short and has no
+year, else empty), `genres_imdb` (IMDb's current genres, up to 3, `|`-separated).
 
 **`trailer_status.csv`** (C): one row per film with a trailer in use (1,058: the 293 core films and
 765 new ones, added by `swap apply --set expand`).
@@ -211,7 +212,8 @@ model's log-odds for that shot.
 
 ## RQ2: trailers (`data/features/trailers.parquet`, C)
 
-One row per trailer. Ids: `imdb_id`, `title`, `year`, `decade`, `genres`, `primary_genre`.
+One row per trailer. Ids: `imdb_id`, `imdb_current`, `title`, `year`, `decade`, `genres` (MovieNet's
+plus IMDb's current ones), `genres_movienet`, `primary_genre` (first of `genres` alphabetically; not a main genre).
 
 | group | columns |
 |---|---|

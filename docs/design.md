@@ -152,13 +152,23 @@ versions, TV spots, dark films and logos or credits, so they stay in the corpus.
 **Keyframes as one zip per film** (`movienet.py --pack`). ~880 files instead of ~1.3M JPEGs, which
 matters for inode quotas on the cluster. Readers accept either a folder or `path.zip::member` refs.
 
-**Title and year fixes from IMDb** (`data/ids/title_fix.csv`). MovieNet only gives a year inside the
-title, and it cuts 22 titles at a hyphen or colon ("X" for *X-Men*, "Spider" for *Spider-Man*),
-which also loses the year. For those 22 the title and year come from IMDb's `title.basics` (the free
-non-commercial dump), so every film has a year and the decade analyses drop none. Years written as
-"(TV Movie 2006)" or "(Video 2008)" are read too. Other titles stay MovieNet's: the remaining
-differences from IMDb are naming style (*Se7en* vs *Seven*), not errors. What we give up: for 4
-films MovieNet's year is a year off IMDb's (festival vs release year); we keep MovieNet's.
+**Film metadata checked against IMDb** (`data/ids/imdb_meta.csv`, from IMDb's `title.basics`, the
+free non-commercial dump). All 1,082 ids are real IMDb titles (1,078 films, 2 direct-to-video, 1 TV
+movie) except Force Majeure (2014), whose MovieNet id is gone from IMDb; it keeps that id as our key
+and `imdb_current` points to the live one. Three fixes:
+- **Titles and years.** MovieNet only gives a year inside the title, and it cuts 22 titles at a
+  hyphen or colon ("X" for *X-Men*), losing the year. Those 22 take IMDb's title and year, and years
+  written as "(TV Movie 2006)" are read too, so every film has a year. Other titles stay MovieNet's:
+  the remaining differences are naming style (*Se7en* vs *Seven*). For 4 films MovieNet's year is a
+  year off IMDb's (festival vs release year); we keep MovieNet's.
+- **Genres.** MovieNet's genres are an older IMDb snapshot: for 175 films IMDb now lists a genre they
+  lack (*Jaws*, *Aliens* and *The Silence of the Lambs* had no Horror). IMDb's dump only gives its top
+  3, so `genres` is the union of MovieNet's list and IMDb's current 3, and `genres_movienet` keeps the
+  original. Only genre slices and RQ2's genre controls use genres; the RQ1 model doesn't.
+- **What we give up:** nothing ranks genres (IMDb lists them alphabetically), so there is still no
+  main genre; analyses use every genre a film has.
+Film lengths match a listed runtime within 15% for all but 2 films (*Australia*, *The Hills Have
+Eyes* 2006), probably shorter cuts; alignment doesn't depend on it.
 
 ## Trailer processing
 
