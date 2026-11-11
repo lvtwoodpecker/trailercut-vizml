@@ -56,7 +56,7 @@ button[aria-pressed="false"] { color: var(--muted); text-decoration: line-throug
 .screen { position: relative; }
 .player video { display: block; height: max(260px, min(42vh, calc(100vh - 560px))); width: auto; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; cursor: pointer; }
 @media (max-width: 999px) { .player video { width: 100%; height: auto; } }
-#now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, min(42vh, calc(100vh - 560px))) + 52px); }
+#now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, min(42vh, calc(100vh - 560px))) + 52px); container-type: inline-size; }
 .novid { display: none; position: absolute; inset: 0; place-items: center; color: #c3c2b7; font-size: 13px; }
 .player.novideo .novid { display: grid; }
 /* public site: YouTube player in the same box, our own captions, frames from thumbnail sheets */
@@ -82,7 +82,12 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); borde
 /* the shot under the playhead: frames on the left, the model's reasons on the right */
 #now .body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 8px; }
 #now svg { max-width: 100%; }
-#now .frames { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+/* frames stay small: side by side when the panel is narrow; stacked beside the reasons when it's wide */
+#now .frames { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: 6px; }
+@container (min-width: 600px) {
+  #now .body { grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+  #now .frames { grid-template-columns: minmax(0, 1fr); }
+}
 #now figure { margin: 0; }
 #now img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; display: block; background: var(--grid); }
 #now figcaption { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -440,7 +445,8 @@ function drawShap(i) {
   const f = D.film, svg = d3.select("#shap");
   if (i === null || !f.shap || f.trailerness[i] == null) { d3.select("#now .why").remove(); return; }
   svg.selectAll("*").remove();
-  const w = document.getElementById("now").clientWidth - 34;  // the panel's inner width (padding 16px each side)
+  const why = document.querySelector("#now .why");          // its own column: beside the frames when the panel is wide
+  const w = why && why.clientWidth ? why.clientWidth : document.getElementById("now").clientWidth - 34;
   // a few reasons read better than all of them: top 3 groups, the rest behind "more"
   let rows = f.shap_groups.map((g, k) => ({ key: g, label: GROUP_LABEL[g], v: f.shap[i][k], group: true }));
   rows.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
