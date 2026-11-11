@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# One-time setup on a login node (needs internet). Safe to rerun.
-#   git clone git@github.com:lvtwoodpecker/trailercut-vizml.git && cd trailercut-vizml
-#   bash hpc/setup.sh
+# One-time setup (needs internet). Safe to rerun. Run it as a job, not on the login node:
+#   sbatch --export=NONE --account=<account> hpc/setup.sbatch
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 cd "$REPO"

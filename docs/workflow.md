@@ -6,7 +6,7 @@ How we work in this repo.
 
 ```bash
 uv venv --python 3.12 && uv pip install -e .     # laptop
-bash hpc/setup.sh                                # cluster, see hpc/README.md
+sbatch --export=NONE --account=<account> hpc/setup.sbatch  # cluster, see hpc/README.md
 ```
 
 ## Repo layout
