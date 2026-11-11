@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trailer View</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="ytmedia.js"></script>
+<!-- site-config -->
 <style>
 :root {
   color-scheme: light;
@@ -57,6 +59,17 @@ button[aria-pressed="false"] { color: var(--muted); text-decoration: line-throug
 #now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, min(42vh, calc(100vh - 560px))) + 52px); }
 .novid { display: none; position: absolute; inset: 0; place-items: center; color: #c3c2b7; font-size: 13px; }
 .player.novideo .novid { display: grid; }
+/* public site: YouTube player in the same box, our own captions, frames from thumbnail sheets */
+.player .yt { height: max(260px, min(42vh, calc(100vh - 560px))); aspect-ratio: 16 / 9; max-width: 100%; border-radius: 6px; overflow: hidden; background: #000; }
+.player .yt iframe { display: block; width: 100%; height: 100%; }
+@media (max-width: 999px) { .player .yt { width: 100%; height: auto; } }
+.ytcc { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; pointer-events: none; }
+.ytcc span { font: 20px system-ui, -apple-system, sans-serif; color: #fff; background: rgba(0, 0, 0, 0.6); padding: 1px 6px; border-radius: 3px; }
+.novid a { color: #fff; }
+.sprite-box { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; background: var(--grid); }
+#now .sprite-box { width: 100%; }
+#tip .sprite-box { width: 180px; }
+.sprite { position: absolute; top: 0; left: 50%; height: 100%; transform: translateX(-50%); background-repeat: no-repeat; }
 .player video::cue { font: 20px system-ui, -apple-system, sans-serif; background: rgba(0, 0, 0, 0.6); }
 .controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
 
@@ -184,7 +197,20 @@ const FEAT_LABEL = { story_pos: "position in film", act: "act", synopsis_pos: "p
   scale_ecu: "extreme close-up", scale_cu: "close-up", scale_ms: "medium shot", scale_fs: "full shot", scale_ls: "long shot",
   scale_width: "shot width", shot_len: "shot length (s)", visual_change: "visual change" };
 const featLabel = n => FEAT_LABEL[n] || n.replace(/^c_/, "").replace(/_/g, " ");
-const vid = document.getElementById("vid"), tip = d3.select("#tip");
+// The public site (window.SITE, set by site_build) plays trailers from YouTube and shows frames from
+// thumbnail sheets; locally the page plays our own files. Everything else is the same.
+const SITE = window.SITE || null;
+let vid = document.getElementById("vid");
+const tip = d3.select("#tip");
+let ytcc = null;
+if (SITE) {
+  const box = document.createElement("div");
+  box.className = "yt";
+  vid.replaceWith(box);
+  const slot = box.appendChild(document.createElement("div"));
+  vid = new YTMedia(slot);
+  ytcc = d3.select(".screen").append("div").attr("class", "ytcc");
+}
 let D = null, starts = [], lineStarts = [], tx, fx, Y, W = 1200;
 let cur = -1, curLine = -1;      // shot and spoken line under the playhead
 let preview = null;              // hover while paused: {trailer?, film?}
@@ -198,6 +224,16 @@ const pad4 = i => String(i).padStart(4, "0");
 const tImg = (i, k = 1) => `../data/cache/trailer_frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
 const fImg = (i, k = 1) => `../data/movienet/frames/${D.id}/shot_${pad4(i)}_img_${k}.jpg`;
 const img = src => `<img src="${src}" alt="" onerror="this.outerHTML='<div class=&quot;empty&quot;>no frame</div>'">`;
+// a frame: kind "t" (trailer shot) or "f" (film shot); a cell of the sheet on the public site
+function frame(kind, i) {
+  if (!SITE) return img(kind === "t" ? tImg(i) : fImg(i));
+  const s = D.sheets && D.sheets[kind];
+  if (!s || i < 0 || i >= s.cols * s.rows) return `<div class="empty">no frame</div>`;
+  const c = i % s.cols, r = Math.floor(i / s.cols);
+  const pos = `${s.cols > 1 ? 100 * c / (s.cols - 1) : 0}% ${s.rows > 1 ? 100 * r / (s.rows - 1) : 0}%`;
+  return `<div class="sprite-box"><div class="sprite" style="aspect-ratio:${s.w}/${s.h};` +
+    `background-image:url('${SITE.frames}${s.file}');background-size:${s.cols * 100}% ${s.rows * 100}%;background-position:${pos}"></div></div>`;
+}
 const shotAt = t => Math.max(0, d3.bisectRight(starts, t) - 1);
 const lineAt = t => {
   const k = d3.bisectRight(lineStarts, t) - 1;
@@ -236,14 +272,19 @@ async function load(id) {
   d3.select("#meta").text(`${(D.genres || []).slice(0, 2).join(", ")} · ${D.shots.length} shots, ` +
     `${Math.round(100 * nMatched / D.shots.length)}% matched · ${nUsed}/${D.film.n} film shots used`);
   d3.select(".player").classed("novideo", false);
-  vid.src = `../data/trailers/${id}.mp4`;
-  vid.querySelectorAll("track").forEach(t => t.remove());
-  const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
-  vid.appendChild(track);
-  track.addEventListener("load", () => { track.track.mode = captionsOn ? "showing" : "hidden"; });
+  if (SITE) {
+    d3.select(".novid").html(`Can't play this trailer here. <a href="https://www.youtube.com/watch?v=${D.yt}" target="_blank" rel="noopener">Open on YouTube</a>`);
+    vid.load(D.yt, t0);
+  } else {
+    vid.src = `../data/trailers/${id}.mp4`;
+    vid.querySelectorAll("track").forEach(t => t.remove());
+    const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
+    vid.appendChild(track);
+    track.addEventListener("load", () => { track.track.mode = captionsOn ? "showing" : "hidden"; });
+  }
   drawAll();
   follow(t0);
-  if (t0) vid.addEventListener("loadedmetadata", () => { vid.currentTime = t0; }, { once: true });
+  if (t0 && !SITE) vid.addEventListener("loadedmetadata", () => { vid.currentTime = t0; }, { once: true });
 }
 
 // ---- the clock ----
@@ -257,7 +298,7 @@ function follow(t) {
   d3.select("#playhead").attr("x1", tx(t)).attr("x2", tx(t));
   const i = shotAt(t), k = lineAt(t);
   if (i !== cur) { cur = i; render(); }
-  if (k !== curLine) { curLine = k; soundLink(k); }
+  if (k !== curLine) { curLine = k; soundLink(k); caption(k); }
 }
 function loopRAF() { follow(vid.currentTime); if (!vid.paused) requestAnimationFrame(loopRAF); }
 function loopVFC(_, meta) { follow(meta.mediaTime); if (!vid.paused) vid.requestVideoFrameCallback(loopVFC); }
@@ -286,10 +327,16 @@ const syncBar = () => {
 };
 ["play", "pause", "timeupdate", "loadedmetadata", "seeked"].forEach(e => vid.addEventListener(e, syncBar));
 let captionsOn = true;
+// the YouTube player can't load our transcript, so the public site draws the current line itself
+function caption(k) {
+  if (!ytcc) return;
+  ytcc.html(captionsOn && k >= 0 ? `<span>${esc(D.speech[k][4] || "")}</span>` : "");
+}
 const ccBtn = document.getElementById("cc"), muteBtn = document.getElementById("mute");
 function toggleCC() {
   captionsOn = !captionsOn; ccBtn.setAttribute("aria-pressed", captionsOn);
-  for (const t of vid.textTracks) t.mode = captionsOn ? "showing" : "hidden";
+  if (SITE) caption(curLine);
+  else for (const t of vid.textTracks) t.mode = captionsOn ? "showing" : "hidden";
 }
 function toggleMute() { vid.muted = !vid.muted; muteBtn.setAttribute("aria-pressed", !vid.muted); }
 ccBtn.addEventListener("click", toggleCC);
@@ -367,14 +414,14 @@ function drawNow(h) {
   if (t !== null) {
     const s = D.shots[t];
     head = `<b>Shot ${t + 1}</b><span>${fmtT(s[0])}–${fmtT(s[1])}</span><span class="tag">${j !== null ? "matched" : "not found in film"}</span>`;
-    frames = `<figure>${img(tImg(t))}<figcaption>trailer</figcaption></figure>` +
-      (j !== null ? `<figure>${img(fImg(j))}<figcaption>film · ${pos}</figcaption></figure>`
+    frames = `<figure>${frame("t", t)}<figcaption>trailer</figcaption></figure>` +
+      (j !== null ? `<figure>${frame("f", j)}<figcaption>film · ${pos}</figcaption></figure>`
                   : `<figure><div class="empty">not found in the film</div><figcaption>&nbsp;</figcaption></figure>`);
   } else {
     const users = usersOf(j);
     head = `<b>Film shot ${j}</b><span>${pos}</span><span class="tag">${users.length ? "in the trailer" : "not in the trailer"}</span>`;
-    frames = `<figure>${img(fImg(j))}<figcaption>film</figcaption></figure>` +
-      (users.length ? `<figure>${img(tImg(users[0]))}<figcaption>trailer · shot ${users[0] + 1}</figcaption></figure>` : "");
+    frames = `<figure>${frame("f", j)}<figcaption>film</figcaption></figure>` +
+      (users.length ? `<figure>${frame("t", users[0])}<figcaption>trailer · shot ${users[0] + 1}</figcaption></figure>` : "");
   }
   box.html(`<div class="head">${head}</div><div class="body"><div class="frames">${frames}</div><div class="why">` +
     `<div class="why-h"><span>Model's reasons · odds vs average shot</span><span class="legend"><span><i style="background:var(--pos)"></i>toward trailer</span><span><i style="background:var(--neg)"></i>away</span></span></div>` +
@@ -550,7 +597,7 @@ function drawMain() {
       }
       const i = shotAt(tt), s = D.shots[i];
       hover({ trailer: i, film: s[3] });
-      showTip(ev, `<div class="pair">${img(tImg(i))}${s[3] >= 0 ? img(fImg(s[3])) : ""}</div><div>Shot ${i + 1} · ${fmtT(s[0])}</div>`);
+      showTip(ev, `<div class="pair">${frame("t", i)}${s[3] >= 0 ? frame("f", s[3]) : ""}</div><div>Shot ${i + 1} · ${fmtT(s[0])}</div>`);
     })
     .on("pointerleave", unhover);
 
@@ -558,7 +605,7 @@ function drawMain() {
   svg.append("g").selectAll("rect").data(shots).join("rect").attr("class", "hit")
     .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(4, fx(f.end[i]) - fx(f.start[i])))
     .attr("y", Y.used[0]).attr("height", Y.barcode[1] - Y.used[0]).attr("fill", "transparent")
-    .on("pointermove", (ev, i) => { hover({ film: i }); showTip(ev, img(fImg(i)) + `<div>Film shot ${i} · ${Math.round(100 * f.story_pos[i])}%</div>`); })
+    .on("pointermove", (ev, i) => { hover({ film: i }); showTip(ev, frame("f", i) + `<div>Film shot ${i} · ${Math.round(100 * f.story_pos[i])}%</div>`); })
     .on("pointerleave", unhover)
     .on("click", (ev, i) => {
       const users = usersOf(i);
@@ -590,7 +637,7 @@ function drawOrder() {
   svg.append("text").attr("class", "lbl-2").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
   const pts = D.shots.map((s, i) => [s, i]).filter(d => d[0][3] >= 0);
   scatter(svg, pts, "dot", ([s]) => x((s[0] + s[1]) / 2), ([s]) => y(D.film.story_pos[s[3]]), {
-    move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${img(tImg(i))}${img(fImg(s[3]))}</div><div>Shot ${i + 1}</div>`); },
+    move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${frame("t", i)}${frame("f", s[3])}</div><div>Shot ${i + 1}</div>`); },
     leave: unhover,
     click: (ev, [s]) => { preview = null; hideTip(); seek(s[0] + 0.01); },
   });

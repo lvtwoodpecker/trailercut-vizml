@@ -70,6 +70,7 @@ MovieNet (HF mirror)                    YouTube
 | rq2 (opt-in) | `trailercut.case_studies` | `trailers.parquet`, `av_sync.csv`, `model_preds.parquet` | `case_studies.json` | seconds |
 | viz | `trailercut.viewer_export` | alignment, trailer shots, `cache/trailer_audio/`, `film_shots.parquet`, model preds/SHAP if present, keyframes, dialogue alignment and transcripts if present | `viz/data/index.json`, `viz/data/{id}.json`, `viz/data/{id}.vtt`, `cache/shot_colors/{id}.json`, `cache/curves/{id}.json` | seconds once colors and curves are cached; first color pass ~1 ms per keyframe |
 | viz | `trailercut.rq1_export` | film shot table, film embeddings, `model_eval.json`, `model_tune.json` and `model_ebm.json` if present | `viz/data/rq1.json` | under a minute |
+| site (opt-in) | `trailercut.site_build [--frames-base URL]` | `viz/`, `viz/data/`, `clusters.csv`, `trailer_status.csv`, trailer frames, film keyframes | `site/` (gitignored): the public website; trailers play from YouTube, frames from one WebP sheet per trailer and per film (~2.5 GB) | ~15 min, 8 workers |
 | ebm (opt-in) | `trailercut.model_ebm` (`--plot-only` redraws from the JSON) | film shot table, film embeddings, `model_eval.json` | `model_ebm.json`, `figures/ebm_shapes.png` | ~30 min |
 
 ## Curate steps (`curate.sh`)

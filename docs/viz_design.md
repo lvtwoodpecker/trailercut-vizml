@@ -253,3 +253,15 @@ lift bars), its range taken from the data so no curve is clipped, cut to the fea
 a flat step to its own end. Concept features are raw CLIP similarities, which mean nothing as numbers,
 so their x axis reads only "low" and "high". The
 section is hidden when `model_ebm.json` doesn't exist.
+
+**Public site: YouTube video, frame sheets** (`site_build.py`, `ytmedia.js`). Our downloaded trailers,
+frames and transcripts can't be re-hosted, so the public build plays each trailer through YouTube's
+player (the same video we downloaded: its clock starts where ours does, and lengths agree within
+0.6 s for 1,081 of 1,082) and shows frames from one thumbnail sheet per trailer and per film. The
+page code is shared: `window.SITE` (set by the build) switches the video and frame sources, nothing
+else. `ytmedia.js` makes YouTube's player act like a `<video>` element and hides its quirks: before
+the first play a seek is only remembered (seeking an unstarted YouTube video leaves it stuck), and
+the wanted time is reported until YouTube catches up, so the playhead never jumps back. Captions are
+drawn from our transcript because the player can't load our caption file. What we give up: playback
+depends on YouTube (an unembeddable or removed trailer shows a link instead), and seeking is a
+little less snappy than a local file.
