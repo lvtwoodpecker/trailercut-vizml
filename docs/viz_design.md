@@ -181,7 +181,7 @@ film-shot tooltip and in the "why this shot" bars of the "now" panel. We give up
 **The video clock is the single source of truth.** Every highlight (current shot, its link, the film
 outline, the scatter dot, the "now" panel) follows the video's time, and every click seeks the video:
 the trailer strip and sound track scrub, a film barcode shot the trailer uses jumps to the trailer
-shot that uses it (again for its next use), and the order and sync dots seek to their moment. Hover
+shot that uses it (again for its next use), and the order dots seek to their moment. Hover
 previews a shot only while paused; leaving the mark goes back to the shot under the playhead. A film
 shot the trailer doesn't use just fills the panel (Esc clears it). Before, hover previewed and a click
 locked a shot without moving the video (and a strip click seeked twice), so the video and the
@@ -211,9 +211,11 @@ using the word timestamps.
 
 **One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
 it, tinted green where a line was found in the film's dialogue (it was violet until a palette check showed blue vs violet collapses under red-green colorblindness: ΔE 1.9 to 4.5; blue, orange and green pass). One sound link at a time runs from the
-current or hovered line to its film moment; picture links are drawn only in the main chart. A "Sound
-vs picture" panel plots each found line's film time against its picture's film time and counts lines
-within 30 s. Drawing every sound link next to every picture link was too crowded to read, so sound shows on demand and the sync panel carries the overview.
+current or hovered line to its film moment; picture links are drawn only in the main chart. Drawing
+every sound link next to every picture link was too crowded to read, so sound shows on demand. A
+"Sound vs picture" scatter (each found line's film time against its picture's) was dropped
+(2026-11-11): it was empty for every trailer without film dialogue and repeated what the sound track
+and its link already show.
 
 **Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.

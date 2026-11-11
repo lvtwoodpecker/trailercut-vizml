@@ -115,12 +115,10 @@ svg { display: block; overflow: visible; }
 .outline { fill: none; stroke: var(--ink); stroke-width: 2.5; pointer-events: none; }
 #playhead { stroke: var(--ink); stroke-width: 2; pointer-events: none; }
 .dot { fill: var(--matched); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
-.sdot { fill: var(--speech); stroke: var(--surface); stroke-width: 2; pointer-events: none; }
-.dot.cur, .sdot.cur { stroke: var(--ink); stroke-width: 2.5; r: 7; }
+.dot.cur { stroke: var(--ink); stroke-width: 2.5; r: 7; }
 .diag { stroke: var(--axis); stroke-dasharray: 4 4; }
 .note { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
-.grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 1000px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.order-card { max-width: 760px; }
 
 details.tbl { margin-top: 6px; font-size: 12px; }
 details.tbl summary { cursor: pointer; color: var(--ink-2); }
@@ -181,13 +179,7 @@ summary:focus-visible { outline: 2px solid var(--matched); outline-offset: 2px; 
     </details>
   </section>
 
-  <div class="grid2">
-    <section class="card"><h2>Trailer order vs film order</h2><svg id="order"></svg></section>
-    <section class="card"><h2>Sound vs picture</h2><svg id="sync"></svg><p class="note" id="sync-note"></p>
-      <details id="sync-tbl" class="tbl"><summary>Lines table</summary>
-        <div class="tbl-wrap"><table><thead><tr><th>line</th><th>trailer time</th><th>picture</th><th>sound</th><th>same scene</th></tr></thead><tbody></tbody></table></div>
-      </details></section>
-  </div>
+  <section class="card order-card"><h2>Trailer order vs film order</h2><svg id="order"></svg></section>
 </main>
 <div id="tip"></div>
 
@@ -396,7 +388,6 @@ function highlight(h) {
     links.classed("hi", ([, i]) => onLink(i));
     links.filter(".hi").raise();  // draw the highlighted link on top of the others
   }
-  d3.selectAll("#sync .sdot").classed("cur", p => p.i === t);
   const rows = d3.select("#tbl tbody").selectAll("tr").classed("cur", (_, i) => i === t);
   if (t !== null && document.getElementById("tbl").open) {
     const r = rows.nodes()[t], box = r && r.closest(".tbl-wrap");
@@ -511,7 +502,7 @@ function soundLink(k) {
   path.style("display", null).attr("d", `M${a},${y0} C${a},${m} ${b},${m} ${b},${Y.barcode[1]}`);
 }
 
-function drawAll() { drawMain(); drawOrder(); drawSync(); drawTable(); render(); }
+function drawAll() { drawMain(); drawOrder(); drawTable(); render(); }
 
 // the same shots as a table (the accessible twin of the timeline); a row click seeks there
 function drawTable() {
@@ -648,38 +639,6 @@ function drawOrder() {
     click: (ev, [s]) => { preview = null; hideTip(); seek(s[0] + 0.01); },
   });
   axes(svg, x, y, w, H, m, fmtT, "trailer time", "film position");
-}
-
-// per matched line: where its sound is in the film vs where the picture on screen is from
-function drawSync() {
-  const w = document.getElementById("sync").parentNode.clientWidth - 34, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
-  const svg = d3.select("#sync").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
-  svg.selectAll("*").remove();
-  const f = D.film, rt = f.runtime || 1, pts = [];
-  D.speech.forEach((d, k) => {
-    if (!d[2]) return;
-    const i = shotAt((d[0] + d[1]) / 2), s = D.shots[i];
-    if (s[2]) pts.push({ k, i, x: f.story_pos[s[3]], y: d[3], sync: Math.abs(f.story_pos[s[3]] - d[3]) * rt <= 30 });
-  });
-  const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
-  svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(1)).attr("y2", y(1));
-  svg.append("text").attr("class", "lbl-2").attr("x", x(1) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("same moment");
-  scatter(svg, pts, "sdot", p => x(p.x), p => y(p.y), {
-    move: (ev, p) => { hover({ trailer: p.i, film: D.shots[p.i][3] }); soundLink(p.k); showTip(ev, `“${esc(D.speech[p.k][4])}”`); },
-    leave: () => { unhover(); soundLink(curLine); },
-    click: (ev, p) => { preview = null; hideTip(); seek(D.speech[p.k][0] + 0.01); },
-  });
-  axes(svg, x, y, w, H, m, d3.format(".0%"), "picture", "sound");
-  // its table twin: the same lines, a row click seeks there
-  const seekLine = p => { preview = null; seek(D.speech[p.k][0] + 0.01); };
-  d3.select("#sync-tbl tbody").selectAll("tr").data(pts).join("tr").attr("tabindex", 0)
-    .html(p => `<td style="text-align:left">${esc(D.speech[p.k][4])}</td><td>${fmtT(D.speech[p.k][0])}</td><td>${Math.round(100 * p.x)}%</td>` +
-      `<td>${Math.round(100 * p.y)}%</td><td>${p.sync ? "yes" : "no"}</td>`)
-    .on("click", (ev, p) => seekLine(p))
-    .on("keydown", (ev, p) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); seekLine(p); } });
-  d3.select("#sync-tbl").style("display", pts.length ? null : "none");
-  const nSync = pts.filter(p => p.sync).length, nLines = D.speech.filter(d => d[2]).length;
-  d3.select("#sync-note").text(!nLines ? "No film dialogue in this trailer." : `${nSync} of ${pts.length} lines play over their own scene.`);
 }
 
 init();
