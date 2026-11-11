@@ -32,7 +32,7 @@ videos first, then accept a candidate only if at least 25% of its shots match th
 the 2nd search hit for *The Godfather Part II* is the *Godfather* anniversary trailer. Real trailers
 have a median match share of ~58% and a wrong film should sit near the 5% false-match rate, so 25%
 separates them with room on both sides. This needs the 5% impostor cutoff, not the label-picked one
-(at 0.515, 83% of impostor scores still clear it), so `align` always saves
+(at 0.515, 79% of impostor scores still clear it), so `align` always saves
 `impostor_threshold` next to the cutoff in use and `recover` reads that. Every replaced row has `source=search`, since searched
 trailers can be re-release cuts and we may want to check whether they behave differently.
 The film's own title is removed before the title filter runs: *Freddy vs. Jason* got zero candidates
@@ -245,9 +245,18 @@ negatives in the RQ1 labels. The best-F1 cutoff was 0.535 (precision 0.85, recal
 trailer swaps and the re-split, 639 labels are left and the best-F1 cutoff is 0.515 (precision 0.87,
 recall 0.92, `alignment_eval.json`). The `align` stage of
 `run_all.sh` re-runs `align --threshold` with `best_f1.threshold` from `alignment_eval.json` once labels exist. What we
-give up: 83% of impostor scores clear 0.515, so the null no longer limits matches against the wrong
+give up: 79% of impostor scores clear 0.515, so the null no longer limits matches against the wrong
 film, and the labels show most "same scene" and many "not in film" shots get matched too (see
 `limitations.md`). The null's pass rate at `T` is still saved as `fpr`.
+
+**Title cards only match when the match is strong** (`align.cards`). A trailer title card or studio
+logo looks like any dark or text-heavy film shot to CLIP, so at 0.515 it lands on the film's credits
+or a dark scene, and those wrong matches showed up in RQ1 as "text card" and "logo" being picked
+(8 of 8 checked by eye were wrong). A trailer shot is a card when its `c_text_card` or `c_logo` score
+is above that film's 99th percentile over its own shots (`CARD_Q`); a card counts as matched only at
+the impostor cutoff (0.744) or above, which keeps real in-film text like a newspaper insert. Of
+92,830 trailer shots 8,646 are cards and 2,193 of those stay matched. What we give up: a real card
+shot that matches weakly is lost, and a text-heavy shot that isn't a card is held to the higher bar.
 
 **Sequence smoothing tried and dropped** (`align.smooth`, `align_tune.py`). Idea: shots cut from the
 same scene should land on nearby film shots, so match the whole trailer with Viterbi. A first version

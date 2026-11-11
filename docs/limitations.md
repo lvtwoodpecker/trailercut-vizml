@@ -57,7 +57,7 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 - **Hand labels: one labeler, possible anchoring.** All labels are from one person, so there is
   no kappa yet. The tool shows candidates sorted by score, and 94% of picks were candidate #1, so
   labels may lean toward the aligner's own choice and overstate its accuracy.
-- **The 0.515 cutoff lets through shots that aren't in the film.** 83% of impostor scores (best match
+- **The 0.515 cutoff lets through shots that aren't in the film.** 79% of impostor scores (best match
   in a *different* film) clear it, so the null no longer bounds false matches. In the labels, 96% of 27
   "same scene" and 43% of 54 "not in film" trailer shots score above it (`alignment_diagnostics.json`). Trailer
   stats that count matches (match share, story sampling) include some of these.
@@ -92,13 +92,13 @@ What the current data and methods can't tell us, so we don't overclaim in the re
 
 ## Analysis
 
-- **The RQ1 signal is weak.** The full model's AP is 0.099 against 0.046 for random, and at trailer
-  length about 15 in 100 top-ranked shots are in the trailer (lift 2.75x over random). It ranks better
+- **The RQ1 signal is weak.** The full model's AP is 0.095 against 0.045 for random, and at trailer
+  length about 14 in 100 top-ranked shots are in the trailer (lift 2.68x over random). It ranks better
   than chance, not well enough to say which shots an editor will pick. Readable features carry most of
-  what the model finds (lift 2.59x). Allowing ±k shots of slack doesn't rescue it (lift 1.56x at ±3), and extra features or a ranker don't move it (`model_tune.json`).
+  what the model finds (lift 2.49x). Allowing ±k shots of slack doesn't rescue it (lift 1.54x at ±3), and extra features or a ranker don't move it (`model_tune.json`).
 - **The third reason is shaky.** Retrained on different films, the model keeps a shot's top reason
-  76% of the time but its top-3 set only 55% (`shap_stability.json`); read the first reason, not the order of the rest.
-- **Uneven across films.** Lift is 2.2x on the quarter of films with the fewest shots and 3.7x on the
+  75% of the time but its top-3 set only 56% (`shap_stability.json`); read the first reason, not the order of the rest.
+- **Uneven across films.** Lift is 2.2x on the quarter of films with the fewest shots and 3.5x on the
   most, but about half of that is arithmetic (lower positive rates in long films); on per-film AUC
   the gap is 0.68 vs 0.64. Comedy stays below at equal film length (AUC 0.014 lower); romance and
   action don't differ clearly once length is controlled (`error_slices.json`, results.md 2026-11-06).

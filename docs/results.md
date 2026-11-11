@@ -3,6 +3,48 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-11: title cards held to the impostor cutoff
+
+Alignment rerun with `align.cards`: a trailer shot whose text card or logo score is above its film's
+99th percentile counts as matched only at 0.744 or above (design.md). Then RQ1, EBM, error slices
+and SHAP stability reran on the new labels. The smooth EBM and its comparison were not rerun
+(`model_ebm_smooth.json`, `model_ebm_compare.json` are from the 2026-11-06 labels).
+
+**Alignment** [`alignment_threshold.json`, `alignment_eval.json`]: 8,646 of 92,830 trailer shots are
+cards, 2,193 of those stay matched; matched trailer shots 83,433 → 80,781. Hand-label numbers don't
+move (cutoff 0.515, precision 0.87, recall 0.92). 79% of impostor scores clear 0.515.
+
+**RQ1** [`model_report.json`, `model_eval.json`]: 1,570,548 film shots, 1,082 films, 4.5% positive.
+
+| model | AP | precision at trailer length | lift k=0 | lift ±1 | lift ±3 | lift ±5 |
+|---|---|---|---|---|---|---|
+| random | 0.045 | 0.053 | 1.01 | 1.01 | 1.00 | 1.01 |
+| position only | 0.051 | 0.070 | 1.32 | 1.27 | 1.22 | 1.18 |
+| length only | 0.061 | 0.089 | 1.69 | 1.34 | 1.20 | 1.13 |
+| CLIP only | 0.077 | 0.120 | 2.28 | 1.70 | 1.43 | 1.32 |
+| readable | 0.086 | 0.131 | 2.49 | 1.81 | 1.50 | 1.37 |
+| full | 0.095 | 0.141 | 2.68 | 1.89 | 1.54 | 1.40 |
+
+Every model drops a little and the order holds: some of the old lift was easy wrong matches on the
+film's credits. Base rate by k: 0.045, 0.115, 0.225, 0.311. Precision at trailer length lost when one
+group is dropped: CLIP 0.010, editing 0.010, position 0.002, content 0.001, others ≤ 0. SHAP mean
+|value| by group unchanged (CLIP 0.25, editing 0.23, position 0.19, content 0.08, dialogue 0.06, scale 0.04).
+
+**Concepts** [`viz/data/rq1.json`]: text card 1.42x → 1.34x (rank 2 → 5), logo 1.33x → 1.26x;
+explosion still first (1.52x), then city, running, chase.
+
+**EBM** [`model_ebm.json`]: lift 2.28 vs 2.49 for LightGBM on the same readable features.
+
+**Error slices** [`error_slices.json`, `figures/error_slices.png`]: same pattern as before.
+- film shots: 2.21x for the fewest quarter, 3.49x for the most
+- above the rest: Adventure 3.23x, Action 3.15x, Fantasy 3.12x, Horror 3.02x, Sci-Fi 3.01x, Thriller 2.96x, Mystery 2.95x
+- below: Comedy 2.38x, Romance 2.40x, Drama 2.54x
+- no subtitles 2.37x vs 2.82x; decade and trailer size within noise
+- the length-adjusted checks (2026-11-06 correction) were run on the old labels and not redone
+
+**SHAP stability** [`shap_stability.json`]: same top reason 75% (chance 16%), with direction 75% (8%),
+same top-3 set 56% (5%), Jaccard 0.77 (0.36), rank agreement 0.78; global order identical in all 15 models.
+
 ## 2026-11-06: all 1,082 films, lift now relative to random, error slices
 
 RQ1 rerun on 1,082 films with missing subtitles coded as missing (not "no dialogue"). **Lift changed

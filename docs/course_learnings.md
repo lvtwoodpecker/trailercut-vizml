@@ -104,7 +104,7 @@ For us
   model's score, vs the average shot", not "Why"; the RQ1 page says "associations, not causes".
 - 🔧 Correlated groups (CLIP vs content concepts, story position vs act) noted in limitations.md.
 - ✅ Grouped SHAP stability (`shap_stability.py`): retrained on different films, the top reason stays
-  the same for 76% of shots (16% by chance), the top-3 set for 55% (5%).
+  the same for 75% of shots (16% by chance), the top-3 set for 56% (5%).
 
 ## Clustering and dimensionality reduction (reference for the clustering part)
 
@@ -144,7 +144,7 @@ For us
 
 For us
 - ✅ Every method choice has its "why" in design.md and viz_design.md.
-- ⬜ Abstract numbers (lift 2.75× over random on 1,082 films; alignment P 0.87 / R 0.92), contribution bullets,
+- ⬜ Abstract numbers (lift 2.68× over random on 1,082 films; alignment P 0.87 / R 0.92), contribution bullets,
   design goals mapped to views, annotated figures (`?t=` links make Trailer View shots reproducible).
 
 ---

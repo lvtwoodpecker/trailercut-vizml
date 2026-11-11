@@ -108,7 +108,7 @@ to the film's subtitles, and {n_labels} hand-checked alignments.
 |---|---|
 | `trailers.csv` | one row per film: the trailer link, its YouTube title, channel and length, and how well it matches the film (trailer shots, share of shots matched, span of the film covered) |
 | `trailer_shots.parquet` | trailer shot boundaries (frames and seconds) |
-| `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, matched flag, top-5 candidates |
+| `alignment.parquet` | trailer shot -> MovieNet film shot index, similarity score, title card / logo flag, matched flag, top-5 candidates |
 | `dialogue_alignment.parquet` | trailer speech segment -> film subtitle time; times and scores only |
 | `av_sync.csv` | per-trailer speech share, words per minute, share of lines found in the film, sound/picture sync rate |
 | `hand_labels.csv` | hand labels: the source film shot, `s` (same scene, other shot), `n` (not in film) or `u` (unsure) |
@@ -127,7 +127,8 @@ Film shot indices refer to MovieNet's shot annotations (`movie1K.shot_detection`
   change between neighboring frames. {below_floor:.1%} of trailer shots still look like two shots glued
   together (about the rate of MovieNet's own shots).
 - Alignment: CLIP ViT-B/32 on 3 keyframes per shot; a shot counts as matched above a similarity cutoff
-  picked from the hand labels (best F1: precision {prec:.2f}, recall {rec:.2f}, cutoff {thr}).
+  picked from the hand labels (best F1: precision {prec:.2f}, recall {rec:.2f}, cutoff {thr}). Title
+  cards and logos (`card`) need the stricter 5% false-match cutoff, since they look like the film's credits.
 - Dialogue: Whisper (small) transcripts matched to MovieNet subtitles with fuzzy text matching.
 
 ## Limitations

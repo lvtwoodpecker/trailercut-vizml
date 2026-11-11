@@ -157,8 +157,8 @@ model score, the shots someone will actually hover; the rest get grouped SHAP on
 small.
 
 **Reasons: the first one leads.** The panel shows the top 3 reason groups, but only the first is
-reliable: retrained on different films, the model keeps a shot's top reason 76% of the time and its
-top-3 set 55% (`shap_stability.json`). So the top reason is bold in full ink with a rule under it, and
+reliable: retrained on different films, the model keeps a shot's top reason 75% of the time and its
+top-3 set 56% (`shap_stability.json`). So the top reason is bold in full ink with a rule under it, and
 the other two are regular weight in secondary ink. Bars keep one color for every row.
 
 **Movie barcode from average color.** The film is drawn as a strip of its shots, each filled with the
