@@ -22,7 +22,12 @@ From NYU's HPC docs and what has worked in our other Torch projects:
   Don't borrow another project's.
 - **Temp files on scratch, never `/tmp`**: the login node's `/tmp` is not the compute node's.
   `env.sh` sets `TMPDIR` under scratch.
-- **Copy data through the transfer node** `dtn.torch.hpc.nyu.edu`, not the login node.
+- **Copy data through a transfer node**, not the login node. `dtn.torch.hpc.nyu.edu` lands on either
+  `dtn011.hpc.nyu.edu` or `dtn012.hpc.nyu.edu`, which have different host keys, so ssh warns that the
+  key "changed" when it switches. Pick one node by name and use it every time. Before accepting its
+  key the first time, compare with what the cluster sees: on the login node,
+  `ssh-keyscan -t ed25519 dtn012.hpc.nyu.edu 2>/dev/null | ssh-keygen -lf -`. Each new connection asks
+  for a device login, so copy everything in one `rsync`.
 - **Storage** (check with `myquota`):
 
   | where | for | limit | backed up | purged |
@@ -69,7 +74,7 @@ YouTube tends to block cluster IPs, so download locally and copy the videos up (
 
 ```bash
 # laptop, from the repo root
-rsync -av --progress data/trailers/ <netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml/data/trailers/
+rsync -av --progress data/trailers/ <netid>@dtn012.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml/data/trailers/
 ```
 
 ## 3. Keyframes
@@ -94,7 +99,7 @@ them from there or copy them down), and embeddings to `$TRAILERCUT_DATA/cache/cl
 ## 5. Copy results down (from your laptop)
 
 ```bash
-R=<netid>@dtn.torch.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
+R=<netid>@dtn012.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
 rsync -av --progress $R/data/cache/clip/h14/        data/cache/clip/h14/
 rsync -av --progress $R/data/cache/trailer_frames/  data/cache/trailer_frames/
 rsync -av --progress $R/data/cache/trailer_audio/   data/cache/trailer_audio/
