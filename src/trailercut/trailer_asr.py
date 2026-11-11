@@ -6,6 +6,7 @@ looking at pixels. Voice activity detection skips music-only stretches.
 
 Outputs (gitignored, under the data root: transcripts are copyrighted text)
   cache/trailer_asr/{imdb_id}.json   language + segments [{start, end, text, words: [{start, end, word, p}]}]
+  cache/trailer_asr_{model}/...       the same for any model but small (e.g. large-v3 on a GPU), kept apart
 
   python -m trailercut.trailer_asr [--model small] [--limit N]
 """
@@ -43,13 +44,14 @@ def main():
     from faster_whisper import WhisperModel
     cuda = torch.cuda.is_available()
     model = WhisperModel(a.model, device="cuda" if cuda else "cpu", compute_type="float16" if cuda else "int8")
-    OUT.mkdir(parents=True, exist_ok=True)
-    todo = [p for p in sorted(AUDIO.glob("*.wav")) if not (OUT / f"{p.stem}.json").exists()]
+    out = OUT if a.model == "small" else CACHE / f"trailer_asr_{a.model}"
+    out.mkdir(parents=True, exist_ok=True)
+    todo = [p for p in sorted(AUDIO.glob("*.wav")) if not (out / f"{p.stem}.json").exists()]
     if a.limit:
         todo = todo[: a.limit]
     for p in tqdm(todo):
         try:
-            (OUT / f"{p.stem}.json").write_text(json.dumps(transcribe(model, p)))
+            (out / f"{p.stem}.json").write_text(json.dumps(transcribe(model, p)))
         except Exception as e:
             print(p.stem, "failed:", e)
 

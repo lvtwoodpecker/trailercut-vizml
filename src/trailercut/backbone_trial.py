@@ -19,6 +19,7 @@ from scipy.stats import spearmanr
 
 from . import concepts
 from .align import align_one, load
+from .embed import MODELS
 from .label_eval import evaluate, load_gold, one_per_shot
 from .paths import CLIP_TAG, FEATURES
 
@@ -27,20 +28,21 @@ def main():
     gold = one_per_shot(load_gold())
     ids = sorted(gold.imdb_id.unique())
     al = pd.concat([align_one(i, threshold=0.0).assign(imdb_id=i) for i in ids])
-    ev, *_ = evaluate(gold, al)
+    ev, *_ = evaluate(gold, al, ts=np.linspace(0.05, 0.95, 181))  # other backbones score on other scales
     d = gold.merge(al, on=["imdb_id", "shot_idx"])
     d = d[d.label.str.isdigit()]
     ev["top1_by_film"] = {i: round(float((g.label == g.film_shot.astype(str)).mean()), 3) for i, g in d.groupby("imdb_id")}
     ev["nonfinite_embeddings"] = {k: int(sum((~np.isfinite(load(k, i).numpy())).any(-1).sum() for i in ids)) for k in ("film", "trailer")}
     rho = []
-    for i in ids:
+    for i in ids if CLIP_TAG in MODELS else []:  # concepts need a text encoder (not DINOv2)
         s = concepts.scores(load("film", i).numpy())
         rho.append(spearmanr(s["c_text_card"], s["c_night"])[0])
-    ev.update(backbone=CLIP_TAG, films=ids, text_card_vs_night_rho=float(np.mean(rho)))
+    ev.update(backbone=CLIP_TAG, films=ids, text_card_vs_night_rho=float(np.mean(rho)) if rho else None)
     (FEATURES / f"backbone_trial_{CLIP_TAG}.json").write_text(json.dumps(ev, indent=2))
     b = ev["best_f1"]
+    rho_s = "n/a" if ev["text_card_vs_night_rho"] is None else f"{ev['text_card_vs_night_rho']:.2f}"
     print(f"{CLIP_TAG}: {ev['n']} labels, best F1 {b['f1']:.3f} at {b['threshold']:.3f} (P {b['precision']:.2f}, "
-          f"R {b['recall']:.2f}); top-1 {ev['top1_acc_when_source']:.3f}; text card vs night rho {ev['text_card_vs_night_rho']:.2f}")
+          f"R {b['recall']:.2f}); top-1 {ev['top1_acc_when_source']:.3f}; text card vs night rho {rho_s}")
     print("top-1 by film:", ev["top1_by_film"], "| non-finite embeddings:", ev["nonfinite_embeddings"])
 
 

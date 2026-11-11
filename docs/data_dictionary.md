@@ -342,6 +342,11 @@ and new YouTube title and the new trailer's 4 best-matching shots next to the fi
 matched; film frames, so never committed).
 
 Swap downloads go to `$TRAILERCUT_DATA/trailers/candidates/{id}__{youtube_id}.mp4` (G).
+- `trailer_asr_{model}/{id}.json`: Whisper transcripts from a model other than small (e.g. `large-v3`
+  on the cluster), same format as `cache/trailer_asr/`. Copyrighted text: never committed.
+- `vlm/{model}/answers.jsonl`: one line per labeled trailer shot from `vlm_rerank`: `key`,
+  `raw` (the model's reply), `answer` (0 = none, 1-5 = shown candidate, -1 = unparseable).
+- `clip/dinov2/`: DINOv2 (ViT-L/14) embeddings, same layout as the CLIP ones; alignment only.
 
 ## Dataset release (`data/release/`, G, `release`)
 
