@@ -13,7 +13,7 @@ import pandas as pd
 
 from PIL import Image
 
-from .paths import FRAMES, IDS, MOVIENET
+from .paths import FRAMES, IDS, IDS_DIR, MOVIENET
 
 
 def core_ids():
@@ -112,17 +112,27 @@ def subtitles(imdb_id):
     return pd.DataFrame(rows)
 
 
-# core films whose MovieNet title has no "(year)"
-YEAR_FIX = {"tt0076759": 1977, "tt0080684": 1980, "tt0086190": 1983, "tt0120915": 1999,
-            "tt0121765": 2002, "tt0145487": 2002, "tt2488496": 2015}
+# MovieNet cuts some titles at a hyphen or colon ("X" for X-Men) and drops their "(year)";
+# data/ids/title_fix.csv has IMDb's title and year for those (title.basics, IMDb non-commercial datasets)
+YEAR = re.compile(r"\((?:TV Movie |Video )?(\d{4})\)")
+
+
+@lru_cache(None)
+def title_fix():
+    return pd.read_csv(IDS_DIR / "title_fix.csv", dtype={"year": "Int64"}).set_index("imdb_id")
 
 
 def meta(imdb_id):
     m = json.load(open(MOVIENET / "meta" / f"{imdb_id}.json"))
     title = m.get("title") or ""
-    year = re.search(r"\((\d{4})", title)
+    year = YEAR.search(title)
+    year = int(year.group(1)) if year else None
+    if year is None and imdb_id in title_fix().index:
+        fix = title_fix().loc[imdb_id]
+        year = int(fix.year) if pd.notna(fix.year) else None
+        title = f"{fix.title} ({year})" if year else fix.title
     genres = m.get("genres")
     genres = ast.literal_eval(genres) if isinstance(genres, str) and genres.startswith("[") else (genres or [])
-    return dict(imdb_id=imdb_id, title=title, year=int(year.group(1)) if year else YEAR_FIX.get(imdb_id),
+    return dict(imdb_id=imdb_id, title=title, year=year,
                 genres=genres, rating=float(m["imdb_rating"]) if m.get("imdb_rating") else None,
                 duration=video_info()[imdb_id]["duration"])

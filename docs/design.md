@@ -152,8 +152,13 @@ versions, TV spots, dark films and logos or credits, so they stay in the corpus.
 **Keyframes as one zip per film** (`movienet.py --pack`). ~880 files instead of ~1.3M JPEGs, which
 matters for inode quotas on the cluster. Readers accept either a folder or `path.zip::member` refs.
 
-**Year fixes.** MovieNet titles for 7 films (the Star Wars films, *Spider-Man*) have no year; they
-are hardcoded in `movienet_io.YEAR_FIX` so the decade analysis doesn't drop them.
+**Title and year fixes from IMDb** (`data/ids/title_fix.csv`). MovieNet only gives a year inside the
+title, and it cuts 22 titles at a hyphen or colon ("X" for *X-Men*, "Spider" for *Spider-Man*),
+which also loses the year. For those 22 the title and year come from IMDb's `title.basics` (the free
+non-commercial dump), so every film has a year and the decade analyses drop none. Years written as
+"(TV Movie 2006)" or "(Video 2008)" are read too. Other titles stay MovieNet's: the remaining
+differences from IMDb are naming style (*Se7en* vs *Seven*), not errors. What we give up: for 4
+films MovieNet's year is a year off IMDb's (festival vs release year); we keep MovieNet's.
 
 ## Trailer processing
 

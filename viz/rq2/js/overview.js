@@ -92,6 +92,7 @@ function parseData(data) {
         d.cluster_audio = +d.cluster_audio;
         d.cluster_visual = +d.cluster_visual;
         d.cluster_res_all = +d.cluster_res_all;
+        d.genre_list = (d.genres || "").split("|").filter(Boolean);  // every genre, IMDb lists them alphabetically
 
         d.umap_x_base = +d.umap_x_base;
         d.umap_y_base = +d.umap_y_base;
@@ -104,7 +105,7 @@ function parseData(data) {
 }
 
 function populateGenreDropdown() {
-    const genres = Array.from(new Set(globalData.map(d => d.primary_genre).filter(Boolean))).sort();
+    const genres = Array.from(new Set(globalData.flatMap(d => d.genre_list))).sort();
     const select = d3.select("#genre-select");
 
     genres.forEach(genre => {
@@ -145,7 +146,7 @@ function renderPlot() {
             const [x, y] = d3.pointer(event, vizContainerNode);
 
             tooltip.style("opacity", 1)
-                .html(`<strong>${d.title}</strong><br/><span style="color: #94a3b8;">${d.primary_genre}</span>`)
+                .html(`<strong>${d.title}</strong><br/><span style="color: #94a3b8;">${d.genre_list.join(", ")}</span>`)
                 .style("left", (x + 8) + "px")
                 .style("top", (y - 80) + "px");
         })
@@ -171,7 +172,7 @@ function renderPlot() {
 
 function filterPasses(d) {
     const searchTerm = d3.select("#search-input").property("value").toLowerCase();
-    const matchesGenre = currentGenre === "all" || d.primary_genre === currentGenre;
+    const matchesGenre = currentGenre === "all" || d.genre_list.includes(currentGenre);
     const matchesSearch = !searchTerm || d.title.toLowerCase().includes(searchTerm);
     return matchesGenre && matchesSearch;
 }
@@ -273,7 +274,7 @@ window.addEventListener("trailerSelect", (event) => {
     applyFilters();
 
     d3.select("#detail-title").text(item.title);
-    d3.select("#detail-meta").text(`${item.year} • ${item.primary_genre}`);
+    d3.select("#detail-meta").text(`${item.year} • ${item.genre_list.join(", ")}`);
 
     const activeCluster = currentSpace === "res" ? item.cluster_res_all : item.cluster_all;
 

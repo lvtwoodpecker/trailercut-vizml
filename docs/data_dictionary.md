@@ -13,6 +13,10 @@ steps that haven't produced a committed output so far.
 trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0). The
 pipeline's film list (`paths.IDS`; `TRAILERCUT_FILMS` overrides).
 
+**`title_fix.csv`** (C): IMDb title and year for the 22 films whose MovieNet title is cut short and
+has no year (`movienet_io.meta` uses it). `imdb_id`, `movienet_title`, `title`, `year`. Source: IMDb
+`title.basics` (non-commercial datasets).
+
 **`trailer_status.csv`** (C): one row per film with a trailer in use (1,058: the 293 core films and
 765 new ones, added by `swap apply --set expand`).
 `imdb_id`, `youtube_id` (link actually used), `status` (`ok` / `unavailable` / `error`), `duration` (s),
@@ -230,15 +234,20 @@ matched shots, 5+ paired lines, or 10+ used shots for `model`) and two lists of 
 
 ## Clusters
 
-**`clusters.csv`** (C): one row per trailer. `imdb_id`, `title`, `year`, `primary_genre`, k-means
-label `cluster_<group>` for `all`, `pacing`, `audio`, `story`, `dialogue`, `visual`, `speech`, and `umap_x`,
-`umap_y` (UMAP of all features, standardized, medians imputed).
+**`clusters.csv`** (C): one row per trailer. `imdb_id`, `title`, `year`, `genres` (every genre,
+`|`-separated), `primary_genre` (first listed, so alphabetically first; kept for reference only),
+`youtube_id`, k-means label `cluster_<group>` for `all`, `pacing`, `audio`, `story`, `dialogue`,
+`visual`, `speech`, the same after regressing out genre and decade as `cluster_res_<group>`, and
+`umap_x_base`, `umap_y_base`, `umap_x_res`, `umap_y_res` (UMAP of all features, before and after).
+For k = 2, cluster numbers follow the previous `clusters.csv` on the films both share, since the RQ2
+page names cluster 0 and 1.
 
-**`cluster_report.json`** (C): a JSON list, one object per feature set (`all` first, then the 6
-groups, `speech` last). Keys: `modality`, `n_features`, `best_k`, `silhouette` (k-means silhouette for k = 2 to 8,
-keyed by k as a string), `stability_ari_mean`, `stability_ari_std` (50 refits on 80% subsamples),
-`hdbscan_n_clusters`, `hdbscan_noise_frac`, and `genre`, `decade`, each `{nmi, null_p95, p}` (`p` =
-share of 200 shuffles with NMI at least as high).
+**`cluster_report.json`** (C): `{baseline, residual}`, each a list with one object per feature set
+(`all` first, then the 6 groups). Keys: `modality`, `n_features`, `best_k`, `silhouette` (k-means
+silhouette for k = 2 to 8, keyed by k as a string), `stability_ari_mean`, `stability_ari_std` (50
+refits on 80% subsamples), `hdbscan_n_clusters`, `hdbscan_noise_frac`, `genre` (mean NMI over genre
+flags with at least 30 films), `decade` (NMI), each `{nmi, null_p95, p}` (`p` = share of 200 shuffles
+with NMI at least as high).
 
 ## Summary and labels
 

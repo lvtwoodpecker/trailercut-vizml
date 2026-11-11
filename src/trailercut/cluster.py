@@ -4,6 +4,9 @@ For all features combined and for each modality alone:
   - k-means for k=2..8 (silhouette) and HDBSCAN
   - bootstrap stability: refit on 80% subsamples, ARI against the full-data labels on the overlap
   - association with genre and decade (NMI), against a permutation null so "agreement" has a baseline
+  - residualized: the same after regressing out genre and decade. Genre uses every genre a film has
+    (IMDb lists them alphabetically, so the first one is not the main genre); genre association is
+    the mean NMI over genre flags
 
   python -m trailercut.cluster
 Writes data/features/clusters.csv, data/features/cluster_report.json, figures/clusters_*.png
@@ -12,9 +15,10 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import json
+import os
 
 import matplotlib
-matplotlib.use("TkAgg")
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -61,6 +65,30 @@ def stability(X, k):
     return float(np.mean(aris)), float(np.std(aris))
 
 
+def genre_flags(df):
+    """One column per genre a film has (0/1)."""
+    return df.genres.fillna("").str.get_dummies("|")
+
+
+def genre_association(labels, flags, n_perm=200):
+    """Mean NMI over genre flags (genres with >= 30 films) vs. the same with shuffled films."""
+    flags = flags.loc[:, flags.sum() >= 30].values
+    score = lambda lab: np.mean([normalized_mutual_info_score(flags[:, j], lab) for j in range(flags.shape[1])])
+    nmi = score(labels)
+    null = [score(RNG.permutation(labels)) for _ in range(n_perm)]
+    return dict(nmi=float(nmi), null_p95=float(np.percentile(null, 95)), p=float(np.mean(np.array(null) >= nmi)))
+
+
+def orient(labels, df, prev, col):
+    """k-means numbers clusters arbitrarily, and the RQ2 page names cluster 0 and 1. For k=2, keep the
+    numbering of the previous clusters.csv on the films both runs share, so the names stay on the same group."""
+    if prev is None or col not in prev or labels.max() != 1:
+        return labels
+    old = df.imdb_id.map(prev[col])
+    ok = old.notna().values
+    return labels if not ok.any() or (labels[ok] == old.values[ok]).mean() >= 0.5 else 1 - labels
+
+
 def association(labels, meta, n_perm=200):
     """NMI with metadata vs. the same NMI with shuffled metadata (95th pct)."""
     ok = meta.notna().values
@@ -101,14 +129,14 @@ def analyze(df, cols, name):
         stability_ari_std=stab[1],
         hdbscan_n_clusters=int(hdb.max() + 1),
         hdbscan_noise_frac=float((hdb < 0).mean()),
-        genre=association(labels, df.primary_genre),
+        genre=genre_association(labels, genre_flags(df)),
         decade=association(labels, df.decade),
     )
 
 def residualize_features(X, meta_df, alpha=1.0):
     # One-hot encode confounds (drop first to prevent perfect multicollinearity)
     encoder = OneHotEncoder(sparse_output=False, drop="first", handle_unknown="ignore")
-    confounds = encoder.fit_transform(meta_df[["primary_genre", "decade"]])
+    confounds = np.hstack([genre_flags(meta_df).values, encoder.fit_transform(meta_df[["decade"]])])
 
     # Fit Ridge regression model to predict feature matrix X from confounds
     model = Ridge(alpha=alpha)
@@ -144,9 +172,10 @@ def main():
     df = pd.read_parquet(FEATURES / "trailers.parquet")
 
     # Standardize column types
-    df["decade"] = pd.to_numeric(df["decade"], errors="coerce").astype("int64")
+    df["decade"] = pd.to_numeric(df["decade"], errors="coerce").fillna(-1).astype("int64")  # -1 = unknown year
     df["primary_genre"] = df["primary_genre"].astype(str)
 
+    prev = pd.read_csv(FEATURES / "clusters.csv").set_index("imdb_id") if (FEATURES / "clusters.csv").exists() else None
     report_baseline = []
     report_residual = []
 
@@ -156,12 +185,12 @@ def main():
     status_df = pd.read_csv(IDS.parent / "trailer_status.csv")[["imdb_id", "youtube_id"]]
 
     # Include youtube_id when creating the export dataframe
-    out = df[["imdb_id", "title", "year", "primary_genre"]].merge(status_df, on="imdb_id", how="left")
+    out = df[["imdb_id", "title", "year", "genres", "primary_genre"]].merge(status_df, on="imdb_id", how="left")
 
     print("=== RUNNING BASELINE CLUSTERING ===")
     for name, cols in [("all", all_cols), *GROUPS.items()]:
         labels, r = analyze(df, cols, name)
-        out[f"cluster_{name}"] = labels
+        out[f"cluster_{name}"] = orient(labels, df, prev, f"cluster_{name}")
         report_baseline.append(r)
         print(f"{name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
               f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} (null95 {r['genre']['null_p95']:.3f}) "
@@ -174,7 +203,7 @@ def main():
         X_res = residualize_features(X_base, df)
 
         labels, r = analyze(df, X_res, name)
-        out[f"cluster_res_{name}"] = labels
+        out[f"cluster_res_{name}"] = orient(labels, df, prev, f"cluster_res_{name}")
         report_residual.append(r)
         print(f"[RES]  {name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
               f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} "
@@ -192,7 +221,7 @@ def main():
     out["umap_x_res"], out["umap_y_res"] = xy_res[:, 0], xy_res[:, 1]
 
     out.to_csv(FEATURES / "clusters.csv", index=False)
-    # (FEATURES / "cluster_report.json").write_text(json.dumps(report, indent=2))
+    (FEATURES / "cluster_report.json").write_text(json.dumps(dict(baseline=report_baseline, residual=report_residual), indent=2))
 
 
 if __name__ == "__main__":
