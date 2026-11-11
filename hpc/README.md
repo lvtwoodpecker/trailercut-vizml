@@ -2,7 +2,8 @@
 
 Only the heavy steps run on the cluster: keyframe download, TransNetV2 shot detection and CLIP
 embeddings. Everything after that (alignment features, clustering, figures, labeling) runs on a laptop
-in minutes. The default backbone on the cluster is CLIP ViT-H/14, matching Argaw et al.
+in minutes. The backbone is CLIP ViT-B/32 everywhere: H/14 (Argaw et al.) matched worse in the
+backbone trial below (docs/design.md).
 
 ## 0. Rules on the cluster (NYU Torch)
 
@@ -90,7 +91,7 @@ compute node; if that fails, ask HPC support or run the download on the transfer
 ## 4. Shots + embeddings (GPU)
 
 ```bash
-sbatch --export=NONE --account=<account> hpc/gpu_preprocess.sbatch               # h14 by default
+sbatch --export=NONE --account=<account> hpc/gpu_preprocess.sbatch               # b32 by default
 sbatch --export=TRAILERCUT_CLIP=l14 --account=<account> hpc/gpu_preprocess.sbatch # another backbone; caches don't collide
 ```
 
@@ -101,17 +102,17 @@ them from there or copy them down), and embeddings to `$TRAILERCUT_DATA/cache/cl
 
 ```bash
 R=<netid>@dtn012.hpc.nyu.edu:/scratch/<netid>/trailercut-vizml
-rsync -av --progress $R/data/cache/clip/h14/        data/cache/clip/h14/
+rsync -av --progress $R/data/cache/clip/b32/        data/cache/clip/b32/
 rsync -av --progress $R/data/cache/trailer_frames/  data/cache/trailer_frames/
 rsync -av --progress $R/data/cache/trailer_audio/   data/cache/trailer_audio/
-rsync -av $R/data/cache/*_h14.npy                   data/cache/
+rsync -av $R/data/cache/*_b32.npy                   data/cache/
 # trailer_shots + alignment CSVs: git pull if committed on the cluster, else rsync data/features/
 ```
 
 Then locally:
 
 ```bash
-export TRAILERCUT_CLIP=h14
+export TRAILERCUT_CLIP=b32
 python -m trailercut.film_features && python -m trailercut.trailer_features
 python -m trailercut.cluster && python -m trailercut.figures
 python -m trailercut.label_tool --n 10   # needs film keyframes locally for the sampled films
@@ -134,7 +135,7 @@ never backed up (code lives in git, results get copied down).
 
 ```bash
 # 1. cluster, login node: clone the branch, then set up as a job
-cd $SCRATCH && git clone -b h14-trial https://github.com/lvtwoodpecker/trailercut-vizml.git
+cd $SCRATCH && git clone https://github.com/lvtwoodpecker/trailercut-vizml.git
 cd trailercut-vizml && mkdir -p logs
 sbatch --export=NONE --account=<slurm account> hpc/setup.sbatch
 
@@ -151,10 +152,11 @@ rsync -av --progress $U/ <netid>@<dtn node>:<checkout path from pwd on the clust
 rm -rf $U
 
 # 3. cluster: run and read
-sbatch --export=NONE --account=<slurm account> hpc/backbone_trial.sbatch                    # h14
+sbatch --export=TRAILERCUT_CLIP=h14 --account=<slurm account> hpc/backbone_trial.sbatch  # backbone to test
 sbatch --export=TRAILERCUT_CLIP=l14 --account=<slurm account> hpc/backbone_trial.sbatch  # only that var, like NONE
 squeue -u $USER; tail -f logs/tc-trial_*.out
 cat data/features/backbone_trial_h14.json
 ```
 
 Worth a full rerun if F1 clearly beats 0.893 (say above 0.92) or the text card / night overlap drops.
+Result (2026-11-11): H/14 scored 0.672, B/32 on the cluster 0.891, so B/32 stays (docs/results.md).

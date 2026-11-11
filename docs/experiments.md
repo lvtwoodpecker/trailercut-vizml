@@ -10,7 +10,7 @@ tries them again by accident. The reasoning behind what we kept is in `design.md
 | 2026-10-27 | 1% vs 5% FPR | contact sheets: matches between 0.72 and 0.79 almost all correct, so 1% lost real matches | 5% for now, hand labels decide |
 | 2026-10-27 | Letterbox crop per frame | dark films got cropped wrongly: *The Godfather* 0.65 to 0.60 | no |
 | 2026-10-27 | Letterbox crop per trailer (max over all frames) | *Rebel Without a Cause* 32% to 43% matched, no loss on unboxed trailers | yes |
-| 2026-10-27 | CLIP B/32 vs B/16 vs L/14 speed on laptop GPU | 257 vs 72 vs 15 images/s | B/32 locally, H/14 on the cluster |
+| 2026-10-27 | CLIP B/32 vs B/16 vs L/14 speed on laptop GPU | 257 vs 72 vs 15 images/s | B/32 locally, H/14 on the cluster (superseded 2026-11-11) |
 | 2026-10-27 | TransNetV2 on laptop GPU (MPS) vs CPU | MPS no faster (~37 s/trailer either way under load; ~15 s/trailer CPU when the machine is idle) | CPU, 4 processes |
 | 2026-10-27 | New DataLoader per film for CLIP | worker startup dominated on macOS | one streaming loader for all films |
 | 2026-10-27 | Augmented film shots as an alignment test (proposal) | measures robustness to edits, not correctness on real trailers | dropped for hand labels |
@@ -50,3 +50,4 @@ tries them again by accident. The reasoning behind what we kept is in `design.md
 | 2026-10-30 | Cache TransNetV2's per-frame cut probabilities (`cache/transnet/`), filled by `trailer_prep --probs-only` with 4 workers | re-split of a core-sized batch in 21 min instead of about 4 h; 4 workers fill the cache about 4x faster than `resplit`'s single process | yes |
 | 2026-11-06 | Lift over the films' mean positive rate instead of the pooled one | random goes from 1.18x to 1.00x; full 3.23x → 2.75x, readable 3.04x → 2.59x, EBM 2.77x → 2.36x; order unchanged | yes, the old denominator flattered every model |
 | 2026-11-11 | Trailer title cards and logos (text card / logo above the film's 99th percentile) matched only at the impostor cutoff (0.744) | full lift 2.75x → 2.68x, text card 1.42x → 1.34x; but of 28 hand-labeled weak card matches it drops, 19 were right | no |
+| 2026-11-11 | CLIP H/14 vs B/32 for alignment, 9 hand-labeled films (`backbone_trial`, cluster) | best F1 0.672 vs 0.893 (B/32 on the cluster 0.891), top-1 0.700 vs 0.942, text card vs night rho 0.55 vs 0.52 | no: keep B/32 |

@@ -6,7 +6,7 @@
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 export TRAILERCUT_DATA=$REPO/data
-export TRAILERCUT_CLIP=${TRAILERCUT_CLIP:-h14}          # b32 | l14 | h14 (h14 matches Argaw et al.)
+export TRAILERCUT_CLIP=${TRAILERCUT_CLIP:-b32}          # b32 | l14 | h14 (b32 aligns best; see docs/design.md)
 
 # Model weights and package caches off the small home quota
 export HF_HOME=$REPO/.cache/hf

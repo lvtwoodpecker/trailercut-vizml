@@ -1,5 +1,5 @@
 #!/bin/bash
-# GPU job: embed only the hand-labeled films and their trailers with one backbone (h14 default),
+# GPU job: embed only the hand-labeled films and their trailers with one backbone (TRAILERCUT_CLIP),
 # then grade alignment against the labels (trailercut.backbone_trial). Minutes on one GPU.
 # Needs: setup done, and those films' keyframes + trailer frames copied up (README, "Backbone trial").
 #   sbatch --export=NONE --account=<slurm account> hpc/backbone_trial.sbatch

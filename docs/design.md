@@ -225,9 +225,16 @@ unchanged.
 
 ## CLIP
 
-**ViT-B/32 locally, ViT-H/14 on the cluster.** B/32 runs at ~257 images/s on a laptop GPU vs ~15 for
-L/14, which made iterating on alignment possible. H/14 is the backbone Argaw et al. use, so final
-numbers will be rerun with it (`TRAILERCUT_CLIP=h14`). Caches are keyed by backbone tag so runs never mix.
+**CLIP ViT-B/32, not the bigger H/14** (`backbone_trial.py`). B/32 runs at ~257 images/s on a laptop
+GPU vs ~15 for L/14, which made iterating on alignment possible. The plan was to rerun final numbers
+with H/14, the backbone Argaw et al. use. A trial on the 9 hand-labeled films, graded like
+`label_eval`, settled it the other way: H/14 matches much worse (best F1 0.672 vs 0.893; the top
+candidate is the labeled shot 70% of the time vs 94%), and "text card" tracks "night" just as much
+(rho 0.55 vs 0.52). B/32 run through the same cluster path scores 0.891, so the gap is the model, not
+the setup. Likely reason: bigger CLIP models encode meaning ("a man in a car at night") more than
+exact appearance, so look-alike shots from the same scene collapse together, the same failure as the
+copy-detection rerank. What we give up: H/14's better zero-shot concepts, which the trial didn't show
+for the one we checked. Caches are keyed by backbone tag so runs never mix.
 
 ## Alignment (trailer shot to film shot)
 

@@ -3,6 +3,19 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-11: bigger CLIP tried for alignment
+
+[`backbone_trial.py`, cluster run] On the 9 hand-labeled films (639 labels), graded like `label_eval`:
+
+| backbone | best F1 (cutoff) | precision / recall | top-1 right | text card vs night rho |
+|---|---|---|---|---|
+| B/32, laptop | 0.893 (0.515) | 0.87 / 0.92 | 0.942 | 0.52 |
+| B/32, cluster | 0.891 (0.515) | 0.87 / 0.91 | 0.940 | 0.52 |
+| H/14, cluster | 0.672 (0.545) | 0.66 / 0.68 | 0.700 | 0.55 |
+
+Read: H/14 is worse at telling look-alike shots apart, and no better on the one concept check. B/32
+stays; no full rerun.
+
 ## 2026-11-11: film metadata from IMDb, RQ2 on all films with every genre
 
 **Metadata** [`data/ids/imdb_meta.csv`, design.md]: 22 truncated titles fixed and every film has a
