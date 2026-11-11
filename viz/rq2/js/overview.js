@@ -212,6 +212,7 @@ function resetSelection() {
     d3.select("#detail-meta").text("");
     d3.select("#detail-clusters").html("");
     d3.select("#imdb-link").style("display", "none");
+    d3.select("#tv-link").style("display", "none");
     d3.select("#trailer-player").attr("src", "");
     d3.select("#trailer-player-container").style("display", "none");
     d3.select("#trailer-link").style("display", "none");
@@ -287,6 +288,10 @@ window.addEventListener("trailerSelect", (event) => {
     d3.select("#imdb-link")
         .style("display", "inline-flex")
         .attr("href", `https://www.imdb.com/title/${item.imdb_id}/`);
+
+    d3.select("#tv-link")
+        .style("display", "inline-flex")
+        .attr("href", `../index.html?id=${item.imdb_id}`);
 
     const playerContainer = d3.select("#trailer-player-container");
     const trailerBtn = d3.select("#trailer-link").style("display", "block");
