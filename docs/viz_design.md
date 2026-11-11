@@ -215,7 +215,14 @@ current or hovered line to its film moment; picture links are drawn only in the 
 every sound link next to every picture link was too crowded to read, so sound shows on demand. A
 "Sound vs picture" scatter (each found line's film time against its picture's) was dropped
 (2026-11-11): it was empty for every trailer without film dialogue and repeated what the sound track
-and its link already show.
+and its link already show. The "Trailer order vs film order" scatter now spans the page on the
+timeline's own time scale, ticks and margins, with a dotted copy of the playhead, so each dot sits
+under its shot and the two read as one picture.
+
+**Shot panel: small frames, full-width reasons.** The video is capped by height so the timeline
+fits on screen, which leaves the panel wide on laptops; frames that grew with it pushed the model's
+reasons out of view. The two frames stay side by side at most 240px each, and the reasons chart takes
+the panel's full width below them.
 
 **Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
