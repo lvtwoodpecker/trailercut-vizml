@@ -43,9 +43,12 @@ From NYU's HPC docs and what has worked in our other Torch projects:
   `sacct -j <id> --format=JobID,Elapsed,MaxRSS,State` or `seff <id>` to right-size time and memory.
   Chain steps with `sbatch --parsable` and `--dependency=afterok:<id>`.
 
-Layout on the cluster: the checkout at `$SCRATCH/trailercut-vizml`, with `data/` (MovieNet,
-keyframes, trailers, embeddings), `.venv/`, `.cache/` (model weights, package caches, temp files) and
-`logs/` inside it, the same layout as on a laptop. The rsync commands below assume that path.
+Layout on the cluster: one checkout anywhere under `$SCRATCH` (the examples use
+`$SCRATCH/trailercut-vizml`; a project folder like `$SCRATCH/<project>/trailercut-vizml` works the
+same), with `data/` (MovieNet, keyframes, trailers, embeddings), `.venv/`, `.cache/` (model weights,
+package caches, temp files) and `logs/` inside it, the same layout as on a laptop. `env.sh` finds all
+of it from the checkout, so only the rsync targets need the real path: run `pwd` in the checkout on
+the cluster and use that.
 
 ## 1. Clone and set up
 
