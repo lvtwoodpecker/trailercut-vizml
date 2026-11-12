@@ -7,7 +7,8 @@
 
   python -m trailercut.swap search [--ids ...]     ranked candidates, appended to data/ids/swap_candidates.csv
                                                    (default ids: the audit's `swap` rows, overridden by
-                                                   labels/audit_review_*.json verdicts; with --set expand,
+                                                   labels/audit_review_*.json verdicts, plus replacements marked
+                                                   bad in labels/swap_review_*.json; with --set expand,
                                                    the new films that ran out of candidates)
   python -m trailercut.swap download [--sleep 30] [--per-film 1] [--cookies-from-browser chrome]
                                                    one video at a time into data/trailers/candidates/,
@@ -38,6 +39,7 @@ import time
 import pandas as pd
 import yt_dlp
 
+from .swap_review import bad_replacements
 from .paths import FEATURES, IDS, IDS_DIR, TRAILERS
 from .recover import LOG, LOG_FIELDS, SKIP, backup, candidates, clear, run, save
 from .trailer_audit import yt_meta
@@ -141,9 +143,12 @@ def download(sleep, per_film, cookies, recheck=False):
     if cookies:
         opts["cookiesfrombrowser"] = (cookies,)
     status = {r["imdb_id"]: r["youtube_id"] for r in csv.DictReader(open(STATUS))}
+    bad = bad_replacements()
     blocked = 0
     for i, g in cands.groupby("imdb_id"):
-        if status.get(i) in set(g.youtube_id):
+        if i in bad:   # its replacement was marked bad: look past it
+            g = g[g.youtube_id != status.get(i)]
+        elif status.get(i) in set(g.youtube_id):
             continue  # one of its candidates is already in use
         got = sum(log.get(y, {}).get("status") == "ok" for y in g.youtube_id)
         for c in g.itertuples():
@@ -213,11 +218,14 @@ def apply():
     threshold = meta.get("impostor_threshold", meta["threshold"])
     files = {p.stem.split("__")[1]: p for p in DIR.glob("*__*.mp4")}
     tried = pd.read_csv(LOG, dtype=str) if LOG.exists() else pd.DataFrame(columns=LOG_FIELDS)
+    bad = bad_replacements()
     n = 0
     for i, g in cands.groupby("imdb_id"):
         got = [c for c in g.sort_values("rank").itertuples() if c.youtube_id in files]
         seen = set(tried[tried.imdb_id == i].youtube_id)
-        swapped = i in status and status[i]["youtube_id"] in set(g.youtube_id)
+        swapped = i in status and status[i]["youtube_id"] in set(g.youtube_id) and i not in bad
+        if i in bad:
+            seen.add(status[i]["youtube_id"])   # the replacement marked bad on the swap review page
         if not got or swapped or all(c.youtube_id in seen for c in got):
             continue  # nothing downloaded, or already decided in an earlier run
         backup(i)
@@ -255,6 +263,7 @@ def apply_batch(retry=False):
     threshold = meta.get("impostor_threshold", meta["threshold"])
     files = {p.stem.split("__")[1]: p for p in DIR.glob("*__*.mp4")}
     start = len(pd.read_csv(LOG, dtype=str)) if LOG.exists() else 0
+    bad = bad_replacements()
     n = 0
     while True:
         tried = pd.read_csv(LOG, dtype=str) if LOG.exists() else pd.DataFrame(columns=LOG_FIELDS)
@@ -262,9 +271,9 @@ def apply_batch(retry=False):
             tried = tried.iloc[start:]
         batch = {}
         for i, g in cands.groupby("imdb_id"):
-            if i in status and status[i]["youtube_id"] in set(g.youtube_id):
+            if i in status and status[i]["youtube_id"] in set(g.youtube_id) and i not in bad:
                 continue  # already swapped in
-            seen = set(tried[tried.imdb_id == i].youtube_id)
+            seen = set(tried[tried.imdb_id == i].youtube_id) | ({status[i]["youtube_id"]} if i in bad else set())
             nxt = [c for c in g.sort_values("rank").itertuples() if c.youtube_id in files and c.youtube_id not in seen]
             if nxt:
                 batch[i] = nxt[0]
@@ -361,8 +370,8 @@ def main():
         status = pd.read_csv(STATUS).set_index("imdb_id")
         if a.set == "expand":  # new films that ran out of candidates
             ids = a.ids or out_of_candidates()
-        else:
-            ids = a.ids or [i for i in decisions() if status.loc[i, "source"] != "search"]
+        else:   # originals the audit review says to swap, plus replacements marked bad on the swap review page
+            ids = a.ids or sorted({i for i in decisions() if status.loc[i, "source"] != "search"} | bad_replacements())
         search(ids)
     elif a.step == "download":
         download(a.sleep, a.per_film, a.cookies_from_browser, a.recheck)

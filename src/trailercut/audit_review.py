@@ -1,6 +1,7 @@
 """A page for checking the audit's flags by eye: one flagged trailer at a time, playable, with a
-swap / keep verdict. Export saves labels/audit_review_<name>.json; `swap search` then replaces the
-films marked swap, and keeps the ones marked keep even if a rule flagged them (decisions()).
+swap / keep verdict. Only trailers still on MovieNet's own link: replacements, flagged or not, are
+checked on the swap review page. Export saves labels/audit_review_<name>.json; `swap search` then
+replaces the films marked swap, and keeps the ones marked keep even if a rule flagged them (decisions()).
 
   python -m trailercut.audit_review
 """
@@ -24,7 +25,7 @@ def decisions():
 
 def main():
     a = pd.read_csv(IDS_DIR / "trailer_audit.csv", dtype=str).fillna("")
-    a = a[a["flags"] != ""]
+    a = a[(a["flags"] != "") & (a["source"] != "search")]   # replacements go on the swap review page instead
     items = [dict(id=r.imdb_id, film=r.film, title=r.yt_title, channel=r.channel, flags=r._asdict()["flags"].split(),
                   rule=r._asdict()["swap"] == "True", lang=r.language, want=r.expected_language, span=r.span,
                   url=f"https://www.youtube.com/watch?v={r.youtube_id}") for r in a.itertuples()]
