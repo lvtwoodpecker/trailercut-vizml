@@ -140,5 +140,6 @@ def meta(imdb_id):
     genres_movienet, genres = genres, sorted(set(genres) | set(extra))
     return dict(imdb_id=imdb_id, title=title, year=year,
                 imdb_current=fix.imdb_current if fix is not None else imdb_id,
+                title_type=fix.title_type if fix is not None else "",   # IMDb: movie, video, tvMovie, tvMiniSeries
                 genres=genres, genres_movienet=genres_movienet, rating=float(m["imdb_rating"]) if m.get("imdb_rating") else None,
                 duration=video_info()[imdb_id]["duration"])

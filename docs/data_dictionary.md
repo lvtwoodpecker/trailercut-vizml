@@ -13,9 +13,9 @@ steps that haven't produced a committed output so far.
 trailer link; empty for the 107 films without one), `core` (1 for the 293 core films, else 0). The
 pipeline's film list (`paths.IDS`; `TRAILERCUT_FILMS` overrides).
 
-**`imdb_meta.csv`** (C): one row per film, from IMDb `title.basics` (non-commercial datasets), used by
-`movienet_io.meta`. `imdb_id` (MovieNet's, our key), `imdb_current` (IMDb's live id; differs for
-Force Majeure), `title` and `year` (only for the 22 films whose MovieNet title is cut short and has no
+**`imdb_meta.csv`** (C): one row per MovieNet film (all 1,100), from IMDb `title.basics` (non-commercial
+datasets), used by `movienet_io.meta`. `imdb_id` (MovieNet's, our key), `imdb_current` (IMDb's live id;
+differs for Force Majeure), `title_type` (`movie`, `video`, `tvMovie`, `tvMiniSeries`), `title` and `year` (only for the 26 films whose MovieNet title is cut short and has no
 year, else empty), `genres_imdb` (IMDb's current genres, up to 3, `|`-separated).
 
 **`trailer_status.csv`** (C): one row per film with a trailer in use (1,058: the 293 core films and

@@ -6,11 +6,9 @@ current block lives in `plan.md`.
 ## Now
 
 - [ ] Review the replaced trailers on the swap review page (`curate.sh swap-review`: all core swaps plus 30 sampled new films, weakest first), export the verdicts to `labels/`
-- [ ] Rerun the audit on all 1,058 trailers (`curate.sh audit`; Whisper language is in now; also writes the `subtitled` flag and fixes the old span and `clip` flag of the four replaced scene clips), then check the flags on the audit review page (`curate.sh audit-review`) and export the verdicts; `swap search` follows them
-- [ ] New films still without a trailer (42): download and apply the 175 wider-search candidates found for 21 of the 26 that ran out (`swap download --set expand`, `swap apply --set expand --batch`); the other 5 have nothing left. The 16 with untried candidates only need the download rerun (their downloads failed in a DNS blip)
-- [ ] Split review refinement: review the 100-check split page and refine the split pass from it
+- [ ] Audit rerun on all 1,082 trailers (2026-11-12, first run since the new films; the 789 new ones were never audited): check the flags on the audit review page (`curate.sh audit-review`) and export the verdicts; `swap search` follows them
+- [ ] Drop TV titles from the dataset (IMDb `title_type`): only High School Musical (TV movie) is in it; needs a full rerun from `film_features` on, best done once with any swaps from the audit
 
-- [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
 
 **Clustering and Overview**
@@ -46,9 +44,14 @@ current block lives in `plan.md`.
 - ViT-H/14 for alignment (backbone trial, 9 labeled films): best F1 0.672 vs 0.893 for B/32, top-1 0.70 vs 0.94; B/32 stays
 - Title-card filter (weak card matches count only at the impostor cutoff): on the labels it threw out 19 right matches to drop 9 bad ones
 - Local trailer files in the Trailer View: YouTube is the video source (also makes the Safari transcode moot)
+- Split review refinement (a second, 100-shot review to tune the split pass): the first review (77% real cuts, flat across cutoffs) already justified applying every proposal
+- The last 18 MovieNet films without a trailer: 13 had candidates (43 downloads) that all failed the match check, 5 have none left; mostly obscure or TV titles
 - Bulk trailer swaps in one `recover --ids` run: blocked by YouTube's bot check; replaced by the three-step `swap`
 
 ## Done
+
+- 2026-11-12: `case_studies` rerun on current data (Moonstruck and Ferris Bueller no longer top the order lists; their old trailers were scene clips)
+- 2026-11-12: IMDb mapping for all 1,100 MovieNet films (`imdb_meta.csv` with `title_type`; 26 cut-off titles fixed)
 
 - 2026-11-12: public site live at https://what-makes-the-cut.pages.dev (Cloudflare Pages; `site_build`: trailers from YouTube, one thumbnail sheet per trailer and per film, all 1,082 trailers)
 - 2026-11-12: Hugging Face dataset updated (titles and years fixed, `imdb_current`, A Walk to Remember's length 111 s to 81 s)
