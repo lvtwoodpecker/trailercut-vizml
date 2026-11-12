@@ -27,6 +27,11 @@
     "tt0119528": 0.97,
     "tt1411238": 0.941
   },
+  "blank_cutoff": 0.9,
+  "blank_share": {
+    "film": 0.0005,
+    "trailer": 0.014
+  },
   "nonfinite_embeddings": {
     "film": 0,
     "trailer": 0
