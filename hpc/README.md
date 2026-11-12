@@ -160,3 +160,40 @@ cat data/features/backbone_trial_h14.json
 
 Worth a full rerun if F1 clearly beats 0.893 (say above 0.92) or the text card / night overlap drops.
 Result (2026-11-11): H/14 scored 0.672, B/32 on the cluster 0.891, so B/32 stays (docs/results.md).
+
+## More experiments (branch `hpc-experiments`)
+
+All three reuse the backbone trial's upload (the labeled films' keyframes and trailer frames), except
+Whisper, which needs the trailer audio.
+
+**DINOv2 for alignment.** A self-supervised image model trained to tell images apart, which is the
+part CLIP gets wrong (look-alike shots). Alignment only: it has no text side, so no concept scores.
+
+```bash
+sbatch --export=TRAILERCUT_CLIP=dinov2 --account=<account> hpc/backbone_trial.sbatch
+```
+
+**Whisper large-v3 transcripts.** The laptop used Whisper small. Output goes to
+`data/cache/trailer_asr_large-v3/`, next to the small ones. Transcripts are copyrighted text: they
+stay on scratch and on your laptop (or a private Drive), never in git.
+
+```bash
+# laptop: trailer audio up (~5.9 GB, one rsync)
+rsync -av --progress data/cache/trailer_audio/ <netid>@dtn012.hpc.nyu.edu:<checkout>/data/cache/trailer_audio/
+# cluster
+sbatch --export=NONE --account=<account> hpc/asr.sbatch
+# laptop: transcripts down
+rsync -av <netid>@dtn012.hpc.nyu.edu:<checkout>/data/cache/trailer_asr_large-v3/ data/cache/trailer_asr_large-v3/
+```
+
+**A vision-language model picks the match** (`vlm_rerank.py`). Qwen2.5-VL sees the trailer frame and
+CLIP's 5 candidates (shuffled) and names the same shot or none; graded against the labels, alone and
+combined with CLIP (CLIP decides when sure, the VLM decides the uncertain band). The first run
+installs `transformers` into `.venv` and downloads the model (~16 GB for 7B).
+
+```bash
+sbatch --export=NONE --account=<account> hpc/vlm_trial.sbatch                                      # 7B
+sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-32B-Instruct --account=<account> hpc/vlm_trial.sbatch    # 32B, H200
+cat data/features/vlm_trial_Qwen2.5-VL-7B-Instruct.json
+```
+
