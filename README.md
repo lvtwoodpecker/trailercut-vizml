@@ -6,9 +6,16 @@ We match every trailer shot back to its source shot in the film (MovieNet), then
 1. **RQ1** which film shots make it into the trailer, and how deep into the story trailers reach, using readable features so the explanations mean something;
 2. **RQ2** whether trailers fall into groups by pacing, audio, story sampling and dialogue, and whether those groups are just genre/era.
 
+**Live site: https://what-makes-the-cut.pages.dev** (Trailer View; `/rq1` for all films, `/rq2/overview` for the clusters).
+Dataset: [lvtwoodpecker/movienet-trailer-match](https://huggingface.co/datasets/lvtwoodpecker/movienet-trailer-match).
+
 Builds on Argaw et al., *Towards Automated Movie Trailer Generation* (CVPR 2024). Proposal: [`docs/proposal_team13.pdf`](docs/proposal_team13.pdf).
 
 ## Data policy
+
+The public site plays trailers from YouTube (the videos we matched against) and shows small thumbnail
+sheets; it is built with `python -m trailercut.site_build` and deployed to Cloudflare Pages
+(`npx wrangler pages deploy site --project-name what-makes-the-cut --branch main`).
 
 Nothing copyrighted is committed. The repo holds YouTube IDs, download scripts and extracted features;
 raw MovieNet archives, keyframes, trailer videos and CLIP embeddings live in gitignored `data/` folders and are rebuilt by the scripts.
