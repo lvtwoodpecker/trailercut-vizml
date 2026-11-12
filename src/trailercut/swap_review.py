@@ -57,6 +57,15 @@ def pairs(i):
     return out
 
 
+
+def bad_replacements():
+    """Replacements marked bad (b) on this page: they get a new search, past the trailer now in use.
+    Later exports win; good (g) clears an earlier bad."""
+    v = {}
+    for p in sorted(LABELS.glob("swap_review_*.json")):
+        v.update({k: x for k, x in json.loads(p.read_text()).get("verdicts", {}).items() if x in ("g", "b")})
+    return {k for k, x in v.items() if x == "b"}
+
 def main(n_new):
     status = pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)
     f = pd.read_csv(IDS_DIR / "films_1100.csv", dtype=str).set_index("imdb_id")
@@ -64,7 +73,12 @@ def main(n_new):
     meta = youtube_meta()
     swapped = status[(status.source == "search") & (status.status == "ok")]
     new = swapped[~swapped.imdb_id.isin(core)]
-    pick = swapped[swapped.imdb_id.isin(core) | swapped.imdb_id.isin(new.sample(min(n_new, len(new)), random_state=0).imdb_id)]
+    audit = pd.read_csv(IDS_DIR / "trailer_audit.csv", dtype=str).fillna("").set_index("imdb_id")
+    flagged = set(audit.index[audit["flags"] != ""])
+    from .audit_review import decisions
+    asked = set(decisions())   # films the audit review sent to a new search
+    pick = swapped[swapped.imdb_id.isin(core) | swapped.imdb_id.isin(flagged) | swapped.imdb_id.isin(asked)
+                   | swapped.imdb_id.isin(new.sample(min(n_new, len(new)), random_state=0).imdb_id)]
     items = []
     for r in pick.itertuples():
         i, old = r.imdb_id, films.get(r.imdb_id)
@@ -76,7 +90,8 @@ def main(n_new):
                           old=meta.get(old, {}).get("title") or ("dead link" if old else "no MovieNet link"),
                           old_url=f"https://www.youtube.com/watch?v={old}" if old else "",
                           new=new.get("title") or r.title, channel=new.get("channel") or "",
-                          url=f"https://www.youtube.com/watch?v={r.youtube_id}", pairs=pairs(i), share=share(i)))
+                          url=f"https://www.youtube.com/watch?v={r.youtube_id}", pairs=pairs(i), share=share(i),
+                          flags=audit["flags"].get(i, "")))
     items.sort(key=lambda x: x["share"])  # weakest matches first: the likeliest wrong trailers
     PAGE.write_text(HTML.replace("__ITEMS__", json.dumps(items)))
     print(f"{len(items)} replaced trailers -> {PAGE}")
@@ -117,13 +132,14 @@ function go(d){ i = Math.max(0, Math.min(ITEMS.length - 1, i + d)); draw(); }
 function nextOpen(){ for (let k = 1; k <= ITEMS.length; k++) { const j = (i + k) % ITEMS.length; if (!rev[ITEMS[j].id]) { i = j; return draw(); } } }
 function draw(){
   const it = ITEMS[i], v = rev[it.id];
-  document.getElementById('prog').textContent = `${i + 1}/${ITEMS.length} · reviewed ${Object.keys(rev).length}`;
+  document.getElementById('prog').textContent = `${i + 1}/${ITEMS.length}, reviewed ${Object.keys(rev).length}`;
   document.getElementById('view').innerHTML = `<h2>${it.film}${v ? `<span class="v ${v}">${NAMES[v]}</span>` : ''}</h2>
   <div class="old">${it.old_url ? `<a href="${it.old_url}" target="_blank">${it.old}</a>` : it.old}</div>
   <div class="new"><a href="${it.url}" target="_blank">${it.new}</a> <small>${it.channel}</small></div>
+  ${it.flags ? `<div class="old">audit flags: ${it.flags}</div>` : ''}
   <div class="main" style="margin-top:10px"><video id="vid" src="../data/trailers/${it.id}.mp4" controls preload="metadata"></video>
   <div class="pairs">${it.pairs.map(p => `<div><div class="pair"><img src="${p.t}"><img src="${p.f}"></div>
-    <small>trailer ${p.time}s · film ${Math.round(p.pos * 100)}%</small></div>`).join('')}</div></div>
+    <small>trailer ${p.time}s, film ${Math.round(p.pos * 100)}%</small></div>`).join('')}</div></div>
   <p><small>left of each pair: the new trailer · right: the film keyframe it matched</small></p>`;
 }
 document.addEventListener('keydown', e => {
