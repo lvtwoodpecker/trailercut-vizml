@@ -190,7 +190,8 @@ rsync -av <netid>@dtn012.hpc.nyu.edu:<checkout>/data/cache/trailer_asr_large-v3/
 labeled trailer shot and each of CLIP's 5 candidates, Qwen2.5-VL answers "same shot?" (P(yes) from the
 logits), with 1 or 3 frames per shot and high-res trailer frames. Graded on what CLIP gets wrong (rescues,
 rejects of footage not in the film) and blended with CLIP's score, settings picked leave-one-film-out. A
-first version (all 6 frames in one prompt, pick a number, 7B) was right 54% of the time vs 94% for CLIP.
+first version (all 6 frames in one prompt, pick a number, 7B) was right 54% of the time vs 94% for CLIP;
+this one about 70% (docs/results.md), so CLIP stays.
 
 ```bash
 # laptop: high-res trailer frames of the labeled films (~65 MB), then up

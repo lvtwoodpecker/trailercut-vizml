@@ -20,8 +20,6 @@ current block lives in `plan.md`.
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] VLM trial on the cluster (`vlm_rerank`, `hpc/vlm_trial.sbatch`): Qwen2.5-VL picks the match among CLIP's top 5 for the labeled shots; adopt only if it beats CLIP on the labels (F1 0.897 on the same shots)
-- [ ] DINOv2 alignment trial on the cluster (`backbone_trial`, `TRAILERCUT_CLIP=dinov2`), plus the per-film recheck of H/14 and L/14
 - [ ] Whisper large-v3 transcripts on the cluster (`hpc/asr.sbatch`; needs the trailer audio copied up); compare dialogue matching with Whisper small
 - [ ] Pick case studies from `case_studies.json` (after the rerun) plus cluster extremes
 
@@ -43,6 +41,8 @@ current block lives in `plan.md`.
 - Temporal smoothing of the alignment: lower F1 than raw matching on the labels
 - Automatic synopsis-to-shot alignment for the extra films with a written synopsis: time position already covers what `synopsis_pos` adds to RQ1
 - ViT-H/14 for alignment (backbone trial, 9 labeled films): best F1 0.672 vs 0.893 for B/32, top-1 0.70 vs 0.94; B/32 stays
+- L/14 and DINOv2 for alignment, and every backbone with the blank filter off: F1 0.67 to 0.70, B/32 stays
+- Qwen2.5-VL on top of CLIP (listwise, then pairwise 7B and 32B): top-1 about 0.70 vs 0.94, blend weight 0
 - Title-card filter (weak card matches count only at the impostor cutoff): on the labels it threw out 19 right matches to drop 9 bad ones
 - Local trailer files in the Trailer View: YouTube is the video source (also makes the Safari transcode moot)
 - Split review refinement (a second, 100-shot review to tune the split pass): the first review (77% real cuts, flat across cutoffs) already justified applying every proposal
