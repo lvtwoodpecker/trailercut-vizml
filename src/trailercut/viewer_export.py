@@ -12,7 +12,6 @@ shot table changes), so the views don't need the RQ2 step (trailer_features).
 
 Outputs (gitignored, rebuilt in seconds)
   viz/data/index.json        one entry per trailer: id, title, year, genre, shots, match rate
-  viz/data/{imdb_id}.vtt     captions for the video player, from the Whisper transcript
   viz/data/{imdb_id}.json    trailer shots + matches, audio/cut curves, film shots with trailerness
                              and grouped SHAP, named-feature detail for the shots worth hovering
 
@@ -27,7 +26,7 @@ from tqdm import tqdm
 
 from . import movienet_io as mn
 from .model import GROUPS
-from .paths import CACHE, FEATURES, ROOT
+from .paths import CACHE, FEATURES, IDS_DIR, ROOT
 
 OUT = ROOT / "viz" / "data"
 COLORS = CACHE / "shot_colors"
@@ -150,27 +149,6 @@ def speech(imdb_id, runtime):
             for d in pd.read_csv(csv).itertuples()]
 
 
-def vtt(imdb_id):
-    """WebVTT captions from the trailer transcript, so the browser's player can show and toggle them."""
-    asr = CACHE / "trailer_asr" / f"{imdb_id}.json"
-    if not asr.exists():
-        return
-    ts = lambda t: f"{int(t // 3600):02d}:{int(t % 3600 // 60):02d}:{t % 60:06.3f}"
-    cues = []
-    for seg in json.loads(asr.read_text())["segments"]:
-        words = seg["words"] or [dict(start=seg["start"], end=seg["end"], word=seg["text"])]
-        chunk = []
-        for w in words:  # Whisper can merge ~30 s into one segment; cap cues at ~6 s or 12 words and break at pauses
-            if chunk and (w["end"] - chunk[0]["start"] > 6 or len(chunk) >= 12 or w["start"] - chunk[-1]["end"] > 1.5):
-                cues.append(chunk)
-                chunk = []
-            chunk.append(w)
-        if chunk:
-            cues.append(chunk)
-    cues = [f"{ts(c[0]['start'])} --> {ts(c[-1]['end'])}\n{' '.join(w['word'] for w in c)}" for c in cues]
-    (OUT / f"{imdb_id}.vtt").write_text("WEBVTT\n\n" + "\n\n".join(cues) + "\n")
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--detail", type=int, default=60, help="top-ranked film shots per film with feature detail")
@@ -186,14 +164,22 @@ def main():
         shap = key.merge(shap, how="left", on=["imdb_id", "shot_idx"])
         shap = (*shap_groups(shap), shap)
     index = []
+    yt = dict(pd.read_csv(IDS_DIR / "trailer_status.csv", dtype=str)[["imdb_id", "youtube_id"]].values)
+    # per-trailer order stats (trailer_features), so the page can place one trailer among all of them
+    tf = FEATURES / "trailers.parquet"
+    order = (pd.read_parquet(tf, columns=["imdb_id", "order_corr", "story_mean", "first_act_share", "final_act_share"])
+             .set_index("imdb_id") if tf.exists() else pd.DataFrame())
     for i in tqdm(sorted(films.imdb_id.unique())):
         curves[i] = curve(i)
         d = trailer_json(i, curves, films, preds, shap, a.detail)
+        d["yt"] = yt.get(i)   # the page plays the trailer from YouTube (the video we downloaded)
         (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":"), allow_nan=False))
-        vtt(i)
         matched = [s[2] for s in d["shots"]]
+        o = order.loc[i] if i in order.index else None
         index.append(dict(id=i, title=d["title"], year=d["year"], genre=(d["genres"] or [""])[0],
-                          shots=len(matched), match_rate=r(np.mean(matched))))
+                          shots=len(matched), match_rate=r(np.mean(matched)),
+                          **({} if o is None else dict(order=r(o.order_corr), mean_pos=r(o.story_mean),
+                                                       first=r(o.first_act_share), last=r(o.final_act_share)))))
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))
     print(len(index), "trailers ->", OUT)
 

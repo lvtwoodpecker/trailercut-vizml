@@ -68,6 +68,7 @@ details.tbl summary { cursor: pointer; color: var(--ink-2); }
 .tbl-wrap th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
 .tbl-wrap td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
 .tbl-wrap th:first-child, .tbl-wrap td:first-child { text-align: left; }
+.gap { display: inline-block; width: 14px; }   /* between example links: space, not a separator symbol */
 </style>
 </head>
 <body>
@@ -149,7 +150,7 @@ const nfmt = r => r.n != null ? d3.format(",")(r.n) : "–";
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 // examples: shots of this kind that made a trailer, linked to that moment in the Trailer View
 const exLinks = (ex, why) => (ex || []).map(e => `<a href="index.html?id=${encodeURIComponent(e.id)}&t=${e.t}` +
-  `${why ? `&why=${encodeURIComponent(why)}` : ""}">${esc(e.film)} · ${fmtT(e.t)}</a>`).join(" · ");
+  `${why ? `&why=${encodeURIComponent(why)}` : ""}">${esc(e.film)} at ${fmtT(e.t)}</a>`).join("<span class=\"gap\"></span>");
 const exCol = ["examples", r => exLinks(r.ex, r.level) || "–", true];
 function showEx(id, label, ex) {
   const card = document.getElementById(id).closest(".card");

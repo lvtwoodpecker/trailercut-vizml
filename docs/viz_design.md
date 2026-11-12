@@ -54,7 +54,11 @@ its frame's average color.
 
 ## Text
 
-- **Label, don't explain.** Short titles and labels ("Shot 6 · 0:37"); explanations live in the docs.
+- **Label, don't explain.** Short titles and labels ("Shot 6 at 0:37"); explanations live in the docs.
+- **No separator symbols.** Never join pieces with a middle dot or bullet ("·", "•"). Use words ("at",
+  "of"), a comma, parentheses, a colon, or space between separate elements (`.meta span + span`).
+- **No status tags the picture already shows.** A trailer shot with a film frame beside it is matched;
+  a "matched" chip next to it said nothing new, so it's gone.
 - **Subtitles come from the data**, so they can't drift after a rerun (e.g. the strongest effect whose
   interval excludes 1×).
 - `tabular-nums` only where numbers line up (axes, tables, clocks).
@@ -181,7 +185,7 @@ film-shot tooltip and in the "why this shot" bars of the "now" panel. We give up
 **The video clock is the single source of truth.** Every highlight (current shot, its link, the film
 outline, the scatter dot, the "now" panel) follows the video's time, and every click seeks the video:
 the trailer strip and sound track scrub, a film barcode shot the trailer uses jumps to the trailer
-shot that uses it (again for its next use), and the order and sync dots seek to their moment. Hover
+shot that uses it (again for its next use), and the order dots seek to their moment. Hover
 previews a shot only while paused; leaving the mark goes back to the shot under the playhead. A film
 shot the trailer doesn't use just fills the panel (Esc clears it). Before, hover previewed and a click
 locked a shot without moving the video (and a strip click seeked twice), so the video and the
@@ -205,17 +209,26 @@ and sound toggles, click the video to play/pause, and drag the trailer strip or 
 are AV1, VP9 or H.264 in MP4, so Safari can't play all of them; Chrome and Firefox can.
 The native controls look different in every browser and duplicate the timeline; with our own controls the trailer strip itself is the seek bar.
 
-**Captions from the transcript, on by default** (`viz/data/{id}.vtt`). Whisper can merge ~30 s of
-speech into one segment, so `viewer_export` splits cues at about 6 s, 12 words or a pause over 1.5 s,
-using the word timestamps.
+**Captions from the transcript, on by default.** The page draws the current spoken line over the
+video itself (YouTube's player can't load our captions), from the transcript lines in the page data.
+Until 2026-11-11 a local `.vtt` file fed the `<video>` element.
 
 **One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
 it, tinted green where a line was found in the film's dialogue (it was violet until a palette check showed blue vs violet collapses under red-green colorblindness: ΔE 1.9 to 4.5; blue, orange and green pass). One sound link at a time runs from the
-current or hovered line to its film moment; picture links are drawn only in the main chart. A "Sound
-vs picture" panel plots each found line's film time against its picture's film time and counts lines
-within 30 s. Drawing every sound link next to every picture link was too crowded to read, so sound shows on demand and the sync panel carries the overview.
+current or hovered line to its film moment; picture links are drawn only in the main chart. Drawing
+every sound link next to every picture link was too crowded to read, so sound shows on demand. A
+"Sound vs picture" scatter (each found line's film time against its picture's) was dropped
+(2026-11-11): it was empty for every trailer without film dialogue and repeated what the sound track
+and its link already show. The "Trailer order vs film order" scatter now spans the page on the
+timeline's own time scale, ticks and margins, with a dotted copy of the playhead, so each dot sits
+under its shot and the two read as one picture.
 
-**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
+**Shot panel: small frames, full-width reasons.** The video is capped by height so the timeline
+fits on screen, which leaves the panel wide on laptops; frames that grew with it pushed the model's
+reasons out of view. The two frames stay side by side at most 240px each, and the reasons chart takes
+the panel's full width below them.
+
+**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 at 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
 
 ### RQ1 page (`viz/rq1.html`, `rq1_export.py`)
@@ -253,3 +266,30 @@ lift bars), its range taken from the data so no curve is clipped, cut to the fea
 a flat step to its own end. Concept features are raw CLIP similarities, which mean nothing as numbers,
 so their x axis reads only "low" and "high". The
 section is hidden when `model_ebm.json` doesn't exist.
+
+**YouTube is the video source; the public site adds frame sheets** (`ytmedia.js`, `site_build.py`).
+The Trailer View plays each trailer through YouTube's player, locally and on the public site: it is the
+video we downloaded, so its clock starts where ours does (lengths agree within 0.6 s for all 1,082
+after one bad length in our log was fixed). Our own downloads, frames and transcripts can't be
+re-hosted, so the public build also swaps the loose keyframes for one thumbnail sheet per trailer and
+per film (`window.SITE`, set by the build); nothing else differs. `ytmedia.js` makes YouTube's player
+act like a `<video>` element and hides its quirks: before the first play a seek is only remembered
+(seeking an unstarted YouTube video leaves it stuck), the wanted time is reported until YouTube catches
+up so the playhead never jumps back, and clicks land on a layer over the player so keyboard focus stays
+on the page. What we give up: playback depends on YouTube (a removed or unembeddable trailer shows a
+link instead), and seeking is a little less snappy than a local file.
+
+**The top reason in one sentence** (Trailer View shot panel). Above the reason bars, one line says
+what the bold top bar means, with the shot's own value: "Picked for its length: 13.7 s (longer than
+the film's typical 4.6 s)", or "Passed over for its place in the film: late (84% in)". It is built
+from the same top bar, so the two can't disagree. A fuller redesign (verdict line, ranking strip,
+muted secondary reasons) was tried on 2026-11-11 and dropped: too busy for what it added.
+
+**Compared with all trailers** (Trailer View, under the order chart). One trailer's order chart means
+little without knowing what's normal, so a scatter places it among all 1,082: x how closely it follows
+film order (rank correlation, -1 backwards to +1 in order), y the average film position of its shots,
+the same axis as the order chart above; click a dot to open that trailer. Beside it the numbers, each
+with a quiet histogram of all trailers, a blue tick for this one and its percentile ("88th
+percentile"); the first and last quarter share one row. Percentiles, not "more than 87% of trailers",
+and "average position in the film", not "draws from", after a read-through found both hard to parse.
+
