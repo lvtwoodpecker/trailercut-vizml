@@ -5,30 +5,25 @@ current block lives in `plan.md`.
 
 ## Now
 
-- [ ] RQ1 rerun on all 1,058 trailers (running: `rq1 viz`, then `ebm`); record the numbers in `results.md`
 - [ ] Review the replaced trailers on the swap review page (`curate.sh swap-review`: all core swaps plus 30 sampled new films, weakest first), export the verdicts to `labels/`
 - [ ] Rerun the audit on all 1,058 trailers (`curate.sh audit`; Whisper language is in now; also writes the `subtitled` flag and fixes the old span and `clip` flag of the four replaced scene clips), then check the flags on the audit review page (`curate.sh audit-review`) and export the verdicts; `swap search` follows them
 - [ ] New films still without a trailer (42): download and apply the 175 wider-search candidates found for 21 of the 26 that ran out (`swap download --set expand`, `swap apply --set expand --batch`); the other 5 have nothing left. The 16 with untried candidates only need the download rerun (their downloads failed in a DNS blip)
 - [ ] Split review refinement: review the 100-check split page and refine the split pass from it
-- [ ] Push the commits
 
 - [ ] Rerun `case_studies` after the swaps: Moonstruck and Ferris Bueller top the order and ending lists only because their old trailers were scene clips
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
 
 **Clustering and Overview**
 - [ ] Label the first 2 trailers of `labels/label_sample.json` with a second labeler (name box filled) for Cohen's kappa against `gold_ced.json`
-- [ ] D3 Overview skeleton, sharing the trailer JSON format and selection events with the Trailer View
 
+- [ ] Final writeup: results and discussion, figures picked and annotated, RQ2 section; methods draft in `notes/`. Check the film-theory references in `notes/narrative_notes.md` before citing them
 - [ ] Course guidelines, open items (`course_learnings.md`): projector check; a small user evaluation (3 to 5 people); report figures and contributions per the paper-writing lab
 
 ## Next (Nov 17 to Dec 1)
 
-- [ ] Publish the dataset on Hugging Face: `release` builds and checks `data/release/` (1,058 films, ~6 MB); needs a go and a repo name, then `release --push USER/NAME` (private unless `--public`)
-
-- [ ] Cluster: get HPC access, pass the Slurm account with `sbatch --account`, check scratch in `hpc/env.sh`, follow `hpc/README.md`
-- [ ] ViT-H/14 rerun on the cluster, compare alignment and model numbers to B/32
-- [ ] VLM judge on the cluster (open model served with vLLM) for uncertain shots only; adopt only if it beats the labels
-- [ ] Overview linked to the Trailer View
+- [ ] VLM trial on the cluster (`vlm_rerank`, `hpc/vlm_trial.sbatch`): Qwen2.5-VL picks the match among CLIP's top 5 for the labeled shots; adopt only if it beats CLIP on the labels (F1 0.897 on the same shots)
+- [ ] DINOv2 alignment trial on the cluster (`backbone_trial`, `TRAILERCUT_CLIP=dinov2`), plus the per-film recheck of H/14 and L/14
+- [ ] Whisper large-v3 transcripts on the cluster (`hpc/asr.sbatch`; needs the trailer audio copied up); compare dialogue matching with Whisper small
 - [ ] Pick case studies from `case_studies.json` (after the rerun) plus cluster extremes
 
 ## Later (Dec 1 to 15)
@@ -40,19 +35,29 @@ current block lives in `plan.md`.
 
 - Letterboxd list as a filter for case studies
 - Film mode in `trailer_prep` for user-owned films outside MovieNet
-- Transcode trailers to H.264 so Safari plays all of them
 
 ## Dropped
 
 - Fusing dialogue into shot matching: a found line is within 30 s of the hand-labeled source shot only 59% of the time (93 shots), well below the picture matcher's precision
 
 - Keypoint verification of CLIP's top 5: copy detection (SSCD) already showed stricter visual matching doesn't help with 3 keyframes per film shot
-- Whisper on the cluster: it runs locally (~13 s per trailer)
 - Temporal smoothing of the alignment: lower F1 than raw matching on the labels
 - Automatic synopsis-to-shot alignment for the extra films with a written synopsis: time position already covers what `synopsis_pos` adds to RQ1
+- ViT-H/14 for alignment (backbone trial, 9 labeled films): best F1 0.672 vs 0.893 for B/32, top-1 0.70 vs 0.94; B/32 stays
+- Title-card filter (weak card matches count only at the impostor cutoff): on the labels it threw out 19 right matches to drop 9 bad ones
+- Local trailer files in the Trailer View: YouTube is the video source (also makes the Safari transcode moot)
 - Bulk trailer swaps in one `recover --ids` run: blocked by YouTube's bot check; replaced by the three-step `swap`
 
 ## Done
+
+- 2026-11-12: public site live at https://what-makes-the-cut.pages.dev (Cloudflare Pages; `site_build`: trailers from YouTube, one thumbnail sheet per trailer and per film, all 1,082 trailers)
+- 2026-11-12: Hugging Face dataset updated (titles and years fixed, `imdb_current`, A Walk to Remember's length 111 s to 81 s)
+- 2026-11-11: Trailer View: YouTube is the video source (`ytmedia.js`, captions from the transcript), small frames with full-width reasons and a one-line top reason, order chart on the timeline's time scale, Sound vs picture panel dropped, "Compared with all trailers" panel, keyboard works with the YouTube player, no separator dots
+- 2026-11-11: film metadata checked against IMDb (`data/ids/imdb_meta.csv`): 22 cut-off titles and their years fixed, every film has a year, 175 films gained IMDb's current genres, Force Majeure's live id
+- 2026-11-11: RQ2 on all 1,082 films with every genre a film has as a control (k = 2, stability 0.92); cluster numbering kept from the previous run; the RQ2 page filters and lists all genres and links each film to the Trailer View
+- 2026-11-11: cluster setup on NYU Torch (`hpc/`: setup as a job, rules in `hpc/README.md`); backbone trial run there
+- 2026-11-10: Hugging Face dataset published, public (`lvtwoodpecker/movienet-trailer-match`)
+- 2026-11-06: RQ1 on all 1,082 films; lift now relative to the films' mean positive rate (random 1.00x, full 2.75x)
 
 - 2026-11-06: `shap_stability`: top reason stable for 76% of shots across retrained models (chance 16%), top-3 set for 55% (5%)
 - 2026-11-06: `error_slices`: lift per genre, decade, film length, trailer size and subtitles, with bootstrap intervals and permutation tests (BH-corrected); `figures/error_slices.png`
