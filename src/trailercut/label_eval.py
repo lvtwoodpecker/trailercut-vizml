@@ -50,7 +50,7 @@ def one_per_shot(gold):
     return gold
 
 
-def evaluate(gold, al):
+def evaluate(gold, al, ts=None):
     """Labels vs alignment rows (imdb_id, shot_idx, film_shot, score, blank) -> report, thresholds, P, R, best index."""
     ev = {}
     d = gold.merge(al, on=["imdb_id", "shot_idx"])
@@ -61,7 +61,7 @@ def evaluate(gold, al):
     ev["label_mix"] = {k: int(v) for k, v in d.label.where(~d.has_source, "film shot").value_counts().items()}
     ev["top1_acc_when_source"] = float(d[d.has_source].top1_right.mean())
 
-    ts = np.linspace(0.4, 0.95, 111)
+    ts = np.linspace(0.4, 0.95, 111) if ts is None else ts
     prec, rec = [], []
     for t in ts:
         pm = (d.score >= t) & ~d.blank

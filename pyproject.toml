@@ -31,6 +31,8 @@ dependencies = [
 [project.optional-dependencies]
 # ffmpeg/ffprobe binaries for machines without a system ffmpeg (most clusters)
 hpc = ["static-ffmpeg"]
+# vision-language model trial (vlm_rerank.py), GPU only
+vlm = ["transformers>=4.49", "accelerate"]
 
 [build-system]
 requires = ["hatchling"]

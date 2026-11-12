@@ -1,6 +1,7 @@
 """CLIP embeddings for film and trailer keyframes (3 per shot), plus concept-prompt text embeddings.
 
-The backbone is picked with TRAILERCUT_CLIP (b32 default, l14, h14); each gets its own cache dir.
+The backbone is picked with TRAILERCUT_CLIP (b32 default, l14, h14, or dinov2); each gets its own
+cache dir. dinov2 (self-supervised, no text side) is for alignment only: no concept scores.
 
 Outputs (gitignored, regenerate with this script)
   data/cache/clip/{tag}/film/{imdb_id}.npy      float16 [n_shots, 3, d], L2-normalized
@@ -26,12 +27,30 @@ MODELS = {
     "l14": ("ViT-L-14", "laion2b_s32b_b82k"),
     "h14": ("ViT-H-14", "laion2b_s32b_b79k"),
 }
-MODEL, PRETRAINED = MODELS[CLIP_TAG]
+# DINOv2 is trained to tell images apart, not to match captions: a candidate for alignment only
+DINO = {"dinov2": "vit_large_patch14_dinov2.lvd142m"}
+MODEL, PRETRAINED = MODELS.get(CLIP_TAG, (DINO.get(CLIP_TAG), None))
 DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 TRAILER_FRAMES = CACHE / "trailer_frames"
 
 
+class ImageOnly(torch.nn.Module):
+    """timm backbone with CLIP's encode_image interface (pooled CLS token)."""
+    def __init__(self, net):
+        super().__init__()
+        self.net = net
+
+    def encode_image(self, x):
+        return self.net(x)
+
+
 def load_model():
+    if CLIP_TAG in DINO:
+        import timm
+        net = timm.create_model(MODEL, pretrained=True, num_classes=0, img_size=224)
+        cfg = {**timm.data.resolve_data_config({}, model=net), "input_size": (3, 224, 224)}  # 224 like CLIP, not 518
+        preprocess = timm.data.create_transform(**cfg)
+        return ImageOnly(net).to(DEVICE).half().eval(), preprocess, None
     model, _, preprocess = open_clip.create_model_and_transforms(MODEL, pretrained=PRETRAINED)
     return model.to(DEVICE).half().eval(), preprocess, open_clip.get_tokenizer(MODEL)
 
