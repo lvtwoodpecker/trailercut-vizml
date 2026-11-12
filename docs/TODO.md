@@ -7,7 +7,8 @@ current block lives in `plan.md`.
 
 - [ ] Review the replaced trailers on the swap review page (`curate.sh swap-review`: all core swaps plus 30 sampled new films, weakest first), export the verdicts to `labels/`
 - [ ] Audit rerun on all 1,082 trailers (2026-11-12, first run since the new films; the 789 new ones were never audited): check the flags on the audit review page (`curate.sh audit-review`) and export the verdicts; `swap search` follows them
-- [ ] Drop TV titles from the dataset (IMDb `title_type`): only High School Musical (TV movie) is in it; needs a full rerun from `film_features` on, best done once with any swaps from the audit
+- [ ] Drop Payback: Straight Up (tt0958860, direct-to-video) from the dataset; keep High School Musical (TV movie, but a real trailer and full metadata) and Day of the Dead (2008, video). Needs a full rerun from `film_features` on, best done once with any swaps from the audit
+- [ ] Review `labels/audit_review.html` (261 flagged; the `dub` flag is unreliable for co-productions) and `labels/swap_review.html` (174 replaced trailers), export the verdicts
 
 - [ ] Match classifier: instead of the single 0.515 cutoff, decide matched / not matched with a small model trained on the hand labels (logistic regression on match score, margin between the best and second-best film shot, shot length, blankness, ...), cross-validated grouped by trailer. Aimed at the main error, right film but wrong shot, which the cutoff can't separate
 
