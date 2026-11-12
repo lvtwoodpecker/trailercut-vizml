@@ -344,8 +344,9 @@ matched; film frames, so never committed).
 Swap downloads go to `$TRAILERCUT_DATA/trailers/candidates/{id}__{youtube_id}.mp4` (G).
 - `trailer_asr_{model}/{id}.json`: Whisper transcripts from a model other than small (e.g. `large-v3`
   on the cluster), same format as `cache/trailer_asr/`. Copyrighted text: never committed.
-- `vlm/{model}/answers.jsonl`: one line per labeled trailer shot from `vlm_rerank`: `key`,
-  `raw` (the model's reply), `answer` (0 = none, 1-5 = shown candidate, -1 = unparseable).
+- `vlm_pair/{model}_{frames}f.jsonl`: one line per labeled trailer shot and CLIP candidate from
+  `vlm_rerank`: `key`, `k` (candidate rank), `film_shot`, `logit` (log P(yes) - log P(no)).
+- `trailer_frames_hr/{id}/`: the labeled trailers' keyframes at the video's own size, for `vlm_rerank`.
 - `clip/dinov2/`: DINOv2 (ViT-L/14) embeddings, same layout as the CLIP ones; alignment only.
 
 ## Dataset release (`data/release/`, G, `release`)

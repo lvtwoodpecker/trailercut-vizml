@@ -234,7 +234,16 @@ candidate is the labeled shot 70% of the time vs 94%), and "text card" tracks "n
 the setup. Likely reason: bigger CLIP models encode meaning ("a man in a car at night") more than
 exact appearance, so look-alike shots from the same scene collapse together, the same failure as the
 copy-detection rerank. What we give up: H/14's better zero-shot concepts, which the trial didn't show
-for the one we checked. Caches are keyed by backbone tag so runs never mix.
+for the one we checked. L/14 (0.703) and DINOv2 (0.688), a model trained on images alone, land in the
+same place, and turning the blank filter off (its cutoff was tuned on B/32) changes none of them.
+Caches are keyed by backbone tag so runs never mix.
+
+**No vision-language model on top** (`vlm_rerank.py`). Qwen2.5-VL asked "is this the same shot?" for
+each of CLIP's 5 candidates picks the labeled shot about 70% of the time (7B or 32B, 1 or 3 frames)
+vs 94% for CLIP. It does fix about half of CLIP's misses, but CLIP misses only 31 of 549 shots and the
+VLM breaks about 30% of the 518 it gets right, so a blend tuned leave-one-film-out puts zero weight on
+it. Same-shot is an exact-appearance question, which embeddings answer better than a model that
+describes what it sees.
 
 ## Alignment (trailer shot to film shot)
 

@@ -186,14 +186,20 @@ sbatch --export=NONE --account=<account> hpc/asr.sbatch
 rsync -av <netid>@dtn012.hpc.nyu.edu:<checkout>/data/cache/trailer_asr_large-v3/ data/cache/trailer_asr_large-v3/
 ```
 
-**A vision-language model picks the match** (`vlm_rerank.py`). Qwen2.5-VL sees the trailer frame and
-CLIP's 5 candidates (shuffled) and names the same shot or none; graded against the labels, alone and
-combined with CLIP (CLIP decides when sure, the VLM decides the uncertain band). The first run
-installs `transformers` into `.venv` and downloads the model (~16 GB for 7B).
+**A vision-language model as a same-shot verifier** (`vlm_rerank.py`, `hpc/vlm_pair.sbatch`). For each
+labeled trailer shot and each of CLIP's 5 candidates, Qwen2.5-VL answers "same shot?" (P(yes) from the
+logits), with 1 or 3 frames per shot and high-res trailer frames. Graded on what CLIP gets wrong (rescues,
+rejects of footage not in the film) and blended with CLIP's score, settings picked leave-one-film-out. A
+first version (all 6 frames in one prompt, pick a number, 7B) was right 54% of the time vs 94% for CLIP;
+this one about 70% (docs/results.md), so CLIP stays.
 
 ```bash
-sbatch --export=NONE --account=<account> hpc/vlm_trial.sbatch                                      # 7B
-sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-32B-Instruct --account=<account> hpc/vlm_trial.sbatch    # 32B, H200
-cat data/features/vlm_trial_Qwen2.5-VL-7B-Instruct.json
+# laptop: high-res trailer frames of the labeled films (~65 MB), then up
+python -m trailercut.vlm_rerank frames
+rsync -av data/cache/trailer_frames_hr/ <netid>@dtn012.hpc.nyu.edu:<checkout>/data/cache/trailer_frames_hr/
+# cluster: one job per setting (pilot of 60 shots, then all 630)
+sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct,VLM_FRAMES=1 --account=<account> hpc/vlm_pair.sbatch
+sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct,VLM_FRAMES=3 --account=<account> hpc/vlm_pair.sbatch
+sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-32B-Instruct,VLM_FRAMES=3 --constraint=h200 --account=<account> hpc/vlm_pair.sbatch
 ```
 

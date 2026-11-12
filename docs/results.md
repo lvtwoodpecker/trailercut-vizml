@@ -3,6 +3,40 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-12: other backbones with the blank filter off, and a VLM as same-shot verifier
+
+**Backbones** [`backbone_trial_{tag}_blank2.0.json`, cluster] The blank cutoff (0.9) was tuned on B/32, so
+the same 9 films were rerun with it off (`TRAILERCUT_BLANK=2`, nothing flagged blank):
+
+| backbone | best F1 (cutoff) | top-1 right | blank filter on: F1 / top-1 |
+|---|---|---|---|
+| B/32 | 0.889 | 0.940 | 0.893 / 0.942 |
+| L/14 | 0.702 (0.635) | 0.727 | 0.703 / 0.729 |
+| H/14 | 0.673 (0.545) | 0.699 | 0.672 / 0.700 |
+| DINOv2 L/14 | 0.686 (0.580) | 0.715 | 0.688 / 0.717 |
+
+Read: the filter wasn't what held the bigger models back. Vertigo is the hardest film for all of them
+(top-1 0.46 to 0.57). B/32 stays.
+
+**VLM** [`vlm_pair_{model}_{frames}f.json`, cluster] Qwen2.5-VL asked "same shot?" for each of CLIP's 5
+candidates, on 630 labeled trailer shots (549 with the labeled film shot in CLIP's top 5):
+
+| model, frames per shot | rescue (31) | keep (518) | reject (54) | top-1 right | VLM alone F1 | blended with CLIP, F1 |
+|---|---|---|---|---|---|---|
+| 7B, 1 | 0.52 | 0.71 | 0.98 | 0.699 | 0.639 | 0.893 |
+| 7B, 3 | 0.58 | 0.69 | 0.93 | 0.683 | 0.600 | 0.893 |
+| 32B, 3 | 0.48 | 0.72 | 0.76 | 0.703 | 0.680 | 0.893 |
+| CLIP B/32 | 0 | 1 | | 0.944 | 0.897 (at 0.515) | |
+
+Rescue: CLIP's top-1 is wrong and the VLM picks the labeled shot. Keep: CLIP is right and the VLM agrees.
+Reject: footage not in the film, and the VLM says no to every candidate. Blended: CLIP decides above the
+impostor cutoff, below 0.40 nothing matches, in between (258 shots) a weighted mix of the two scores;
+weight and cut chosen leave-one-film-out. Every fold of every model chose weight 0, so the blend is CLIP
+alone. The VLM fixes about half of CLIP's 31 misses but breaks about 30% of its 518 hits. The first
+version (all 6 frames in one prompt, pick a number, 7B) was right 54% of the time.
+
+Read: a bigger VLM and more frames don't close the gap; no VLM in the pipeline.
+
 ## 2026-11-11: bigger CLIP tried for alignment
 
 [`backbone_trial.py`, cluster run] On the 9 hand-labeled films (639 labels), graded like `label_eval`:
