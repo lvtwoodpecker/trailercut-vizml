@@ -54,7 +54,11 @@ its frame's average color.
 
 ## Text
 
-- **Label, don't explain.** Short titles and labels ("Shot 6 · 0:37"); explanations live in the docs.
+- **Label, don't explain.** Short titles and labels ("Shot 6 at 0:37"); explanations live in the docs.
+- **No separator symbols.** Never join pieces with a middle dot or bullet ("·", "•"). Use words ("at",
+  "of"), a comma, parentheses, a colon, or space between separate elements (`.meta span + span`).
+- **No status tags the picture already shows.** A trailer shot with a film frame beside it is matched;
+  a "matched" chip next to it said nothing new, so it's gone.
 - **Subtitles come from the data**, so they can't drift after a rerun (e.g. the strongest effect whose
   interval excludes 1×).
 - `tabular-nums` only where numbers line up (axes, tables, clocks).
@@ -224,7 +228,7 @@ fits on screen, which leaves the panel wide on laptops; frames that grew with it
 reasons out of view. The two frames stay side by side at most 240px each, and the reasons chart takes
 the panel's full width below them.
 
-**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 · 0:39", short
+**Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 at 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
 
 ### RQ1 page (`viz/rq1.html`, `rq1_export.py`)
@@ -274,3 +278,18 @@ the wanted time is reported until YouTube catches up, so the playhead never jump
 drawn from our transcript because the player can't load our caption file. What we give up: playback
 depends on YouTube (an unembeddable or removed trailer shows a link instead), and seeking is a
 little less snappy than a local file.
+
+**The top reason in one sentence** (Trailer View shot panel). Above the reason bars, one line says
+what the bold top bar means, with the shot's own value: "Picked for its length: 13.7 s (longer than
+the film's typical 4.6 s)", or "Passed over for its place in the film: late (84% in)". It is built
+from the same top bar, so the two can't disagree. A fuller redesign (verdict line, ranking strip,
+muted secondary reasons) was tried on 2026-11-11 and dropped: too busy for what it added.
+
+**Compared with all trailers** (Trailer View, under the order chart). One trailer's order chart means
+little without knowing what's normal, so a scatter places it among all 1,082: x how closely it follows
+film order (rank correlation, -1 backwards to +1 in order), y the average film position of its shots,
+the same axis as the order chart above; click a dot to open that trailer. Beside it the numbers, each
+with a quiet histogram of all trailers, a blue tick for this one and its percentile ("88th
+percentile"); the first and last quarter share one row. Percentiles, not "more than 87% of trailers",
+and "average position in the film", not "draws from", after a read-through found both hard to parse.
+

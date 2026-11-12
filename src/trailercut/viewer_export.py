@@ -186,14 +186,21 @@ def main():
         shap = key.merge(shap, how="left", on=["imdb_id", "shot_idx"])
         shap = (*shap_groups(shap), shap)
     index = []
+    # per-trailer order stats (trailer_features), so the page can place one trailer among all of them
+    tf = FEATURES / "trailers.parquet"
+    order = (pd.read_parquet(tf, columns=["imdb_id", "order_corr", "story_mean", "first_act_share", "final_act_share"])
+             .set_index("imdb_id") if tf.exists() else pd.DataFrame())
     for i in tqdm(sorted(films.imdb_id.unique())):
         curves[i] = curve(i)
         d = trailer_json(i, curves, films, preds, shap, a.detail)
         (OUT / f"{i}.json").write_text(json.dumps(d, separators=(",", ":"), allow_nan=False))
         vtt(i)
         matched = [s[2] for s in d["shots"]]
+        o = order.loc[i] if i in order.index else None
         index.append(dict(id=i, title=d["title"], year=d["year"], genre=(d["genres"] or [""])[0],
-                          shots=len(matched), match_rate=r(np.mean(matched))))
+                          shots=len(matched), match_rate=r(np.mean(matched)),
+                          **({} if o is None else dict(order=r(o.order_corr), mean_pos=r(o.story_mean),
+                                                       first=r(o.first_act_share), last=r(o.final_act_share)))))
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))
     print(len(index), "trailers ->", OUT)
 

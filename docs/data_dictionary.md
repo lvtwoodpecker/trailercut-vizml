@@ -291,7 +291,9 @@ from **`labels/split_img/`** (G). **`labels/split_review_<name>.json`** (Export 
 Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written as `null`.
 
 **`index.json`**: list, one entry per trailer: `id`, `title`, `year`, `genre` (first genre), `shots`,
-`match_rate`.
+`match_rate`. Also each trailer's order numbers from
+`trailers.parquet` for the "Compared with all trailers" panel: `order` (`order_corr`), `mean_pos`
+(`story_mean`), `first`, `last` (`first_act_share`, `final_act_share`).
 
 **`{imdb_id}.json`**: one trailer.
 

@@ -263,7 +263,7 @@ window.addEventListener("trailerSelect", (event) => {
     applyFilters();
 
     d3.select("#detail-title").text(item.title);
-    d3.select("#detail-meta").text(`${item.year} • ${item.genre_list.join(", ")}`);
+    d3.select("#detail-meta").html(`<span>${item.year}</span><span style="margin-left: 14px;">${item.genre_list.join(", ")}</span>`);
 
     const activeCluster = currentSpace === "res" ? item.cluster_res_all : item.cluster_all;
 
