@@ -66,7 +66,7 @@ def trailers():
         rows.append(dict(
             imdb_id=i, imdb_current=m["imdb_current"], film=m["title"], year=m["year"],
             url=url(r.youtube_id), title=now.get("title") or r.title, channel=now.get("channel", ""),
-            duration_s=now.get("duration") or r.duration,
+            duration_s=r.duration if pd.notna(r.duration) else now.get("duration"),   # status log first: it gets corrected
             trailer_shots=len(a) if a is not None else None,
             match_share=round(float(a.matched[~a.blank].mean()), 3) if a is not None else None,
             film_span=round(float(pos.quantile(0.9) - pos.quantile(0.1)), 3) if len(pos) else None,
