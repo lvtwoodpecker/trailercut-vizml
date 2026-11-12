@@ -29,3 +29,4 @@ labels/split_img/
 labels/split_review.html
 labels/audit_review.html
 site/
+.wrangler/
