@@ -60,7 +60,7 @@ button[aria-pressed="false"] { color: var(--muted); text-decoration: line-throug
 #now { margin: 0; min-width: 0; overflow: auto; max-height: calc(max(260px, min(42vh, calc(100vh - 560px))) + 52px); container-type: inline-size; }
 .novid { display: none; position: absolute; inset: 0; place-items: center; color: #c3c2b7; font-size: 13px; }
 .player.novideo .novid { display: grid; }
-/* public site: YouTube player in the same box, our own captions, frames from thumbnail sheets */
+/* the YouTube player, our own captions, and (public site) frames from thumbnail sheets */
 .player .yt { height: max(260px, min(42vh, calc(100vh - 560px))); aspect-ratio: 16 / 9; max-width: 100%; border-radius: 6px; overflow: hidden; background: #000; }
 .player .yt { position: relative; }
 .player .yt iframe { display: block; width: 100%; height: 100%; }
@@ -214,13 +214,12 @@ const FEAT_LABEL = { story_pos: "position in film", act: "act", synopsis_pos: "p
   scale_ecu: "extreme close-up", scale_cu: "close-up", scale_ms: "medium shot", scale_fs: "full shot", scale_ls: "long shot",
   scale_width: "shot width", shot_len: "shot length (s)", visual_change: "visual change" };
 const featLabel = n => FEAT_LABEL[n] || n.replace(/^c_/, "").replace(/_/g, " ");
-// The public site (window.SITE, set by site_build) plays trailers from YouTube and shows frames from
-// thumbnail sheets; locally the page plays our own files. Everything else is the same.
+// Trailers play from YouTube (the video we downloaded, so our shot times line up). The public site
+// (window.SITE, set by site_build) also takes frames from thumbnail sheets; locally they're keyframes.
 const SITE = window.SITE || null;
 let vid = document.getElementById("vid");
 const tip = d3.select("#tip");
-let ytcc = null;
-if (SITE) {
+{
   const box = document.createElement("div");
   box.className = "yt";
   vid.replaceWith(box);
@@ -228,8 +227,8 @@ if (SITE) {
   const catcher = box.appendChild(document.createElement("div"));
   catcher.className = "yt-catch";
   vid = new YTMedia(slot);
-  ytcc = d3.select(".screen").append("div").attr("class", "ytcc");
 }
+const ytcc = d3.select(".screen").append("div").attr("class", "ytcc");
 let D = null, starts = [], lineStarts = [], tx, fx, Y, W = 1200;
 let ALL = [];                    // every trailer's order numbers (index.json), for the comparison panel
 let cur = -1, curLine = -1;      // shot and spoken line under the playhead
@@ -293,19 +292,10 @@ async function load(id) {
   d3.select("#meta").html([(D.genres || []).slice(0, 2).join(", "), `${D.shots.length} shots, ${Math.round(100 * nMatched / D.shots.length)}% matched`,
     `${nUsed} of ${d3.format(",")(D.film.n)} film shots used`].map(s => `<span>${esc(s)}</span>`).join(""));
   d3.select(".player").classed("novideo", false);
-  if (SITE) {
-    d3.select(".novid").html(`Can't play this trailer here. <a href="https://www.youtube.com/watch?v=${D.yt}" target="_blank" rel="noopener">Open on YouTube</a>`);
-    vid.load(D.yt, t0);
-  } else {
-    vid.src = `../data/trailers/${id}.mp4`;
-    vid.querySelectorAll("track").forEach(t => t.remove());
-    const track = Object.assign(document.createElement("track"), { kind: "captions", srclang: "en", label: "Transcript", src: `data/${id}.vtt`, default: true });
-    vid.appendChild(track);
-    track.addEventListener("load", () => { track.track.mode = captionsOn ? "showing" : "hidden"; });
-  }
+  d3.select(".novid").html(`Can't play this trailer here. <a href="https://www.youtube.com/watch?v=${D.yt}" target="_blank" rel="noopener">Open on YouTube</a>`);
+  vid.load(D.yt, t0);
   drawAll();
   follow(t0);
-  if (t0 && !SITE) vid.addEventListener("loadedmetadata", () => { vid.currentTime = t0; }, { once: true });
 }
 
 // ---- the clock ----
@@ -341,7 +331,7 @@ function stepShot(dir) {
 }
 pp.addEventListener("click", toggle);
 vid.addEventListener("click", toggle);
-if (SITE) document.querySelector(".yt-catch").addEventListener("click", toggle);
+document.querySelector(".yt-catch").addEventListener("click", toggle);
 document.getElementById("prev").addEventListener("click", () => stepShot(-1));
 document.getElementById("next").addEventListener("click", () => stepShot(1));
 const syncBar = () => {
@@ -350,16 +340,14 @@ const syncBar = () => {
 };
 ["play", "pause", "timeupdate", "loadedmetadata", "seeked"].forEach(e => vid.addEventListener(e, syncBar));
 let captionsOn = true;
-// the YouTube player can't load our transcript, so the public site draws the current line itself
+// the YouTube player can't load our transcript, so the page draws the current line itself
 function caption(k) {
-  if (!ytcc) return;
   ytcc.html(captionsOn && k >= 0 ? `<span>${esc(D.speech[k][4] || "")}</span>` : "");
 }
 const ccBtn = document.getElementById("cc"), muteBtn = document.getElementById("mute");
 function toggleCC() {
   captionsOn = !captionsOn; ccBtn.setAttribute("aria-pressed", captionsOn);
-  if (SITE) caption(curLine);
-  else for (const t of vid.textTracks) t.mode = captionsOn ? "showing" : "hidden";
+  caption(curLine);
 }
 function toggleMute() { vid.muted = !vid.muted; muteBtn.setAttribute("aria-pressed", !vid.muted); }
 ccBtn.addEventListener("click", toggleCC);

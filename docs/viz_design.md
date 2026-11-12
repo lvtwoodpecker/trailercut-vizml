@@ -209,9 +209,9 @@ and sound toggles, click the video to play/pause, and drag the trailer strip or 
 are AV1, VP9 or H.264 in MP4, so Safari can't play all of them; Chrome and Firefox can.
 The native controls look different in every browser and duplicate the timeline; with our own controls the trailer strip itself is the seek bar.
 
-**Captions from the transcript, on by default** (`viz/data/{id}.vtt`). Whisper can merge ~30 s of
-speech into one segment, so `viewer_export` splits cues at about 6 s, 12 words or a pause over 1.5 s,
-using the word timestamps.
+**Captions from the transcript, on by default.** The page draws the current spoken line over the
+video itself (YouTube's player can't load our captions), from the transcript lines in the page data.
+Until 2026-11-11 a local `.vtt` file fed the `<video>` element.
 
 **One sound track.** Loudness as an area, rescaled to its 10th percentile so quiet ends don't flatten
 it, tinted green where a line was found in the film's dialogue (it was violet until a palette check showed blue vs violet collapses under red-green colorblindness: ΔE 1.9 to 4.5; blue, orange and green pass). One sound link at a time runs from the
@@ -267,17 +267,17 @@ a flat step to its own end. Concept features are raw CLIP similarities, which me
 so their x axis reads only "low" and "high". The
 section is hidden when `model_ebm.json` doesn't exist.
 
-**Public site: YouTube video, frame sheets** (`site_build.py`, `ytmedia.js`). Our downloaded trailers,
-frames and transcripts can't be re-hosted, so the public build plays each trailer through YouTube's
-player (the same video we downloaded: its clock starts where ours does, and lengths agree within
-0.6 s for 1,081 of 1,082) and shows frames from one thumbnail sheet per trailer and per film. The
-page code is shared: `window.SITE` (set by the build) switches the video and frame sources, nothing
-else. `ytmedia.js` makes YouTube's player act like a `<video>` element and hides its quirks: before
-the first play a seek is only remembered (seeking an unstarted YouTube video leaves it stuck), and
-the wanted time is reported until YouTube catches up, so the playhead never jumps back. Captions are
-drawn from our transcript because the player can't load our caption file. What we give up: playback
-depends on YouTube (an unembeddable or removed trailer shows a link instead), and seeking is a
-little less snappy than a local file.
+**YouTube is the video source; the public site adds frame sheets** (`ytmedia.js`, `site_build.py`).
+The Trailer View plays each trailer through YouTube's player, locally and on the public site: it is the
+video we downloaded, so its clock starts where ours does (lengths agree within 0.6 s for all 1,082
+after one bad length in our log was fixed). Our own downloads, frames and transcripts can't be
+re-hosted, so the public build also swaps the loose keyframes for one thumbnail sheet per trailer and
+per film (`window.SITE`, set by the build); nothing else differs. `ytmedia.js` makes YouTube's player
+act like a `<video>` element and hides its quirks: before the first play a seek is only remembered
+(seeking an unstarted YouTube video leaves it stuck), the wanted time is reported until YouTube catches
+up so the playhead never jumps back, and clicks land on a layer over the player so keyboard focus stays
+on the page. What we give up: playback depends on YouTube (a removed or unembeddable trailer shows a
+link instead), and seeking is a little less snappy than a local file.
 
 **The top reason in one sentence** (Trailer View shot panel). Above the reason bars, one line says
 what the bold top bar means, with the shot's own value: "Picked for its length: 13.7 s (longer than

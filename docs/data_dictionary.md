@@ -295,7 +295,8 @@ Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written 
 `trailers.parquet` for the "Compared with all trailers" panel: `order` (`order_corr`), `mean_pos`
 (`story_mean`), `first`, `last` (`first_act_share`, `final_act_share`).
 
-**`{imdb_id}.json`**: one trailer.
+**`{imdb_id}.json`**: one trailer. `yt` is its YouTube id (from `trailer_status.csv`); the page plays the
+trailer from YouTube.
 
 | key | meaning |
 |---|---|
@@ -311,9 +312,6 @@ Written by `viewer_export`, read by `viz/index.html`. Compact JSON, NaN written 
 | `film.trailerness`, `film.trailerness_readable` | out-of-fold scores of the `full` and `readable` models (only if `model` was run); `null` for logo/credit edge shots the model skips |
 | `film.shap_groups`, `film.shap` | group order and per film shot SHAP summed per group (`position`, `dialogue`, `scale`, `content`, `editing`, `clip`) |
 | `film.detail_features`, `film.detail` | readable feature names, and for in-trailer shots plus the top `--detail` (default 60) by `full` score, `[value, SHAP]` per feature, keyed by shot index |
-
-**`{imdb_id}.vtt`**: WebVTT captions from the Whisper transcript, cues split at about 6 s, 12 words
-or a pause over 1.5 s. Written only when the transcript exists.
 
 **`rq1.json`** (from `rq1_export`, read by `viz/rq1.html`): `n_shots`, `n_films`, `positive_rate`
 (edge shots excluded), then lift tables `story` (20 bins of story position, `level` = bin center),
