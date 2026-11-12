@@ -26,6 +26,7 @@ computed and saved so the report shows its false-match rate.
 """
 import argparse
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -40,7 +41,9 @@ TOPK = 5
 # film shots within this many indices of the best are treated as the same moment when computing margin
 # (shot/reverse-shot and continuous coverage make neighbours look alike)
 NEIGHBOR = 3
-BLANK = 0.9
+# similarity to a solid black/white/grey frame above which a shot counts as blank; tuned on B/32's scale,
+# other backbones score differently (TRAILERCUT_BLANK overrides it, e.g. 2 turns the filter off)
+BLANK = float(os.environ.get("TRAILERCUT_BLANK", 0.9))
 BLANK_EMB = CACHE / f"blank_emb_{CLIP_TAG}.npy"
 
 
