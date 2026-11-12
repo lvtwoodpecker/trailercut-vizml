@@ -245,6 +245,18 @@ VLM breaks about 30% of the 518 it gets right, so a blend tuned leave-one-film-o
 it. Same-shot is an exact-appearance question, which embeddings answer better than a model that
 describes what it sees.
 
+**Rulers that don't come from B/32** (`ruler.py`). Those trials were all graded on labels picked among
+B/32's top 5, in its order with its scores shown. Where candidates look the same, a labeler takes the
+first, so the labels can lean toward B/32, and six very different methods all landing near 70% top-1
+is what that would look like. Rather than relabel, three automatic checks: the old labels with picks
+1 to 3 shots off counted as near (and the shots where every other backbone agrees against the label,
+to look at); the trailer's dialogue found in the film's subtitles, which places the moment without
+pixels (noisy, since voice-over runs over other footage, but equally for every backbone); and a
+synthetic test where each film keyframe, re-framed, re-graded, shrunk and compressed like a YouTube
+trailer, has to find its own shot among the film's other keyframes, so the answer is known exactly and
+cut-backs to the same setup are in the way. B/32: 0.944 on the labels, 0.726 synthetic, 0.43 of
+dialogue shots within 5 s.
+
 ## Alignment (trailer shot to film shot)
 
 **Shot similarity = mean over trailer keyframes of the max over film keyframes.** Each trailer frame

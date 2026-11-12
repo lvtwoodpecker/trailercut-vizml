@@ -203,3 +203,24 @@ sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct,VLM_FRAMES=3 --account=<ac
 sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-32B-Instruct,VLM_FRAMES=3 --constraint=h200 --account=<account> hpc/vlm_pair.sbatch
 ```
 
+
+## Rulers that don't come from B/32 (branch `blind-labels`)
+
+The hand labels were picked among B/32's candidates with its order and scores shown, so they may lean
+toward B/32. `trailercut.ruler` grades each backbone three other ways too (docs/design.md): the old
+labels with near misses counted, the trailer's dialogue found in the film's subtitles, and a synthetic
+test where film keyframes made to look like trailer frames have to find their own shot. Reuses the
+backbone trial's embeddings and keyframes; one job per backbone, each grades everything there so far.
+
+```bash
+git pull && git checkout blind-labels
+sbatch --export=TRAILERCUT_CLIP=b32 --account=<account> hpc/ruler.sbatch      # control: same numbers as the laptop?
+sbatch --export=TRAILERCUT_CLIP=l14 --account=<account> hpc/ruler.sbatch
+sbatch --export=TRAILERCUT_CLIP=h14 --account=<account> hpc/ruler.sbatch
+sbatch --export=TRAILERCUT_CLIP=dinov2 --account=<account> hpc/ruler.sbatch
+# after all four, grade them together (a short job, not on the login node)
+sbatch --export=NONE --account=<account> --wrap "source hpc/env.sh && \$PY -m trailercut.ruler grade" \
+  --job-name=tc-grade --time=00:10:00 --mem=8GB --output=logs/%x_%j.out
+# laptop: results down
+rsync -av <netid>@dtn012.hpc.nyu.edu:<checkout>/data/features/ruler/ data/features/ruler/
+```

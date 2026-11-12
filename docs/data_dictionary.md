@@ -111,6 +111,19 @@ without `source` means `impostor_null`. The committed file is `manual`, threshol
 `threshold`, `lam`, `tau` (smooth only), `precision`, `recall`, `f1`, `near_precision` (a match within
 ±3 film shots of the labeled source counts), `n_pred` (shots predicted matched).
 
+**`ruler/cands_{tag}.csv`** (C): one backbone's alignment of every trailer shot of the hand-labeled
+films (`ruler cands`): `imdb_id`, `shot_idx`, `t_start`, `t_end`, `film_shot`, `score`, `blank`, `top5`,
+`top5_scores`. **`ruler/synth_{tag}.csv`** (C): the synthetic test (`ruler synth`), one row per
+non-blank film shot: `imdb_id`, `shot_idx` (the query, its middle keyframe made trailer-like), `pick`
+(best shot among every shot's first and last keyframe), `score`, `second`.
+
+**`ruler_eval.json`** (C): `ruler grade`, per backbone. `labels`: `exact`, `within_1`, `within_3`
+against the hand labels, plus `others_agree_against_label` (shots where every non-B/32 backbone picks
+the same shot and it isn't the label; listed in `ruler_consensus.csv`: `imdb_id`, `shot_idx`, `label`,
+`b32`, `others_pick`). `dialogue`: `within_5s`, `within_30s`, the picked film shot vs the film time of
+the trailer line over it. `synthetic`: `exact`, `within_1`, `within_3`, `by_film`. Each score is
+`mean`, `ci` (95%, films resampled), `n`.
+
 ## Sound (`data/features/`)
 
 **`dialogue_alignment/{imdb_id}.csv`** (C): one row per Whisper speech segment of the trailer, no text.
