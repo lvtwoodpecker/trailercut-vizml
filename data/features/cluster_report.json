@@ -1,198 +1,2050 @@
-[
-  {
-    "modality": "all",
-    "n_features": 56,
-    "best_k": 2,
-    "silhouette": {
-      "2": 0.10459444202011145,
-      "3": 0.09636352238748307,
-      "4": 0.07462605020432164,
-      "5": 0.050530864651500876,
-      "6": 0.06225953104757422,
-      "7": 0.05178285309552903,
-      "8": 0.05264990977116075
+{
+  "baseline": [
+    {
+      "modality": "all",
+      "n_features": 56,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.09925231284037411,
+        "3": 0.07956281861596062,
+        "4": 0.06444647264662001,
+        "5": 0.05786533086378747,
+        "6": 0.053225566793776415,
+        "7": 0.050105721904741336,
+        "8": 0.04257284186046481
+      },
+      "stability_ari_mean": 0.900250150891236,
+      "stability_ari_std": 0.06844347153736671,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.058153473296201866,
+        "null_p95": 0.009313760003223632,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.014858307633985017,
+        "null_p95": 0.006177785266049768,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 455,
+          "pct": 42.1,
+          "top_features": [
+            {
+              "feature": "c_creature_mean",
+              "mean_z": -0.78,
+              "direction": "low"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": -0.77,
+              "direction": "low"
+            },
+            {
+              "feature": "c_night_mean",
+              "mean_z": -0.74,
+              "direction": "low"
+            },
+            {
+              "feature": "c_running_mean",
+              "mean_z": -0.74,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 154,
+            "Drama": 87,
+            "Action": 85
+          },
+          "top_decades": {
+            "2010": 166,
+            "2000": 150
+          }
+        },
+        "1": {
+          "count": 627,
+          "pct": 57.9,
+          "top_features": [
+            {
+              "feature": "c_creature_mean",
+              "mean_z": 0.57,
+              "direction": "high"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": 0.56,
+              "direction": "high"
+            },
+            {
+              "feature": "c_night_mean",
+              "mean_z": 0.54,
+              "direction": "high"
+            },
+            {
+              "feature": "c_running_mean",
+              "mean_z": 0.54,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 210,
+            "Drama": 156,
+            "Crime": 66
+          },
+          "top_decades": {
+            "2000": 172,
+            "2010": 165
+          }
+        }
+      }
     },
-    "stability_ari_mean": 0.8822209801278421,
-    "stability_ari_std": 0.0924927816504401,
-    "hdbscan_n_clusters": 0,
-    "hdbscan_noise_frac": 1.0,
-    "genre": {
-      "nmi": 0.06929405890078169,
-      "null_p95": 0.02170213228904437,
-      "p": 0.0
+    {
+      "modality": "pacing",
+      "n_features": 10,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.2965733694232698,
+        "3": 0.22392167783861305,
+        "4": 0.21785444591893635,
+        "5": 0.16356067591238696,
+        "6": 0.1770232617238101,
+        "7": 0.17392554643893995,
+        "8": 0.16278097313839568
+      },
+      "stability_ari_mean": 0.9794506194576232,
+      "stability_ari_std": 0.019369830258245038,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.027503055023256204,
+        "null_p95": 0.008375616448359836,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.11706788986604275,
+        "null_p95": 0.005949287139733467,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 457,
+          "pct": 42.2,
+          "top_features": [
+            {
+              "feature": "cuts_per_min",
+              "mean_z": -0.94,
+              "direction": "low"
+            },
+            {
+              "feature": "n_shots",
+              "mean_z": -0.84,
+              "direction": "low"
+            },
+            {
+              "feature": "pace_q2",
+              "mean_z": -0.8,
+              "direction": "low"
+            },
+            {
+              "feature": "pace_q3",
+              "mean_z": -0.79,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Drama": 128,
+            "Comedy": 104,
+            "Action": 77
+          },
+          "top_decades": {
+            "1990": 126,
+            "2000": 85
+          }
+        },
+        "1": {
+          "count": 625,
+          "pct": 57.8,
+          "top_features": [
+            {
+              "feature": "cuts_per_min",
+              "mean_z": 0.69,
+              "direction": "high"
+            },
+            {
+              "feature": "n_shots",
+              "mean_z": 0.61,
+              "direction": "high"
+            },
+            {
+              "feature": "pace_q2",
+              "mean_z": 0.59,
+              "direction": "high"
+            },
+            {
+              "feature": "pace_q3",
+              "mean_z": 0.58,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 218,
+            "Drama": 115,
+            "Comedy": 102
+          },
+          "top_decades": {
+            "2010": 258,
+            "2000": 237
+          }
+        }
+      }
     },
-    "decade": {
-      "nmi": 0.02438558475666207,
-      "null_p95": 0.022220954197275024,
-      "p": 0.025
+    {
+      "modality": "audio",
+      "n_features": 9,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.2517277238157826,
+        "3": 0.23902414490811152,
+        "4": 0.22277093267179893,
+        "5": 0.2022835003240737,
+        "6": 0.17765794163153847,
+        "7": 0.16366862290519327,
+        "8": 0.15732128147247765
+      },
+      "stability_ari_mean": 0.9277719641063423,
+      "stability_ari_std": 0.0471520006844305,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.009652474676999465,
+        "null_p95": 0.00913794568222216,
+        "p": 0.02
+      },
+      "decade": {
+        "nmi": 0.007518329506805647,
+        "null_p95": 0.0063205586441999,
+        "p": 0.015
+      },
+      "profiles": {
+        "0": {
+          "count": 452,
+          "pct": 41.8,
+          "top_features": [
+            {
+              "feature": "rms_mean_db",
+              "mean_z": -0.89,
+              "direction": "low"
+            },
+            {
+              "feature": "rms_dynamic_range",
+              "mean_z": 0.75,
+              "direction": "high"
+            },
+            {
+              "feature": "quiet_frac",
+              "mean_z": 0.74,
+              "direction": "high"
+            },
+            {
+              "feature": "rms_q1",
+              "mean_z": -0.71,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 124,
+            "Drama": 105,
+            "Comedy": 67
+          },
+          "top_decades": {
+            "2010": 161,
+            "2000": 138
+          }
+        },
+        "1": {
+          "count": 630,
+          "pct": 58.2,
+          "top_features": [
+            {
+              "feature": "rms_mean_db",
+              "mean_z": 0.64,
+              "direction": "high"
+            },
+            {
+              "feature": "rms_dynamic_range",
+              "mean_z": -0.54,
+              "direction": "low"
+            },
+            {
+              "feature": "quiet_frac",
+              "mean_z": -0.53,
+              "direction": "low"
+            },
+            {
+              "feature": "rms_q1",
+              "mean_z": 0.51,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 171,
+            "Comedy": 139,
+            "Drama": 138
+          },
+          "top_decades": {
+            "2000": 184,
+            "2010": 170
+          }
+        }
+      }
+    },
+    {
+      "modality": "story",
+      "n_features": 8,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.22881814872569792,
+        "3": 0.17308806749250463,
+        "4": 0.162801094322862,
+        "5": 0.16751372627715147,
+        "6": 0.1683843610169793,
+        "7": 0.14486393703343586,
+        "8": 0.13498748678910885
+      },
+      "stability_ari_mean": 0.9699505257794823,
+      "stability_ari_std": 0.018662578924578357,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.024715417147405827,
+        "null_p95": 0.00932873767289205,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.019896129053602742,
+        "null_p95": 0.006346710321932212,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 538,
+          "pct": 49.7,
+          "top_features": [
+            {
+              "feature": "story_mean",
+              "mean_z": -0.76,
+              "direction": "low"
+            },
+            {
+              "feature": "story_median",
+              "mean_z": -0.71,
+              "direction": "low"
+            },
+            {
+              "feature": "final_act_share",
+              "mean_z": -0.65,
+              "direction": "low"
+            },
+            {
+              "feature": "first_act_share",
+              "mean_z": 0.62,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 144,
+            "Action": 131,
+            "Drama": 102
+          },
+          "top_decades": {
+            "2010": 201,
+            "2000": 157
+          }
+        },
+        "1": {
+          "count": 544,
+          "pct": 50.3,
+          "top_features": [
+            {
+              "feature": "story_mean",
+              "mean_z": 0.76,
+              "direction": "high"
+            },
+            {
+              "feature": "story_median",
+              "mean_z": 0.7,
+              "direction": "high"
+            },
+            {
+              "feature": "final_act_share",
+              "mean_z": 0.64,
+              "direction": "high"
+            },
+            {
+              "feature": "first_act_share",
+              "mean_z": -0.62,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 164,
+            "Drama": 141,
+            "Comedy": 62
+          },
+          "top_decades": {
+            "2000": 165,
+            "2010": 130
+          }
+        }
+      }
+    },
+    {
+      "modality": "dialogue",
+      "n_features": 4,
+      "best_k": 8,
+      "silhouette": {
+        "2": 0.3576491664816948,
+        "3": 0.37323778799859175,
+        "4": 0.35604567735015336,
+        "5": 0.379841224002615,
+        "6": 0.39019645298297095,
+        "7": 0.3905456587699284,
+        "8": 0.4015943117887133
+      },
+      "stability_ari_mean": 0.7472686609668101,
+      "stability_ari_std": 0.06889590003723271,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.08393968822985713,
+        "null_p95": 0.025529596428851532,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.030181335669320995,
+        "null_p95": 0.018705514433825763,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 137,
+          "pct": 12.7,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 1.22,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.91,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 0.45,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 0.3,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Drama": 34,
+            "Comedy": 32,
+            "Crime": 25
+          },
+          "top_decades": {
+            "2010": 44,
+            "2000": 41
+          }
+        },
+        "1": {
+          "count": 91,
+          "pct": 8.4,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 1.82,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -1.42,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.79,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -0.14,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 38,
+            "Drama": 21,
+            "Biography": 11
+          },
+          "top_decades": {
+            "2000": 27,
+            "2010": 27
+          }
+        },
+        "2": {
+          "count": 163,
+          "pct": 15.1,
+          "top_features": [
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -0.5,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 0.39,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -0.19,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.18,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 45,
+            "Comedy": 37,
+            "Drama": 31
+          },
+          "top_decades": {
+            "2000": 62,
+            "2010": 55
+          }
+        },
+        "3": {
+          "count": 74,
+          "pct": 6.8,
+          "top_features": [
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 2.17,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -1.71,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 0.95,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.49,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 21,
+            "Crime": 18,
+            "Drama": 16
+          },
+          "top_decades": {
+            "1990": 27,
+            "2000": 16
+          }
+        },
+        "4": {
+          "count": 327,
+          "pct": 30.2,
+          "top_features": [
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": -0.91,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -0.09,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -0.05,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 0.02,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Drama": 107,
+            "Comedy": 67,
+            "Action": 67
+          },
+          "top_decades": {
+            "2010": 93,
+            "2000": 78
+          }
+        },
+        "5": {
+          "count": 24,
+          "pct": 2.2,
+          "top_features": [
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 3.79,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 1.94,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 1.7,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -0.46,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 12,
+            "Drama": 6,
+            "Crime": 2
+          },
+          "top_decades": {
+            "2010": 9,
+            "1980": 5
+          }
+        },
+        "6": {
+          "count": 106,
+          "pct": 9.8,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -1.8,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -0.98,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": -0.37,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -0.08,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 61,
+            "Drama": 12,
+            "Adventure": 9
+          },
+          "top_decades": {
+            "2010": 45,
+            "2000": 33
+          }
+        },
+        "7": {
+          "count": 160,
+          "pct": 14.8,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -0.95,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 0.74,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -0.32,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": -0.11,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 80,
+            "Adventure": 17,
+            "Crime": 16
+          },
+          "top_decades": {
+            "2000": 62,
+            "2010": 42
+          }
+        }
+      }
+    },
+    {
+      "modality": "visual",
+      "n_features": 21,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.22618003527648076,
+        "3": 0.16818804328650983,
+        "4": 0.15592527641108822,
+        "5": 0.13587064267402238,
+        "6": 0.11368204557403619,
+        "7": 0.11233044141052471,
+        "8": 0.10968893695641088
+      },
+      "stability_ari_mean": 0.9613817783458599,
+      "stability_ari_std": 0.03274407619354057,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.0432125594757274,
+        "null_p95": 0.00915742236351882,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.011807705068263369,
+        "null_p95": 0.006678622211574463,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 445,
+          "pct": 41.1,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": -0.82,
+              "direction": "low"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": -0.8,
+              "direction": "low"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": -0.8,
+              "direction": "low"
+            },
+            {
+              "feature": "c_night_mean",
+              "mean_z": -0.75,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 143,
+            "Action": 95,
+            "Drama": 89
+          },
+          "top_decades": {
+            "2010": 153,
+            "2000": 144
+          }
+        },
+        "1": {
+          "count": 637,
+          "pct": 58.9,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": 0.57,
+              "direction": "high"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": 0.56,
+              "direction": "high"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": 0.56,
+              "direction": "high"
+            },
+            {
+              "feature": "c_night_mean",
+              "mean_z": 0.53,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 200,
+            "Drama": 154,
+            "Crime": 73
+          },
+          "top_decades": {
+            "2000": 178,
+            "2010": 178
+          }
+        }
+      }
+    },
+    {
+      "modality": "speech",
+      "n_features": 4,
+      "best_k": 5,
+      "silhouette": {
+        "2": 0.27376981801201966,
+        "3": 0.283510284922178,
+        "4": 0.2926046016821603,
+        "5": 0.3042966494794579,
+        "6": 0.2897961501721012,
+        "7": 0.29630505302974214,
+        "8": 0.3005298729261496
+      },
+      "stability_ari_mean": 0.9515965825357837,
+      "stability_ari_std": 0.0641402724225295,
+      "hdbscan_n_clusters": 2,
+      "hdbscan_noise_frac": 0.6367837338262476,
+      "hdbscan_ari_vs_km": 0.18586807532532088,
+      "genre": {
+        "nmi": 0.043982390164234705,
+        "null_p95": 0.017752259085806257,
+        "p": 0.0
+      },
+      "decade": {
+        "nmi": 0.03071963250446163,
+        "null_p95": 0.012426096260425403,
+        "p": 0.0
+      },
+      "profiles": {
+        "0": {
+          "count": 281,
+          "pct": 26.0,
+          "top_features": [
+            {
+              "feature": "lines_found",
+              "mean_z": -0.91,
+              "direction": "low"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.72,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": 0.48,
+              "direction": "high"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.06,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 73,
+            "Drama": 60,
+            "Action": 53
+          },
+          "top_decades": {
+            "2010": 75,
+            "2000": 68
+          }
+        },
+        "1": {
+          "count": 145,
+          "pct": 13.4,
+          "top_features": [
+            {
+              "feature": "sync_rate",
+              "mean_z": 1.54,
+              "direction": "high"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": 0.39,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": -0.14,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.13,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 40,
+            "Comedy": 40,
+            "Drama": 28
+          },
+          "top_decades": {
+            "2000": 40,
+            "2010": 34
+          }
+        },
+        "2": {
+          "count": 207,
+          "pct": 19.1,
+          "top_features": [
+            {
+              "feature": "sync_rate",
+              "mean_z": -1.38,
+              "direction": "low"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": 0.69,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.48,
+              "direction": "low"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": -0.34,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 86,
+            "Drama": 41,
+            "Adventure": 19
+          },
+          "top_decades": {
+            "2000": 79,
+            "2010": 75
+          }
+        },
+        "3": {
+          "count": 194,
+          "pct": 17.9,
+          "top_features": [
+            {
+              "feature": "speech_share",
+              "mean_z": -1.33,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -1.18,
+              "direction": "low"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": -0.97,
+              "direction": "low"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.1,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Drama": 66,
+            "Action": 58,
+            "Comedy": 25
+          },
+          "top_decades": {
+            "2010": 69,
+            "2000": 50
+          }
+        },
+        "4": {
+          "count": 255,
+          "pct": 23.6,
+          "top_features": [
+            {
+              "feature": "lines_found",
+              "mean_z": 0.96,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": 0.83,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.56,
+              "direction": "high"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.1,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 59,
+            "Action": 58,
+            "Drama": 48
+          },
+          "top_decades": {
+            "2000": 85,
+            "2010": 78
+          }
+        }
+      }
     }
-  },
-  {
-    "modality": "pacing",
-    "n_features": 10,
-    "best_k": 2,
-    "silhouette": {
-      "2": 0.31151300618955297,
-      "3": 0.18412712581646967,
-      "4": 0.19207292924515676,
-      "5": 0.17070457392906557,
-      "6": 0.17111584945109093,
-      "7": 0.17303798354266778,
-      "8": 0.17108820547584802
+  ],
+  "residual": [
+    {
+      "modality": "all",
+      "n_features": 56,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.10369606831161933,
+        "3": 0.08590659697634916,
+        "4": 0.05063224499995593,
+        "5": 0.04488915110095744,
+        "6": 0.044333282124018374,
+        "7": 0.04231037620961474,
+        "8": 0.03887963860555431
+      },
+      "stability_ari_mean": 0.9324143713136651,
+      "stability_ari_std": 0.036310118477519165,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.0028900079292780833,
+        "null_p95": 0.009193939763942827,
+        "p": 0.99
+      },
+      "decade": {
+        "nmi": 0.002468447345349458,
+        "null_p95": 0.0061037040124162474,
+        "p": 0.795
+      },
+      "profiles": {
+        "0": {
+          "count": 630,
+          "pct": 58.2,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": 0.54,
+              "direction": "high"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": 0.49,
+              "direction": "high"
+            },
+            {
+              "feature": "c_blood_mean",
+              "mean_z": 0.48,
+              "direction": "high"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": 0.46,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 164,
+            "Drama": 141,
+            "Comedy": 120
+          },
+          "top_decades": {
+            "2010": 191,
+            "2000": 186
+          }
+        },
+        "1": {
+          "count": 452,
+          "pct": 41.8,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": -0.75,
+              "direction": "low"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": -0.68,
+              "direction": "low"
+            },
+            {
+              "feature": "c_blood_mean",
+              "mean_z": -0.67,
+              "direction": "low"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": -0.65,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 131,
+            "Drama": 102,
+            "Comedy": 86
+          },
+          "top_decades": {
+            "2010": 140,
+            "2000": 136
+          }
+        }
+      }
     },
-    "stability_ari_mean": 0.919807297574594,
-    "stability_ari_std": 0.13564958283481104,
-    "hdbscan_n_clusters": 0,
-    "hdbscan_noise_frac": 1.0,
-    "genre": {
-      "nmi": 0.019653619108358722,
-      "null_p95": 0.025796617008367353,
-      "p": 0.16
+    {
+      "modality": "pacing",
+      "n_features": 10,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.25320172114501377,
+        "3": 0.17194471880811524,
+        "4": 0.17538170173306844,
+        "5": 0.1516476691760729,
+        "6": 0.14248679791444585,
+        "7": 0.1431401179610082,
+        "8": 0.14021573080483576
+      },
+      "stability_ari_mean": 0.961149910328554,
+      "stability_ari_std": 0.03371736894482734,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.004852868568986189,
+        "null_p95": 0.00921690223108895,
+        "p": 0.73
+      },
+      "decade": {
+        "nmi": 0.005965232087191908,
+        "null_p95": 0.005699514316687633,
+        "p": 0.04
+      },
+      "profiles": {
+        "0": {
+          "count": 600,
+          "pct": 55.5,
+          "top_features": [
+            {
+              "feature": "cuts_per_min",
+              "mean_z": 0.55,
+              "direction": "high"
+            },
+            {
+              "feature": "n_shots",
+              "mean_z": 0.49,
+              "direction": "high"
+            },
+            {
+              "feature": "pace_q1",
+              "mean_z": 0.48,
+              "direction": "high"
+            },
+            {
+              "feature": "pace_q2",
+              "mean_z": 0.47,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 170,
+            "Drama": 144,
+            "Comedy": 109
+          },
+          "top_decades": {
+            "2000": 189,
+            "2010": 188
+          }
+        },
+        "1": {
+          "count": 482,
+          "pct": 44.5,
+          "top_features": [
+            {
+              "feature": "cuts_per_min",
+              "mean_z": -0.68,
+              "direction": "low"
+            },
+            {
+              "feature": "n_shots",
+              "mean_z": -0.62,
+              "direction": "low"
+            },
+            {
+              "feature": "pace_q1",
+              "mean_z": -0.59,
+              "direction": "low"
+            },
+            {
+              "feature": "pace_q2",
+              "mean_z": -0.58,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 125,
+            "Drama": 99,
+            "Comedy": 97
+          },
+          "top_decades": {
+            "2010": 143,
+            "2000": 133
+          }
+        }
+      }
     },
-    "decade": {
-      "nmi": 0.07908608268036416,
-      "null_p95": 0.021404127349361243,
-      "p": 0.0
+    {
+      "modality": "audio",
+      "n_features": 9,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.2476224401893664,
+        "3": 0.23177974883456057,
+        "4": 0.2176236427481471,
+        "5": 0.17981400037466871,
+        "6": 0.1689119553547313,
+        "7": 0.16677100710686274,
+        "8": 0.14794980537384822
+      },
+      "stability_ari_mean": 0.9529943659522321,
+      "stability_ari_std": 0.03897491843423882,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.004241969431952023,
+        "null_p95": 0.008481349632216596,
+        "p": 0.84
+      },
+      "decade": {
+        "nmi": 0.0035442697108537275,
+        "null_p95": 0.007217807541318032,
+        "p": 0.495
+      },
+      "profiles": {
+        "0": {
+          "count": 613,
+          "pct": 56.7,
+          "top_features": [
+            {
+              "feature": "rms_mean_db",
+              "mean_z": 0.65,
+              "direction": "high"
+            },
+            {
+              "feature": "quiet_frac",
+              "mean_z": -0.54,
+              "direction": "low"
+            },
+            {
+              "feature": "rms_dynamic_range",
+              "mean_z": -0.53,
+              "direction": "low"
+            },
+            {
+              "feature": "rms_q1",
+              "mean_z": 0.5,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 166,
+            "Drama": 143,
+            "Comedy": 121
+          },
+          "top_decades": {
+            "2010": 185,
+            "2000": 174
+          }
+        },
+        "1": {
+          "count": 469,
+          "pct": 43.3,
+          "top_features": [
+            {
+              "feature": "rms_mean_db",
+              "mean_z": -0.85,
+              "direction": "low"
+            },
+            {
+              "feature": "quiet_frac",
+              "mean_z": 0.71,
+              "direction": "high"
+            },
+            {
+              "feature": "rms_dynamic_range",
+              "mean_z": 0.7,
+              "direction": "high"
+            },
+            {
+              "feature": "rms_q1",
+              "mean_z": -0.66,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 129,
+            "Drama": 100,
+            "Comedy": 85
+          },
+          "top_decades": {
+            "2000": 148,
+            "2010": 146
+          }
+        }
+      }
+    },
+    {
+      "modality": "story",
+      "n_features": 8,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.22016508710049004,
+        "3": 0.15658457674578757,
+        "4": 0.15224688803220346,
+        "5": 0.15254817991093556,
+        "6": 0.15312124305642982,
+        "7": 0.14067878122608565,
+        "8": 0.1400617092890665
+      },
+      "stability_ari_mean": 0.9435384974122701,
+      "stability_ari_std": 0.042360342486415306,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.00371515188283354,
+        "null_p95": 0.008690279919515197,
+        "p": 0.895
+      },
+      "decade": {
+        "nmi": 0.0018763376444299765,
+        "null_p95": 0.006388708150881557,
+        "p": 0.955
+      },
+      "profiles": {
+        "0": {
+          "count": 540,
+          "pct": 49.9,
+          "top_features": [
+            {
+              "feature": "story_mean",
+              "mean_z": 0.7,
+              "direction": "high"
+            },
+            {
+              "feature": "story_median",
+              "mean_z": 0.67,
+              "direction": "high"
+            },
+            {
+              "feature": "first_act_share",
+              "mean_z": -0.59,
+              "direction": "low"
+            },
+            {
+              "feature": "final_act_share",
+              "mean_z": 0.57,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 149,
+            "Drama": 116,
+            "Comedy": 102
+          },
+          "top_decades": {
+            "2010": 166,
+            "2000": 161
+          }
+        },
+        "1": {
+          "count": 542,
+          "pct": 50.1,
+          "top_features": [
+            {
+              "feature": "story_mean",
+              "mean_z": -0.7,
+              "direction": "low"
+            },
+            {
+              "feature": "story_median",
+              "mean_z": -0.67,
+              "direction": "low"
+            },
+            {
+              "feature": "first_act_share",
+              "mean_z": 0.59,
+              "direction": "high"
+            },
+            {
+              "feature": "final_act_share",
+              "mean_z": -0.57,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 146,
+            "Drama": 127,
+            "Comedy": 104
+          },
+          "top_decades": {
+            "2010": 165,
+            "2000": 161
+          }
+        }
+      }
+    },
+    {
+      "modality": "dialogue",
+      "n_features": 4,
+      "best_k": 5,
+      "silhouette": {
+        "2": 0.32067380234346643,
+        "3": 0.3207868464437045,
+        "4": 0.31840041695995447,
+        "5": 0.33111532405853894,
+        "6": 0.3307372829920085,
+        "7": 0.26993908501948244,
+        "8": 0.2898921818734859
+      },
+      "stability_ari_mean": 0.7137091750758955,
+      "stability_ari_std": 0.20325449901941584,
+      "hdbscan_n_clusters": 2,
+      "hdbscan_noise_frac": 0.8151571164510166,
+      "hdbscan_ari_vs_km": -0.09586395445144011,
+      "genre": {
+        "nmi": 0.017804936140162878,
+        "null_p95": 0.019159911593445697,
+        "p": 0.125
+      },
+      "decade": {
+        "nmi": 0.009467909652214898,
+        "null_p95": 0.013605100479175328,
+        "p": 0.55
+      },
+      "profiles": {
+        "0": {
+          "count": 145,
+          "pct": 13.4,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -1.4,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -1.13,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 0.38,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": -0.06,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 56,
+            "Drama": 27,
+            "Comedy": 18
+          },
+          "top_decades": {
+            "2010": 56,
+            "2000": 42
+          }
+        },
+        "1": {
+          "count": 519,
+          "pct": 48.0,
+          "top_features": [
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": -0.57,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -0.21,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": -0.14,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 0.02,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Drama": 139,
+            "Action": 119,
+            "Comedy": 107
+          },
+          "top_decades": {
+            "2010": 155,
+            "2000": 151
+          }
+        },
+        "2": {
+          "count": 168,
+          "pct": 15.5,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 1.18,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 1.0,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 0.67,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -0.03,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 52,
+            "Drama": 33,
+            "Comedy": 29
+          },
+          "top_decades": {
+            "2010": 56,
+            "2000": 50
+          }
+        },
+        "3": {
+          "count": 99,
+          "pct": 9.1,
+          "top_features": [
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": 1.83,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": -1.58,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 0.39,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.12,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 33,
+            "Drama": 15,
+            "Comedy": 15
+          },
+          "top_decades": {
+            "2000": 30,
+            "2010": 27
+          }
+        },
+        "4": {
+          "count": 151,
+          "pct": 14.0,
+          "top_features": [
+            {
+              "feature": "dlg_sentiment_mean",
+              "mean_z": 1.41,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_neg_share",
+              "mean_z": -0.91,
+              "direction": "low"
+            },
+            {
+              "feature": "dlg_words_per_shot",
+              "mean_z": 0.82,
+              "direction": "high"
+            },
+            {
+              "feature": "dlg_sentiment_std",
+              "mean_z": 0.26,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 37,
+            "Action": 35,
+            "Drama": 29
+          },
+          "top_decades": {
+            "2000": 49,
+            "2010": 37
+          }
+        }
+      }
+    },
+    {
+      "modality": "visual",
+      "n_features": 21,
+      "best_k": 2,
+      "silhouette": {
+        "2": 0.23239455835299164,
+        "3": 0.14044868424578927,
+        "4": 0.1337600566352929,
+        "5": 0.11158117307282424,
+        "6": 0.11063923184437824,
+        "7": 0.10907254038383125,
+        "8": 0.09796032054904004
+      },
+      "stability_ari_mean": 0.9693116119667191,
+      "stability_ari_std": 0.04879804979838202,
+      "hdbscan_n_clusters": 0,
+      "hdbscan_noise_frac": 1.0,
+      "hdbscan_ari_vs_km": 0.0,
+      "genre": {
+        "nmi": 0.0024960451837130956,
+        "null_p95": 0.00933272291470096,
+        "p": 0.995
+      },
+      "decade": {
+        "nmi": 0.0020589069564462964,
+        "null_p95": 0.006724131898617527,
+        "p": 0.9
+      },
+      "profiles": {
+        "0": {
+          "count": 444,
+          "pct": 41.0,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": -0.76,
+              "direction": "low"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": -0.68,
+              "direction": "low"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": -0.67,
+              "direction": "low"
+            },
+            {
+              "feature": "c_blood_mean",
+              "mean_z": -0.66,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 124,
+            "Drama": 103,
+            "Comedy": 83
+          },
+          "top_decades": {
+            "2010": 137,
+            "2000": 134
+          }
+        },
+        "1": {
+          "count": 638,
+          "pct": 59.0,
+          "top_features": [
+            {
+              "feature": "c_running_mean",
+              "mean_z": 0.53,
+              "direction": "high"
+            },
+            {
+              "feature": "c_gun_mean",
+              "mean_z": 0.47,
+              "direction": "high"
+            },
+            {
+              "feature": "c_scream_mean",
+              "mean_z": 0.47,
+              "direction": "high"
+            },
+            {
+              "feature": "c_blood_mean",
+              "mean_z": 0.46,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 171,
+            "Drama": 140,
+            "Comedy": 123
+          },
+          "top_decades": {
+            "2010": 194,
+            "2000": 188
+          }
+        }
+      }
+    },
+    {
+      "modality": "speech",
+      "n_features": 4,
+      "best_k": 8,
+      "silhouette": {
+        "2": 0.26923307569531896,
+        "3": 0.2660601395456176,
+        "4": 0.2766880475367785,
+        "5": 0.2752934202668332,
+        "6": 0.2718279829019057,
+        "7": 0.2810911530922472,
+        "8": 0.28135153435241594
+      },
+      "stability_ari_mean": 0.8075289589669614,
+      "stability_ari_std": 0.09375943972433529,
+      "hdbscan_n_clusters": 2,
+      "hdbscan_noise_frac": 0.7014787430683919,
+      "hdbscan_ari_vs_km": 0.05249992527866945,
+      "genre": {
+        "nmi": 0.024001119607869662,
+        "null_p95": 0.025346041350033554,
+        "p": 0.125
+      },
+      "decade": {
+        "nmi": 0.019503173015155556,
+        "null_p95": 0.017732202697292653,
+        "p": 0.005
+      },
+      "profiles": {
+        "0": {
+          "count": 102,
+          "pct": 9.4,
+          "top_features": [
+            {
+              "feature": "speech_share",
+              "mean_z": -1.84,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -1.52,
+              "direction": "low"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": -0.95,
+              "direction": "low"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.08,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Drama": 32,
+            "Action": 23,
+            "Comedy": 21
+          },
+          "top_decades": {
+            "2000": 26,
+            "2010": 26
+          }
+        },
+        "1": {
+          "count": 211,
+          "pct": 19.5,
+          "top_features": [
+            {
+              "feature": "lines_found",
+              "mean_z": -0.97,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.4,
+              "direction": "low"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.07,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": -0.02,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Drama": 56,
+            "Action": 51,
+            "Comedy": 41
+          },
+          "top_decades": {
+            "2010": 70,
+            "2000": 53
+          }
+        },
+        "2": {
+          "count": 193,
+          "pct": 17.8,
+          "top_features": [
+            {
+              "feature": "lines_found",
+              "mean_z": 0.98,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": 0.83,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.56,
+              "direction": "high"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.32,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 52,
+            "Drama": 47,
+            "Comedy": 33
+          },
+          "top_decades": {
+            "2010": 66,
+            "2000": 55
+          }
+        },
+        "3": {
+          "count": 162,
+          "pct": 15.0,
+          "top_features": [
+            {
+              "feature": "words_per_min",
+              "mean_z": 1.0,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.94,
+              "direction": "high"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": -0.76,
+              "direction": "low"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.1,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 38,
+            "Drama": 36,
+            "Comedy": 32
+          },
+          "top_decades": {
+            "2010": 49,
+            "2000": 48
+          }
+        },
+        "4": {
+          "count": 114,
+          "pct": 10.5,
+          "top_features": [
+            {
+              "feature": "sync_rate",
+              "mean_z": -1.46,
+              "direction": "low"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.5,
+              "direction": "high"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": 0.4,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": 0.13,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 40,
+            "Drama": 25,
+            "Comedy": 17
+          },
+          "top_decades": {
+            "2000": 41,
+            "2010": 29
+          }
+        },
+        "5": {
+          "count": 77,
+          "pct": 7.1,
+          "top_features": [
+            {
+              "feature": "sync_rate",
+              "mean_z": -1.51,
+              "direction": "low"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": -0.81,
+              "direction": "low"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": 0.73,
+              "direction": "high"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.69,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Action": 28,
+            "Drama": 13,
+            "Adventure": 10
+          },
+          "top_decades": {
+            "2010": 31,
+            "2000": 28
+          }
+        },
+        "6": {
+          "count": 144,
+          "pct": 13.3,
+          "top_features": [
+            {
+              "feature": "lines_found",
+              "mean_z": 0.96,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": -0.49,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.28,
+              "direction": "low"
+            },
+            {
+              "feature": "sync_rate",
+              "mean_z": 0.24,
+              "direction": "high"
+            }
+          ],
+          "top_genres": {
+            "Action": 42,
+            "Comedy": 29,
+            "Drama": 21
+          },
+          "top_decades": {
+            "2000": 47,
+            "2010": 40
+          }
+        },
+        "7": {
+          "count": 79,
+          "pct": 7.3,
+          "top_features": [
+            {
+              "feature": "sync_rate",
+              "mean_z": 1.86,
+              "direction": "high"
+            },
+            {
+              "feature": "speech_share",
+              "mean_z": 0.08,
+              "direction": "high"
+            },
+            {
+              "feature": "lines_found",
+              "mean_z": -0.06,
+              "direction": "low"
+            },
+            {
+              "feature": "words_per_min",
+              "mean_z": -0.06,
+              "direction": "low"
+            }
+          ],
+          "top_genres": {
+            "Comedy": 24,
+            "Action": 21,
+            "Drama": 13
+          },
+          "top_decades": {
+            "2000": 24,
+            "2010": 20
+          }
+        }
+      }
     }
-  },
-  {
-    "modality": "audio",
-    "n_features": 9,
-    "best_k": 2,
-    "silhouette": {
-      "2": 0.26017647978220637,
-      "3": 0.1857026608926988,
-      "4": 0.21007743284151,
-      "5": 0.17479294945610982,
-      "6": 0.17341231110419777,
-      "7": 0.15663677773342297,
-      "8": 0.152636066592974
-    },
-    "stability_ari_mean": 0.9201026772991152,
-    "stability_ari_std": 0.09415294828951383,
-    "hdbscan_n_clusters": 0,
-    "hdbscan_noise_frac": 1.0,
-    "genre": {
-      "nmi": 0.017027848926861884,
-      "null_p95": 0.025426574248885156,
-      "p": 0.175
-    },
-    "decade": {
-      "nmi": 0.013181559636965469,
-      "null_p95": 0.021690784589863538,
-      "p": 0.29
-    }
-  },
-  {
-    "modality": "story",
-    "n_features": 8,
-    "best_k": 3,
-    "silhouette": {
-      "2": 0.2415220107895931,
-      "3": 0.24322480242331454,
-      "4": 0.19630154060474997,
-      "5": 0.17254959128438316,
-      "6": 0.17712289206305193,
-      "7": 0.18410825873559009,
-      "8": 0.16619377493979828
-    },
-    "stability_ari_mean": 0.9086768785218317,
-    "stability_ari_std": 0.11997074795440878,
-    "hdbscan_n_clusters": 0,
-    "hdbscan_noise_frac": 1.0,
-    "genre": {
-      "nmi": 0.04341195103155483,
-      "null_p95": 0.032845252297010255,
-      "p": 0.0
-    },
-    "decade": {
-      "nmi": 0.04102233019477835,
-      "null_p95": 0.033317037978442154,
-      "p": 0.005
-    }
-  },
-  {
-    "modality": "dialogue",
-    "n_features": 4,
-    "best_k": 3,
-    "silhouette": {
-      "2": 0.26584275092976184,
-      "3": 0.2825442087498249,
-      "4": 0.23809190495228047,
-      "5": 0.2634692228741756,
-      "6": 0.262436793644114,
-      "7": 0.2550249286629156,
-      "8": 0.24583903756664424
-    },
-    "stability_ari_mean": 0.886102837174094,
-    "stability_ari_std": 0.07248675591638414,
-    "hdbscan_n_clusters": 2,
-    "hdbscan_noise_frac": 0.6450511945392492,
-    "genre": {
-      "nmi": 0.10348582498092115,
-      "null_p95": 0.033031831919980444,
-      "p": 0.0
-    },
-    "decade": {
-      "nmi": 0.022850680878547008,
-      "null_p95": 0.031925520450091956,
-      "p": 0.285
-    }
-  },
-  {
-    "modality": "visual",
-    "n_features": 21,
-    "best_k": 2,
-    "silhouette": {
-      "2": 0.23180190125573027,
-      "3": 0.14628974955026913,
-      "4": 0.1447756854468843,
-      "5": 0.12902839500765703,
-      "6": 0.135580342970856,
-      "7": 0.13143987878393848,
-      "8": 0.1271802853808624
-    },
-    "stability_ari_mean": 0.9391573976482911,
-    "stability_ari_std": 0.07035935021180732,
-    "hdbscan_n_clusters": 0,
-    "hdbscan_noise_frac": 1.0,
-    "genre": {
-      "nmi": 0.051364099407466855,
-      "null_p95": 0.02373873973103713,
-      "p": 0.0
-    },
-    "decade": {
-      "nmi": 0.02408481930665869,
-      "null_p95": 0.02148368529127598,
-      "p": 0.035
-    }
-  },
-  {
-    "modality": "speech",
-    "n_features": 4,
-    "best_k": 8,
-    "silhouette": {
-      "2": 0.27417086709182587,
-      "3": 0.2740151527589794,
-      "4": 0.2898497587004391,
-      "5": 0.2789922786879786,
-      "6": 0.2814097073679119,
-      "7": 0.27971025863750626,
-      "8": 0.2906575569320558
-    },
-    "stability_ari_mean": 0.7879641694235392,
-    "stability_ari_std": 0.10643926471688021,
-    "hdbscan_n_clusters": 2,
-    "hdbscan_noise_frac": 0.447098976109215,
-    "genre": {
-      "nmi": 0.0722279085961616,
-      "null_p95": 0.06944551615161135,
-      "p": 0.02
-    },
-    "decade": {
-      "nmi": 0.07853136596694442,
-      "null_p95": 0.060715911948232705,
-      "p": 0.0
-    }
-  }
-]
+  ]
+}

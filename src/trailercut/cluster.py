@@ -92,6 +92,10 @@ def analyze(df, cols, name):
     hdb = HDBSCAN(min_cluster_size=max(5, len(X) // 30)).fit_predict(X)
     stab = stability(X, k)
 
+    hdb_n = int(hdb.max() + 1)
+    hdb_noise = float((hdb < 0).mean())
+    hdb_ari_vs_km = float(adjusted_rand_score(labels, hdb)) if hdb_n > 0 else 0.0
+
     return labels, dict(
         modality=name,
         n_features=X.shape[1],
@@ -99,16 +103,26 @@ def analyze(df, cols, name):
         silhouette=sil,
         stability_ari_mean=stab[0],
         stability_ari_std=stab[1],
-        hdbscan_n_clusters=int(hdb.max() + 1),
-        hdbscan_noise_frac=float((hdb < 0).mean()),
+        hdbscan_n_clusters=hdb_n,
+        hdbscan_noise_frac=hdb_noise,
+        hdbscan_ari_vs_km=hdb_ari_vs_km,
         genre=association(labels, df.primary_genre),
         decade=association(labels, df.decade),
     )
 
 def residualize_features(X, meta_df, alpha=1.0):
-    # One-hot encode confounds (drop first to prevent perfect multicollinearity)
-    encoder = OneHotEncoder(sparse_output=False, drop="first", handle_unknown="ignore")
-    confounds = encoder.fit_transform(meta_df[["primary_genre", "decade"]])
+    meta = meta_df[["primary_genre", "decade"]].copy()
+
+    meta["primary_genre"] = meta["primary_genre"].fillna("unknown").astype(str)
+    meta["decade"] = meta["decade"].astype("string").fillna("unknown")
+
+    encoder = OneHotEncoder(
+        sparse_output=False,
+        drop="first",
+        handle_unknown="ignore"
+    )
+
+    confounds = encoder.fit_transform(meta)
 
     # Fit Ridge regression model to predict feature matrix X from confounds
     model = Ridge(alpha=alpha)
@@ -139,12 +153,70 @@ def plot(df, X, labels, path, title):
     # plt.close(fig)
     return xy
 
+def cluster_profiles(df, X_std, feature_names, labels, top_n=4):
+    profiles = {}
+    unique_labels = sorted(int(c) for c in np.unique(labels))
+
+    for cid in unique_labels:
+        mask = labels == cid
+        n_members = int(mask.sum())
+        sub_df = df.loc[mask]
+
+        # Since X_std is standardized across all rows, column mean == z-score vs. dataset
+        mean_z = X_std[mask].mean(axis=0)
+        order = np.argsort(np.abs(mean_z))[::-1]
+
+        top_features = [
+            {
+                "feature": feature_names[idx],
+                "mean_z": round(float(mean_z[idx]), 2),
+                "direction": "high" if mean_z[idx] >= 0 else "low",
+            }
+            for idx in order[:top_n]
+        ]
+
+        top_genres = (
+            sub_df["primary_genre"]
+            .replace({"": np.nan, "nan": np.nan, "None": np.nan})
+            .dropna()
+            .value_counts()
+            .head(3)
+            .to_dict()
+        )
+
+        top_decades = (
+            sub_df["decade"]
+            .dropna()
+            .astype(str)
+            .value_counts()
+            .head(2)
+            .to_dict()
+        )
+
+        profiles[cid] = {
+            "count": n_members,
+            "pct": round(100.0 * n_members / len(df), 1),
+            "top_features": top_features,
+            "top_genres": top_genres,
+            "top_decades": top_decades,
+        }
+
+    return profiles
+
+def print_cluster_profiles(name, space_label, profiles):
+    print(f"--- Profiles: {name} ({space_label}) ---")
+    for cid, p in profiles.items():
+        feat_str = ", ".join(
+            f"{f['feature']} ({f['mean_z']:+.2f}σ)" for f in p["top_features"]
+        )
+        print(f"  C{cid} [n={p['count']}, {p['pct']}%]: {feat_str}")
+
 
 def main():
     df = pd.read_parquet(FEATURES / "trailers.parquet")
 
     # Standardize column types
-    df["decade"] = pd.to_numeric(df["decade"], errors="coerce").astype("int64")
+    df["decade"] = pd.to_numeric(df["decade"], errors="coerce").astype("Int64")
     df["primary_genre"] = df["primary_genre"].astype(str)
 
     report_baseline = []
@@ -156,43 +228,72 @@ def main():
     status_df = pd.read_csv(IDS.parent / "trailer_status.csv")[["imdb_id", "youtube_id"]]
 
     # Include youtube_id when creating the export dataframe
-    out = df[["imdb_id", "title", "year", "primary_genre"]].merge(status_df, on="imdb_id", how="left")
+    # out = df[["imdb_id", "title", "year", "primary_genre"]].merge(status_df, on="imdb_id", how="left")
+    out = df.merge(status_df, on="imdb_id", how="left")
 
     print("=== RUNNING BASELINE CLUSTERING ===")
     for name, cols in [("all", all_cols), *GROUPS.items()]:
+        X_base = prep(df, cols)
         labels, r = analyze(df, cols, name)
         out[f"cluster_{name}"] = labels
+        r["profiles"] = cluster_profiles(df, X_base, cols, labels)
         report_baseline.append(r)
-        print(f"{name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
-              f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} (null95 {r['genre']['null_p95']:.3f}) "
-              f"decadeNMI={r['decade']['nmi']:.3f} (null95 {r['decade']['null_p95']:.3f})")
+        print_cluster_profiles(name, "base", r["profiles"])
+
+        # labels, r = analyze(df, cols, name)
+        # out[f"cluster_{name}"] = labels
+        # report_baseline.append(r)
+        # # print(f"{name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
+        # #       f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} (null95 {r['genre']['null_p95']:.3f}) "
+        # #       f"decadeNMI={r['decade']['nmi']:.3f} (null95 {r['decade']['null_p95']:.3f})")
+        # print(f"{name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
+        #       f"stab={r['stability_ari_mean']:.2f} hdb_k={r['hdbscan_n_clusters']} "
+        #       f"hdb_noise={r['hdbscan_noise_frac']:.2f} hdb_ari={r['hdbscan_ari_vs_km']:.2f} "
+        #       f"genreNMI={r['genre']['nmi']:.3f} decadeNMI={r['decade']['nmi']:.3f}")
 
     print("\n=== RUNNING RESIDUAL CLUSTERING ===")
     for name, cols in [("all", all_cols), *GROUPS.items()]:
-        # Residualized prep: prep features first, then subtract genre/decade signal
         X_base = prep(df, cols)
         X_res = residualize_features(X_base, df)
 
         labels, r = analyze(df, X_res, name)
         out[f"cluster_res_{name}"] = labels
+        r["profiles"] = cluster_profiles(df, X_res, cols, labels)
         report_residual.append(r)
-        print(f"[RES]  {name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
-              f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} "
-              f"decadeNMI={r['decade']['nmi']:.3f}")
+        print_cluster_profiles(name, "res", r["profiles"])
+
+        # Residualized prep: prep features first, then subtract genre/decade signal
+        # X_base = prep(df, cols)
+        # X_res = residualize_features(X_base, df)
+
+        # labels, r = analyze(df, X_res, name)
+        # out[f"cluster_res_{name}"] = labels
+        # report_residual.append(r)
+        # # print(f"[RES]  {name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
+        # #       f"stab={r['stability_ari_mean']:.2f} genreNMI={r['genre']['nmi']:.3f} "
+        # #       f"decadeNMI={r['decade']['nmi']:.3f}")
+        # print(f"{name:9s} k={r['best_k']} sil={r['silhouette'][r['best_k']]:.3f} "
+        #       f"stab={r['stability_ari_mean']:.2f} hdb_k={r['hdbscan_n_clusters']} "
+        #       f"hdb_noise={r['hdbscan_noise_frac']:.2f} hdb_ari={r['hdbscan_ari_vs_km']:.2f} "
+        #       f"genreNMI={r['genre']['nmi']:.3f} decadeNMI={r['decade']['nmi']:.3f}")
         
     xy_base = plot(df, prep(df, all_cols), out.cluster_all.values, FIGURES / "clusters_all_umap.png",
               f"Trailers (n={len(df)}), all features, k-means")
-    plt.show()
+    # plt.show()
 
     xy_res = plot(df, residualize_features(prep(df, all_cols), df), out.cluster_res_all.values, FIGURES / "clusters_all_umap_res.png",
                   f"Trailers (n={len(df)}), Residualized (All Features)")
-    plt.show()
+    # plt.show()
     
     out["umap_x_base"], out["umap_y_base"] = xy_base[:, 0], xy_base[:, 1]
     out["umap_x_res"], out["umap_y_res"] = xy_res[:, 0], xy_res[:, 1]
 
-    out.to_csv(FEATURES / "clusters.csv", index=False)
-    # (FEATURES / "cluster_report.json").write_text(json.dumps(report, indent=2))
+    # out.to_csv(FEATURES / "clusters.csv", index=False)
+    full_report = {
+        "baseline": report_baseline,
+        "residual": report_residual,
+    }
+    (FEATURES / "cluster_report.json").write_text(json.dumps(full_report, indent=2))
 
 
 if __name__ == "__main__":

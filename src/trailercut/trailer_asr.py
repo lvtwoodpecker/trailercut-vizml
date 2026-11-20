@@ -39,6 +39,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="small")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--ids", nargs="+", default=None, help="Only process these IMDb IDs")
     a = ap.parse_args()
     from faster_whisper import WhisperModel
     cuda = torch.cuda.is_available()

@@ -82,15 +82,70 @@ def film_table(imdb_id):
     return df
 
 
+
 def main():
-    ids = sorted(p.stem for p in (FEATURES / "alignment").glob("*.csv"))
-    tables = [t for t in (film_table(i) for i in tqdm(ids)) if t is not None]
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--ids",
+        nargs="+",
+        default=None,
+        help="Only process these IMDb IDs"
+    )
+    ap.add_argument(
+        "--append",
+        action="store_true",
+        help="Append new films to the existing parquet"
+    )
+    a = ap.parse_args()
+
+    if a.ids:
+        ids = sorted(set(a.ids))
+    else:
+        ids = sorted(
+            p.stem
+            for p in (FEATURES / "alignment").glob("*.csv")
+            if (CLIP / "film" / f"{p.stem}.npy").exists()
+        )
+
+    tables = []
+
+    for imdb_id in tqdm(ids):
+        if not (CLIP / "film" / f"{imdb_id}.npy").exists():
+            print(f"Skipping {imdb_id}: missing CLIP embeddings")
+            continue
+
+        try:
+            t = film_table(imdb_id)
+            if t is not None:
+                tables.append(t)
+        except Exception as e:
+            print(f"FAILED {imdb_id}: {e}")
+
+    if not tables:
+        print("No film features generated.")
+        return
+
     df = pd.concat(tables, ignore_index=True)
+
     for c in df.select_dtypes("float64"):
         df[c] = df[c].astype("float32")
-    df.to_parquet(FEATURES / "film_shots.parquet", index=False)
-    print(df.shape, "positive rate", round(df.in_trailer.mean(), 4))
 
+    out = FEATURES / "film_shots.parquet"
+
+    if a.append and out.exists():
+        old = pd.read_parquet(out)
+        old = old[~old.imdb_id.isin(df.imdb_id)]
+        df = pd.concat([old, df], ignore_index=True)
+
+    df.to_parquet(out, index=False)
+
+    print(
+        df.shape,
+        "films:", df.imdb_id.nunique(),
+        "positive rate:", round(df.in_trailer.mean(), 4)
+    )
 
 if __name__ == "__main__":
     main()
