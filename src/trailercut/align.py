@@ -148,28 +148,134 @@ def align_one(imdb_id, threshold):
     df["top5_scores"] = [" ".join(f"{v:.3f}" for v in r) for r in top.values.numpy()]
     return df
 
+def get_saved_threshold():
+    """Reuse the calibrated threshold for on-demand alignment."""
+
+    eval_path = FEATURES / "alignment_eval.json"
+    threshold_path = FEATURES / "alignment_threshold.json"
+
+    # Prefer the threshold selected using hand-labelled examples.
+    if eval_path.exists():
+        result = json.loads(eval_path.read_text())
+        return float(result["best_f1"]["threshold"])
+
+    # Otherwise reuse the previously calculated impostor threshold.
+    if threshold_path.exists():
+        result = json.loads(threshold_path.read_text())
+        return float(result["threshold"])
+
+    raise RuntimeError(
+        "No saved alignment threshold. Run the full alignment "
+        "calibration once before using on-demand alignment."
+    )
+
+def calibrated_threshold():
+    """Reuse the threshold established by the research pipeline."""
+
+    evaluation = FEATURES / "alignment_eval.json"
+    threshold_file = FEATURES / "alignment_threshold.json"
+
+    # Prefer the hand-label optimised threshold.
+    if evaluation.exists():
+        data = json.loads(evaluation.read_text())
+        return float(data["best_f1"]["threshold"])
+
+    # Otherwise reuse the existing impostor calibration.
+    if threshold_file.exists():
+        data = json.loads(threshold_file.read_text())
+        return float(data["threshold"])
+
+    raise RuntimeError(
+        "No saved alignment threshold found. "
+        "Run the original batch alignment/calibration once first."
+    )
+
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fpr", type=float, default=0.05)
     ap.add_argument("--threshold", type=float, default=None)
+    ap.add_argument(
+        "--ids",
+        nargs="+",
+        default=None,
+        help="Only align these IMDb IDs. Reuses the saved calibration."
+    )
     a = ap.parse_args()
-    ids = available()
-    print(len(ids), "films with both trailer and film embeddings")
-    null = impostor_null(ids, np.random.default_rng(0))
-    threshold = float(np.quantile(null, 1 - a.fpr)) if a.threshold is None else a.threshold
-    meta = dict(fpr=a.fpr if a.threshold is None else float((null >= threshold).mean()), threshold=threshold,
-                source="impostor_null" if a.threshold is None else "manual", n_null=len(null),
-                # kept even when a manual cutoff is used: recover needs a cutoff that rejects other films
-                impostor_threshold=float(np.quantile(null, 1 - a.fpr)),
-                null_quantiles={q: float(np.quantile(null, q)) for q in (0.5, 0.9, 0.99, 0.999)})
-    (FEATURES / "alignment_threshold.json").write_text(json.dumps(meta, indent=2))
-    np.save(CACHE / f"alignment_null_{CLIP_TAG}.npy", null)
-    print(meta)
+
+    all_ids = available()
+
+    if a.ids:
+        ids = list(dict.fromkeys(a.ids))
+        missing = sorted(set(ids) - set(all_ids))
+
+        if missing:
+            ap.error(
+                f"Missing film/trailer embeddings for: {', '.join(missing)}"
+            )
+
+        # On-demand mode: never recalculate the global impostor distribution.
+        threshold = (
+            a.threshold
+            if a.threshold is not None
+            else calibrated_threshold()
+        )
+
+        print(f"On-demand alignment: {len(ids)} film(s)")
+        print(f"Using calibrated threshold: {threshold:.4f}")
+
+    else:
+        # Original batch mode remains available.
+        ids = all_ids
+
+        if len(ids) < 2:
+            ap.error("At least two films with embeddings are needed for calibration.")
+
+        null = impostor_null(ids, np.random.default_rng(0))
+
+        threshold = (
+            a.threshold
+            if a.threshold is not None
+            else float(np.quantile(null, 1 - a.fpr))
+        )
+
+        meta = dict(
+            fpr=a.fpr if a.threshold is None
+            else float((null >= threshold).mean()),
+            threshold=threshold,
+            source="impostor_null" if a.threshold is None else "manual",
+            n_null=len(null),
+            impostor_threshold=float(np.quantile(null, 1 - a.fpr)),
+            null_quantiles={
+                q: float(np.quantile(null, q))
+                for q in (0.5, 0.9, 0.99, 0.999)
+            }
+        )
+
+        (FEATURES / "alignment_threshold.json").write_text(
+            json.dumps(meta, indent=2)
+        )
+
+        np.save(CACHE / f"alignment_null_{CLIP_TAG}.npy", null)
+
+        print(meta)
 
     OUT.mkdir(parents=True, exist_ok=True)
+
     for imdb_id in tqdm(ids, desc="align"):
-        align_one(imdb_id, threshold).round(4).to_csv(OUT / f"{imdb_id}.csv", index=False)
+        output = OUT / f"{imdb_id}.csv"
+
+        # Reuse completed alignments in on-demand mode.
+        if a.ids and output.exists():
+            print(f"Already aligned: {imdb_id}")
+            continue
+
+        align_one(imdb_id, threshold).round(4).to_csv(
+            output,
+            index=False
+        )
+
+    print(f"Alignment complete: {len(ids)} film(s)")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ Outputs (committed; times and scores only, no dialogue text)
 """
 import json
 import re
+import argparse
 
 import numpy as np
 import pandas as pd
@@ -74,16 +75,24 @@ def align_film(imdb_id):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ids", nargs="+", default=None)
+    a = ap.parse_args()
+
     OUT.mkdir(parents=True, exist_ok=True)
-    ids = sorted(p.stem for p in ASR.glob("*.json"))
+    ids = a.ids if a.ids else sorted(p.stem for p in ASR.glob("*.json"))
     stats = []
     for i in tqdm(ids):
+        if not (ASR / f"{i}.json").exists():
+            print(f"{i}: skipped (no ASR transcript)")
+            continue
         df, lang = align_film(i)
         df.round(3).to_csv(OUT / f"{i}.csv", index=False)
         stats.append(dict(imdb_id=i, language=lang, segments=len(df), matched=int(df.matched.sum())))
-    s = pd.DataFrame(stats)
-    print(f"{len(s)} trailers, {s.segments.sum()} speech segments, {s.matched.sum()} matched to subtitles "
-          f"({s.matched.sum() / max(s.segments.sum(), 1):.0%}); trailers with any match: {(s.matched > 0).sum()}")
+    if stats:
+        s = pd.DataFrame(stats)
+        print(f"{len(s)} trailers, {s.segments.sum()} speech segments, {s.matched.sum()} matched to subtitles "
+              f"({s.matched.sum() / max(s.segments.sum(), 1):.0%}); trailers with any match: {(s.matched > 0).sum()}")
 
 
 if __name__ == "__main__":
