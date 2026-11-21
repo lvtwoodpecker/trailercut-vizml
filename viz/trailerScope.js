@@ -292,10 +292,20 @@ function parseData(data) {
         d.cluster_res_speech = +d.cluster_res_speech;
         d.cluster_res_dialogue = +d.cluster_res_dialogue;
 
-        d.umap_x_base = +d.umap_x_base;
-        d.umap_y_base = +d.umap_y_base;
-        d.umap_x_res = +d.umap_x_res;
-        d.umap_y_res = +d.umap_y_res;
+        const mods = ["all", "pacing", "audio", "story", "visual", "speech", "dialogue"];
+        for (const m of mods) {
+            for (const sp of ["base", "res"]) {
+                const kx = `umap_${sp}_${m}_x`;
+                const ky = `umap_${sp}_${m}_y`;
+                if (d[kx] !== undefined && d[kx] !== "") d[kx] = +d[kx];
+                if (d[ky] !== undefined && d[ky] !== "") d[ky] = +d[ky];
+            }
+        }
+        // Keep legacy fallbacks just in case
+        d.umap_x_base = +(d.umap_x_base ?? d.umap_base_all_x);
+        d.umap_y_base = +(d.umap_y_base ?? d.umap_base_all_y);
+        d.umap_x_res = +(d.umap_x_res ?? d.umap_res_all_x);
+        d.umap_y_res = +(d.umap_y_res ?? d.umap_res_all_y);
 
         trailerMap.set(d.imdb_id, d);
     });
@@ -327,17 +337,22 @@ function updateColorDomain() {
     const doc = modalityDocs[currentModality] || modalityDocs.all;
     const spaceLabels = doc.labels?.[currentSpace] || doc.labels || {};
     const keys = Object.keys(spaceLabels).map(Number).sort((a, b) => a - b);
-    const range = keys.map((k, idx) =>
-        idx < baseClusterColors.length ? baseClusterColors[idx] : d3.schemeTableau10[idx % 10]
-    );
+    const range = keys.length <= 2
+        ? baseClusterColors.slice(0, keys.length)
+        : d3.schemeTableau10.slice(0, keys.length);
     colorScale.domain(keys).range(range);
 }
 
-function getX(d) {
-    return currentSpace === "res" ? +d.umap_x_res : +d.umap_x_base;
+function getX(d, modality = currentModality, space = currentSpace) {
+    const col = `umap_${space}_${modality}_x`;
+    if (Number.isFinite(d[col])) return d[col];
+    return space === "res" ? d.umap_x_res : d.umap_x_base;
 }
-function getY(d) {
-    return currentSpace === "res" ? +d.umap_y_res : +d.umap_y_base;
+
+function getY(d, modality = currentModality, space = currentSpace) {
+    const col = `umap_${space}_${modality}_y`;
+    if (Number.isFinite(d[col])) return d[col];
+    return space === "res" ? d.umap_y_res : d.umap_y_base;
 }
 
 function getZoomedScales() {
@@ -350,12 +365,10 @@ function getZoomedScales() {
 // Semantic zoom: rescale coordinates without scaling circle radius like a geometric transform
 function applySemanticZoom() {
     const { zx, zy } = getZoomedScales();
-    const xKey = currentSpace === "res" ? "umap_x_res" : "umap_x_base";
-    const yKey = currentSpace === "res" ? "umap_y_res" : "umap_y_base";
 
     dotsGroup.selectAll("circle.dot")
-        .attr("cx", d => zx(d[xKey]))
-        .attr("cy", d => zy(d[yKey]));
+        .attr("cx", d => zx(getX(d)))
+        .attr("cy", d => zy(getY(d)));
 }
 
 function positionTooltip(event, svgWrapperNode) {
@@ -393,27 +406,24 @@ function positionTooltip(event, svgWrapperNode) {
 function renderPlot(animate = true) {
     updateColorDomain();
 
-    const xKey = currentSpace === "res" ? "umap_x_res" : "umap_x_base";
-    const yKey = currentSpace === "res" ? "umap_y_res" : "umap_y_base";
-
-    const xExtent = d3.extent(globalData, d => d[xKey]);
-    const yExtent = d3.extent(globalData, d => d[yKey]);
+    const xExtent = d3.extent(globalData, d => getX(d));
+    const yExtent = d3.extent(globalData, d => getY(d));
 
     baseXScale = d3.scaleLinear().domain(xExtent).range([0, width]).nice();
     baseYScale = d3.scaleLinear().domain(yExtent).range([height, 0]).nice();
 
     const { zx, zy } = getZoomedScales();
     const svgWrapperNode = d3.select(".svg-wrapper").node();
-    const t = d3.transition().duration(animate ? 450 : 0).ease(d3.easeCubicOut);
+    const t = d3.transition().duration(animate ? 500 : 0).ease(d3.easeCubicInOut);
 
     dotsGroup.selectAll("circle.dot")
         .data(globalData, d => d.imdb_id)
         .join(
             enter => enter.append("circle")
                 .attr("class", "dot")
-                .attr("cx", d => zx(d[xKey]))
-                .attr("cy", d => zy(d[yKey]))
-                .attr("r", 0)
+                .attr("cx", d => zx(getX(d)))
+                .attr("cy", d => zy(getY(d)))
+                .attr("r", 5)
                 .attr("fill", d => getDotColor(d))
                 .attr("opacity", 0.85)
                 .on("mouseover", function (event, d) {
@@ -433,15 +443,14 @@ function renderPlot(animate = true) {
                 .on("click", function (event, d) {
                     event.stopPropagation();
                     selectTrailer(d);
-                })
-                .call(sel => sel.transition(t).attr("r", 5)),
+                }),
             update => update
-                .call(sel => sel.transition(t)
-                    .attr("cx", d => zx(d[xKey]))
-                    .attr("cy", d => zy(d[yKey]))
-                    .attr("fill", d => getDotColor(d))),
-            exit => exit
-                .call(sel => sel.transition(t).attr("r", 0).remove())
+                .call(sel => sel.interrupt().transition(t)
+                    .attr("cx", d => zx(getX(d)))
+                    .attr("cy", d => zy(getY(d)))
+                    .attr("fill", d => getDotColor(d))
+                ),
+            exit => exit.remove()
         );
 
     updateSelectionHighlight();
@@ -526,11 +535,13 @@ function resetView({ resetProjection = false } = {}) {
 
     // Optional: reset modality & projection space back to defaults
     if (resetProjection) {
-        if (currentModality !== "all" || currentSpace !== "res") {
+        if (currentModality !== "all" || currentSpace !== "res" || currentColorBy !== "cluster") {
             currentModality = "all";
             currentSpace = "res";
+            currentColorBy = "cluster";
             d3.select("#modality-select").property("value", "all");
             d3.select("#space-select").property("value", "res");
+            d3.select("#color-by-select").property("value", "cluster");
             needsPlotRecompute = true;
         }
     }
@@ -648,11 +659,10 @@ function setupEventListeners() {
     d3.select("#modality-select").on("change", function () {
         currentModality = this.value;
         activeLegendKey = null;
+        currentTransform = d3.zoomIdentity;
+        zoomSurface.property("__zoom", d3.zoomIdentity);
 
-        updateColorDomain();
-        updateLegendAndDocs();
         renderPlot(true);
-        applyFilters();
         syncClusterProfile();
 
         if (selectedImdbId !== null && trailerMap.has(selectedImdbId)) {
@@ -662,6 +672,9 @@ function setupEventListeners() {
 
     d3.select("#space-select").on("change", function () {
         currentSpace = this.value;
+        currentTransform = d3.zoomIdentity;
+        zoomSurface.property("__zoom", d3.zoomIdentity);
+
         renderPlot(true);
         syncClusterProfile();
     });
@@ -682,9 +695,8 @@ function setupEventListeners() {
         applyFilters();
     });
 
-    d3.select("#reset-zoom-btn").on("click", function () {
-        // Pass { resetProjection: true } if you also want modality/space reset
-        resetView({ resetProjection: false });
+    d3.select("#reset-btn").on("click", function () {
+        resetView({ resetProjection: true });
     });
 }
 

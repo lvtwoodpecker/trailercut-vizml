@@ -6,8 +6,8 @@ const GROUP_LABEL = {
     content: "content", editing: "editing", clip: "look"
 };
 const vid = document.getElementById("vid"), tip = d3.select("#tip");
-let D = null, starts = [], lineStarts = [], tx, fx, Y, W = 1200;
-let cur = -1, curLine = -1;      // shot and spoken line under the playhead
+let D = null, starts = [], tx, fx, Y, W = 1200;
+let cur = -1;                    // shot under the playhead
 let preview = null;              // hover while paused: {trailer?, film?}
 let focusFilm = null;            // a clicked film shot that isn't in the trailer
 let selectedFilm = null;
@@ -49,7 +49,6 @@ const tImg = (i, k = 1) =>
 const fImg = (i, k = 1) =>
     `${API}/api/film-frame/${D.id}/${i}/${k}`;
 
-
 const framePreloadCache = new Map();
 
 function preloadFrame(src) {
@@ -77,7 +76,6 @@ function preloadFrame(src) {
     return promise;
 }
 
-
 const img = src => `
   <img
     src="${src}"
@@ -94,10 +92,6 @@ const img = src => `
   >
 `;
 const shotAt = t => Math.max(0, d3.bisectRight(starts, t) - 1);
-const lineAt = t => {
-    const k = d3.bisectRight(lineStarts, t) - 1;
-    return k >= 0 && t < D.speech[k][1] + 0.3 ? k : -1;
-};
 const usersOf = j => D.shots.map((s, i) => [s, i]).filter(d => d[0][3] === j).map(d => d[1]);
 
 function showTip(ev, html) {
@@ -229,21 +223,9 @@ async function load(id) {
         if (version !== loadVersion) return;
 
         D = data;
-
-        // Now initialize YouTube
-        const youtubeId = getYoutubeId(id);
-
-        if (youtubeId) {
-            createYouTubePlayer(youtubeId, t0);
-        }
-
-        D.speech = D.speech || [];
-
         starts = D.shots.map(s => s[0]);
-        lineStarts = D.speech.map(s => s[0]);
 
         cur = -1;
-        curLine = -1;
         preview = null;
         focusFilm = null;
         selectedFilm = null;
@@ -269,7 +251,14 @@ async function load(id) {
         cur = 0;
         render();
 
-        follow(t0);
+        // Initialize and load YouTube after drawAll() has built the tx/fx scales
+        const youtubeId = getYoutubeId(id);
+
+        if (youtubeId) {
+            await loadYouTubeVideo(youtubeId, t0);
+        } else {
+            follow(t0);
+        }
 
     } catch (err) {
         console.error("Could not load viewer data:", id, err);
@@ -284,11 +273,7 @@ async function load(id) {
     hideLoading();
 }
 
-
-let player;
-let playerReady = false;
-let playerTimer = null;
-let pauseAfterSeek = false;
+let ytMedia = null;
 let captionsOn = true;
 
 const pp = document.getElementById("pp");
@@ -296,154 +281,102 @@ const clock = document.getElementById("clock");
 const ccBtn = document.getElementById("cc");
 const muteBtn = document.getElementById("mute");
 
-// Current YouTube playback state
+// Current YouTube playback state (using YTMedia's <video>-like API)
 function isPlaying() {
-    return playerReady &&
-        player.getPlayerState() === YT.PlayerState.PLAYING;
+    return ytMedia ? !ytMedia.paused : false;
 }
 
 function currentTime() {
-    return playerReady ? player.getCurrentTime() : 0;
+    return ytMedia ? ytMedia.currentTime : 0;
 }
 
 function duration() {
-    return playerReady ? player.getDuration() : (D?.duration || 0);
+    const d = ytMedia ? ytMedia.duration : NaN;
+    return Number.isFinite(d) && d > 0 ? d : (D?.duration || 0);
 }
 
-// YouTube player initialization
-function onYouTubeIframeAPIReady() {
-    // The player is initialized when a film is loaded.
-}
+function ensureYTMedia() {
+    if (ytMedia) return ytMedia;
 
-
-function createYouTubePlayer(videoId, startAt = 0) {
-    if (player) {
-        clearInterval(playerTimer);
-        player.destroy();
-        player = null;
-    }
-
-    playerReady = false;
-    pauseAfterSeek = false;
-
-    // Give YouTube a dedicated element to replace.
     vid.innerHTML = '<div id="youtube-player"></div>';
+    ytMedia = new YTMedia("youtube-player");
 
-    player = new YT.Player("youtube-player", {
-        width: "100%",
-        height: "100%",
-        videoId,
-
-        playerVars: {
-            enablejsapi: 1,
-            playsinline: 1,
-            rel: 0,
-            start: Math.floor(startAt),
-            cc_load_policy: captionsOn ? 1 : 0
-        },
-
-        events: {
-            onReady: event => {
-                // Ignore callbacks from an obsolete player.
-                if (event.target !== player) return;
-
-                playerReady = true;
-
-                if (startAt > 0) {
-                    event.target.seekTo(startAt, true);
-                    pauseAfterSeek = true;
-                }
-
-                syncBar();
-                follow(startAt > 0 ? startAt : currentTime());
-                startPlayerClock();
-
-                if (D && D.duration) {
-                    console.log(
-                        "YouTube duration:",
-                        duration(),
-                        "Timeline duration:",
-                        D.duration
-                    );
-                }
-            },
-
-            onStateChange: event => {
-                if (event.target !== player) return;
-
-                syncBar();
-
-                if (event.data === YT.PlayerState.PLAYING) {
-                    preview = null;
-                    focusFilm = null;
-                    render();
-
-                    if (pauseAfterSeek) {
-                        pauseAfterSeek = false;
-                        player.pauseVideo();
-                    }
-                }
-
-                if (
-                    event.data === YT.PlayerState.PAUSED ||
-                    event.data === YT.PlayerState.ENDED
-                ) {
-                    follow(currentTime());
-                }
-            },
-
-            onError: event => {
-                console.error("YouTube playback error:", event.data);
-            }
-        }
+    ytMedia.addEventListener("play", () => {
+        preview = null;
+        focusFilm = null;
+        render();
+        syncBar();
     });
-}
 
+    ytMedia.addEventListener("pause", () => {
+        syncBar();
+        follow(currentTime());
+    });
 
-// Single playback clock for the entire visualisation
-function startPlayerClock() {
-    clearInterval(playerTimer);
-
-    playerTimer = setInterval(() => {
-        if (!playerReady) return;
-
-        if (isPlaying()) {
+    ytMedia.addEventListener("timeupdate", () => {
+        syncBar();
+        if (!ytMedia.paused) {
             follow(currentTime());
         }
+    });
 
+    ytMedia.addEventListener("seeked", () => {
         syncBar();
-    }, 100);
+        follow(currentTime());
+    });
+
+    ytMedia.addEventListener("loadedmetadata", () => {
+        syncBar();
+        if (captionsOn && ytMedia?.p?.loadModule) {
+            ytMedia.p.loadModule("captions");
+            ytMedia.p.setOption("captions", "track", { languageCode: "en" });
+        }
+        if (D && D.duration) {
+            console.log("YouTube duration:", duration(), "Timeline duration:", D.duration);
+        }
+    });
+
+    ytMedia.addEventListener("error", () => {
+        console.error("YouTube playback error for video:", ytMedia.videoId);
+    });
+
+    return ytMedia;
+}
+
+async function loadYouTubeVideo(videoId, startAt = 0) {
+    const media = ensureYTMedia();
+    await media.load(videoId, startAt);
+    syncBar();
+    follow(startAt);
 }
 
 // Seeking
 function seek(t) {
-    if (!playerReady) return;
+    if (!ytMedia) return;
 
     t = Math.max(0, Math.min(duration() - 0.05, t));
 
     focusFilm = null;
     preview = null;
 
-    pauseAfterSeek = true;
-
-    player.seekTo(t + 0.01, true);
+    ytMedia.currentTime = t + 0.01;
     follow(t + 0.01);
 }
 
 // Playback
 function toggle() {
-    if (!playerReady) return;
+    if (!ytMedia) return;
 
     if (isPlaying()) {
-        player.pauseVideo();
+        ytMedia.pause();
     } else {
-        player.playVideo();
+        ytMedia.play();
     }
 }
 
 // Shot navigation
 function stepShot(dir) {
-    if (!D || !playerReady) return;
+    if (!D || !ytMedia) return;
 
     const t = currentTime();
     const i = shotAt(t);
@@ -471,7 +404,7 @@ document.getElementById("next")
 
 // Synchronise controls and clock
 function syncBar() {
-    if (!playerReady) return;
+    if (!ytMedia) return;
 
     const playing = isPlaying();
 
@@ -483,7 +416,7 @@ function syncBar() {
 
     muteBtn.setAttribute(
         "aria-pressed",
-        !player.isMuted()
+        !ytMedia.muted
     );
 }
 
@@ -493,15 +426,15 @@ function toggleCC() {
 
     ccBtn.setAttribute("aria-pressed", captionsOn);
 
-    if (!playerReady) return;
+    if (!ytMedia?.p) return;
 
     if (captionsOn) {
-        player.loadModule("captions");
-        player.setOption("captions", "track", {
+        ytMedia.p.loadModule("captions");
+        ytMedia.p.setOption("captions", "track", {
             languageCode: "en"
         });
     } else {
-        player.unloadModule("captions");
+        ytMedia.p.unloadModule("captions");
     }
 }
 
@@ -509,13 +442,9 @@ ccBtn.addEventListener("click", toggleCC);
 
 // Mute
 function toggleMute() {
-    if (!playerReady) return;
+    if (!ytMedia) return;
 
-    if (player.isMuted()) {
-        player.unMute();
-    } else {
-        player.mute();
-    }
+    ytMedia.muted = !ytMedia.muted;
 
     syncBar();
 }
@@ -589,10 +518,9 @@ addEventListener("resize", () => {
 });
 
 function follow(t) {
-    if (!D) return;
+    if (!D || typeof tx !== "function") return;
 
     cur = shotAt(t);
-    curLine = lineAt(t);
 
     // Update the playhead position
     d3.select("#playhead")
@@ -600,15 +528,12 @@ function follow(t) {
         .attr("x2", tx(t));
 
     // Update the clock
-    if (playerReady) {
+    if (ytMedia) {
         clock.textContent = `${fmtT(t)} / ${fmtT(duration())}`;
     }
 
     // Update the side panel and highlights
     render();
-
-    // Update the sound-to-film connection
-    soundLink(curLine);
 }
 
 // ---- what is shown: preview > clicked film shot > shot under the playhead ----
@@ -634,6 +559,7 @@ function hover(h) {
         render();
     }
 }
+
 function unhover() { hideTip(); if (preview) { preview = null; render(); } }
 function render() { const h = current(); highlight(h); drawNow(h); }
 
@@ -649,7 +575,6 @@ function highlight(h) {
         links.classed("hi", ([, i]) => onLink(i));
         links.filter(".hi").raise();  // draw the highlighted link on top of the others
     }
-    d3.selectAll("#sync .sdot").classed("cur", p => p.i === t);
     const rows = d3.select("#tbl tbody").selectAll("tr").classed("cur", (_, i) => i === t);
     if (t !== null && document.getElementById("tbl").open) {
         const r = rows.nodes()[t], box = r && r.closest(".tbl-wrap");
@@ -698,7 +623,21 @@ function drawNow(h) {
     // Only show the film frame. The trailer is already visible in the player.
     const frames = j !== null
         ? `<figure>${img(fImg(j))}</figure>`
-        : `<div class="empty">No corresponding film shot</div>`;
+        : `<div class="empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2.5"></rect>
+              <line x1="7" y1="4" x2="7" y2="20"></line>
+              <line x1="17" y1="4" x2="17" y2="20"></line>
+              <line x1="2" y1="9" x2="7" y2="9"></line>
+              <line x1="2" y1="15" x2="7" y2="15"></line>
+              <line x1="17" y1="9" x2="22" y2="9"></line>
+              <line x1="17" y1="15" x2="22" y2="15"></line>
+              <line x1="9.5" y1="9.5" x2="14.5" y2="14.5"></line>
+              <line x1="14.5" y1="9.5" x2="9.5" y2="14.5"></line>
+            </svg>
+            <div class="empty-title">No corresponding film shot</div>
+            <div class="empty-sub">This segment appears only in the trailer—such as a rating card, studio bumper, title graphic, or alternate cut.</div>
+          </div>`;
 
     box.html(`
     <div class="head">${head}</div>
@@ -782,15 +721,7 @@ function groupOf(n) {
     return "editing";
 }
 
-// one sound link at a time: from the spoken line to where it is in the film
-function soundLink(k) {
-    const path = d3.select("#slink"), line = k >= 0 ? D.speech[k] : null;
-    if (!line || !line[2]) { path.style("display", "none"); return; }
-    const a = tx((line[0] + line[1]) / 2), b = fx(line[3]), y0 = Y.tAxis + 18, m = (y0 + Y.link[1]) / 2;
-    path.style("display", null).attr("d", `M${a},${y0} C${a},${m} ${b},${m} ${b},${Y.barcode[1]}`);
-}
-
-function drawAll() { drawMain(); drawOrder(); drawSync(); drawTable(); render(); }
+function drawAll() { drawMain(); drawOrder(); drawTable(); render(); }
 
 // the same shots as a table (the accessible twin of the timeline); a row click seeks there
 function drawTable() {
@@ -800,21 +731,18 @@ function drawTable() {
             `<td>${s[3] >= 0 ? s[3] : "–"}</td><td>${s[3] >= 0 ? Math.round(100 * f.story_pos[s[3]]) + "%" : "–"}</td><td>${s[4] != null ? s[4].toFixed(2) : "–"}</td>`)
         .on("click", (ev, s) => {
             preview = null;
-            const i = shotAt(t);
-            selectedFilm = D.shots[i][3] >= 0
-                ? D.shots[i][3]
-                : null;
+            selectedFilm = s[3] >= 0 ? s[3] : null;
 
-            seek(t);
+            seek(s[0] + 0.01);
             render();
         });
 }
 
-// ---- timeline: sound and trailer on top (the scrubber), film below, links between ----
+// ---- timeline: trailer on top (the scrubber), film below, links between ----
 function drawMain() {
     W = Math.max(560, document.getElementById("main-wrap").clientWidth);
     const f = D.film;
-    Y = { audio: [4, 50], tcolor: [56, 112], tmatch: [115, 122], tAxis: 126, link: [150, 300], used: [302, 312], barcode: [314, 370] };
+    Y = { tcolor: [6, 62], tmatch: [65, 72], tAxis: 76, link: [100, 250], used: [252, 262], barcode: [264, 320] };
     Y.fAxis = Y.barcode[1] + 4;
     const H = Y.fAxis + 26;
     const svg = d3.select("#main").attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
@@ -823,19 +751,10 @@ function drawMain() {
     fx = d3.scaleLinear([0, 1], [PAD.l, W - PAD.r]);
     const label = (y, t) => svg.append("text").attr("class", "lbl").attr("x", PAD.l - 8).attr("y", y).attr("text-anchor", "end").text(t);
 
-    // sound: loudness, violet where a spoken line comes from the film's dialogue
-    if (D.curves?.rms_db?.length) {
-        const db = D.curves.rms_db;
-        const lo = d3.quantile([...db].sort(d3.ascending), 0.1);
-        const y = d3.scaleLinear([lo, d3.max(db)], [Y.audio[1], Y.audio[0]]).clamp(true);
-        const area = d3.area().x((_, i) => tx((i + 0.5) / db.length * D.duration)).y0(Y.audio[1]).y1(y).curve(d3.curveMonotoneX)(db);
-        svg.append("path").attr("d", area).attr("fill", "var(--unmatched)");
-        svg.append("clipPath").attr("id", "dlg").selectAll("rect").data(D.speech.filter(d => d[2])).join("rect")
-            .attr("x", d => tx(d[0])).attr("width", d => Math.max(1, tx(d[1]) - tx(d[0]))).attr("y", Y.audio[0]).attr("height", Y.audio[1] - Y.audio[0]);
-        svg.append("path").attr("d", area).attr("fill", "var(--speech)").attr("clip-path", "url(#dlg)");
-    }
     const centre = r => (r[0] + r[1]) / 2 + 4;
-    label(centre(Y.audio), "sound"); label(centre(Y.tcolor), "trailer"); label(centre(Y.barcode), "film");
+    label(centre(Y.tcolor), "trailer");
+    label(centre(Y.barcode), "film");
+
     const tcol = D.shot_colors || [];
     svg.append("g").selectAll("rect").data(D.shots).join("rect")
         .attr("x", s => tx(s[0])).attr("width", s => Math.max(0.5, tx(s[1]) - tx(s[0])))
@@ -865,33 +784,23 @@ function drawMain() {
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Y.fAxis})`)
         .call(d3.axisBottom(fx).ticks(10).tickFormat(d3.format(".0%")).tickSizeOuter(0));
 
-    svg.append("path").attr("id", "slink").attr("class", "slink").style("display", "none");
     svg.append("rect").attr("id", "trailer-hi").attr("class", "outline").attr("rx", 1)
         .attr("y", Y.tcolor[0] - 3).attr("height", Y.tmatch[1] - Y.tcolor[0] + 6).style("display", "none");
     svg.append("rect").attr("id", "film-hi").attr("class", "outline").attr("rx", 1)
         .attr("y", Y.used[0] - 3).attr("height", Y.barcode[1] - Y.used[0] + 6).style("display", "none");
-    svg.append("line").attr("id", "playhead").attr("y1", Y.audio[0]).attr("y2", Y.tmatch[1]);
+    svg.append("line").attr("id", "playhead").attr("y1", Y.tcolor[0]).attr("y2", Y.tmatch[1]);
 
-    // the sound + trailer band is one scrubber: press or drag anywhere on it to seek
+    // the trailer band is the scrubber: press or drag anywhere on it to seek
     let scrubbing = false;
     const t = ev => tx.invert(d3.pointer(ev, svg.node())[0]);
     svg.append("rect").attr("class", "scrub").attr("x", PAD.l).attr("width", W - PAD.l - PAD.r)
-        .attr("y", Y.audio[0]).attr("height", Y.tmatch[1] - Y.audio[0]).attr("fill", "transparent")
+        .attr("y", Y.tcolor[0]).attr("height", Y.tmatch[1] - Y.tcolor[0]).attr("fill", "transparent")
         .on("pointerdown", function (ev) { scrubbing = true; this.setPointerCapture(ev.pointerId); hideTip(); preview = null; seek(t(ev)); })
         .on("pointerup pointercancel", () => { scrubbing = false; })
         .on("pointermove", ev => {
             const tt = t(ev);
 
             if (scrubbing) return seek(tt);
-
-            const [, py] = d3.pointer(ev, svg.node());
-
-            if (py < Y.tcolor[0]) {
-                const k = lineAt(tt);
-                if (k >= 0) showTip(ev, `“${esc(D.speech[k][4])}”`);
-                else hideTip();
-                return;
-            }
 
             const i = shotAt(tt);
             const s = D.shots[i];
@@ -917,7 +826,7 @@ function drawMain() {
 
             if (users.length) {
                 const nxt = users.find(u => u > cur) ?? users[0];
-                seek(starts[nxt] + 0.01, true);
+                seek(starts[nxt] + 0.01);
             }
         });
 }
@@ -949,30 +858,6 @@ function drawOrder() {
         click: (ev, [s]) => { preview = null; hideTip(); seek(s[0] + 0.01); },
     });
     axes(svg, x, y, w, H, m, fmtT, "trailer time", "film position");
-}
-
-// per matched line: where its sound is in the film vs where the picture on screen is from
-function drawSync() {
-    const w = document.getElementById("sync").parentNode.clientWidth - 28, H = 300, m = { l: 44, r: 12, t: 20, b: 36 };
-    const svg = d3.select("#sync").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
-    svg.selectAll("*").remove();
-    const f = D.film, rt = f.runtime || 1, pts = [];
-    D.speech.forEach((d, k) => {
-        if (!d[2]) return;
-        const i = shotAt((d[0] + d[1]) / 2), s = D.shots[i];
-        if (s[2]) pts.push({ k, i, x: f.story_pos[s[3]], y: d[3], sync: Math.abs(f.story_pos[s[3]] - d[3]) * rt <= 30 });
-    });
-    const x = d3.scaleLinear([0, 1], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
-    svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(1)).attr("y2", y(1));
-    svg.append("text").attr("class", "lbl").attr("x", x(1) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("same moment");
-    scatter(svg, pts, "sdot", p => x(p.x), p => y(p.y), {
-        move: (ev, p) => { hover({ trailer: p.i, film: D.shots[p.i][3] }); soundLink(p.k); showTip(ev, `“${esc(D.speech[p.k][4])}”`); },
-        leave: () => { unhover(); soundLink(curLine); },
-        click: (ev, p) => { preview = null; hideTip(); seek(D.speech[p.k][0] + 0.01); },
-    });
-    axes(svg, x, y, w, H, m, d3.format(".0%"), "picture", "sound");
-    const nSync = pts.filter(p => p.sync).length, nLines = D.speech.filter(d => d[2]).length;
-    d3.select("#sync-note").text(!nLines ? "No film dialogue in this trailer." : `${nSync} of ${pts.length} lines play over their own scene.`);
 }
 
 init();

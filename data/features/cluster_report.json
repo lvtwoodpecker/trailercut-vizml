@@ -13,19 +13,25 @@
         "7": 0.050105721904741336,
         "8": 0.04257284186046481
       },
-      "stability_ari_mean": 0.900250150891236,
-      "stability_ari_std": 0.06844347153736671,
+      "stability_ari_mean": 0.9151249469732982,
+      "stability_ari_std": 0.05219585424095431,
+      "stability_jaccard_mean": 0.956613339774656,
+      "stability_jaccard_std": 0.026692059425173616,
+      "stability_jaccard_per_cluster": [
+        0.9502,
+        0.963
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.058153473296201866,
-        "null_p95": 0.009313760003223632,
+        "null_p95": 0.008784071170880071,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.014858307633985017,
-        "null_p95": 0.006177785266049768,
+        "null_p95": 0.006396271154975517,
         "p": 0.0
       },
       "profiles": {
@@ -114,19 +120,25 @@
         "7": 0.17392554643893995,
         "8": 0.16278097313839568
       },
-      "stability_ari_mean": 0.9794506194576232,
-      "stability_ari_std": 0.019369830258245038,
+      "stability_ari_mean": 0.9696815784368827,
+      "stability_ari_std": 0.038297413160132326,
+      "stability_jaccard_mean": 0.984412944561846,
+      "stability_jaccard_std": 0.019875523757788175,
+      "stability_jaccard_per_cluster": [
+        0.9818,
+        0.987
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.027503055023256204,
-        "null_p95": 0.008375616448359836,
+        "null_p95": 0.009415842957856716,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.11706788986604275,
-        "null_p95": 0.005949287139733467,
+        "null_p95": 0.006471574027480938,
         "p": 0.0
       },
       "profiles": {
@@ -215,20 +227,26 @@
         "7": 0.16366862290519327,
         "8": 0.15732128147247765
       },
-      "stability_ari_mean": 0.9277719641063423,
-      "stability_ari_std": 0.0471520006844305,
+      "stability_ari_mean": 0.9118537350507354,
+      "stability_ari_std": 0.05807507864817825,
+      "stability_jaccard_mean": 0.9548935772866125,
+      "stability_jaccard_std": 0.029556901402142347,
+      "stability_jaccard_per_cluster": [
+        0.9481,
+        0.9617
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.009652474676999465,
-        "null_p95": 0.00913794568222216,
-        "p": 0.02
+        "null_p95": 0.008142416309543443,
+        "p": 0.015
       },
       "decade": {
         "nmi": 0.007518329506805647,
-        "null_p95": 0.0063205586441999,
-        "p": 0.015
+        "null_p95": 0.00652022167024621,
+        "p": 0.01
       },
       "profiles": {
         "0": {
@@ -316,19 +334,25 @@
         "7": 0.14486393703343586,
         "8": 0.13498748678910885
       },
-      "stability_ari_mean": 0.9699505257794823,
-      "stability_ari_std": 0.018662578924578357,
+      "stability_ari_mean": 0.9725309394214204,
+      "stability_ari_std": 0.02768317415752132,
+      "stability_jaccard_mean": 0.986269315106718,
+      "stability_jaccard_std": 0.013857899282233705,
+      "stability_jaccard_per_cluster": [
+        0.9861,
+        0.9864
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.024715417147405827,
-        "null_p95": 0.00932873767289205,
+        "null_p95": 0.008494111718814153,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.019896129053602742,
-        "null_p95": 0.006346710321932212,
+        "null_p95": 0.0063420624650386255,
         "p": 0.0
       },
       "profiles": {
@@ -417,19 +441,31 @@
         "7": 0.3905456587699284,
         "8": 0.4015943117887133
       },
-      "stability_ari_mean": 0.7472686609668101,
-      "stability_ari_std": 0.06889590003723271,
+      "stability_ari_mean": 0.737429460391627,
+      "stability_ari_std": 0.05056852287085317,
+      "stability_jaccard_mean": 0.6701669800119419,
+      "stability_jaccard_std": 0.0742275166136786,
+      "stability_jaccard_per_cluster": [
+        0.4946,
+        0.6511,
+        0.3698,
+        0.6283,
+        0.9021,
+        0.729,
+        0.7789,
+        0.8075
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.08393968822985713,
-        "null_p95": 0.025529596428851532,
+        "null_p95": 0.025165419272534385,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.030181335669320995,
-        "null_p95": 0.018705514433825763,
+        "null_p95": 0.01866377317988209,
         "p": 0.0
       },
       "profiles": {
@@ -728,19 +764,25 @@
         "7": 0.11233044141052471,
         "8": 0.10968893695641088
       },
-      "stability_ari_mean": 0.9613817783458599,
-      "stability_ari_std": 0.03274407619354057,
+      "stability_ari_mean": 0.9613526565957516,
+      "stability_ari_std": 0.03631647374791149,
+      "stability_jaccard_mean": 0.9801531904495181,
+      "stability_jaccard_std": 0.018616176709945417,
+      "stability_jaccard_per_cluster": [
+        0.9769,
+        0.9834
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.0432125594757274,
-        "null_p95": 0.00915742236351882,
+        "null_p95": 0.008709898208277838,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.011807705068263369,
-        "null_p95": 0.006678622211574463,
+        "null_p95": 0.006940913755480379,
         "p": 0.0
       },
       "profiles": {
@@ -829,19 +871,28 @@
         "7": 0.29630505302974214,
         "8": 0.3005298729261496
       },
-      "stability_ari_mean": 0.9515965825357837,
-      "stability_ari_std": 0.0641402724225295,
+      "stability_ari_mean": 0.9652734179296251,
+      "stability_ari_std": 0.028515707956525867,
+      "stability_jaccard_mean": 0.9723135498378022,
+      "stability_jaccard_std": 0.02290188827250798,
+      "stability_jaccard_per_cluster": [
+        0.9813,
+        0.9749,
+        0.9648,
+        0.9768,
+        0.9637
+      ],
       "hdbscan_n_clusters": 2,
       "hdbscan_noise_frac": 0.6367837338262476,
       "hdbscan_ari_vs_km": 0.18586807532532088,
       "genre": {
         "nmi": 0.043982390164234705,
-        "null_p95": 0.017752259085806257,
+        "null_p95": 0.018623596168959484,
         "p": 0.0
       },
       "decade": {
         "nmi": 0.03071963250446163,
-        "null_p95": 0.012426096260425403,
+        "null_p95": 0.012810408356385906,
         "p": 0.0
       },
       "profiles": {
@@ -1037,20 +1088,26 @@
         "7": 0.04231037620961474,
         "8": 0.03887963860555431
       },
-      "stability_ari_mean": 0.9324143713136651,
-      "stability_ari_std": 0.036310118477519165,
+      "stability_ari_mean": 0.9224528786971645,
+      "stability_ari_std": 0.044749498462800595,
+      "stability_jaccard_mean": 0.9602667973599321,
+      "stability_jaccard_std": 0.02283247716392669,
+      "stability_jaccard_per_cluster": [
+        0.9665,
+        0.9541
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.0028900079292780833,
-        "null_p95": 0.009193939763942827,
+        "null_p95": 0.009051277349214942,
         "p": 0.99
       },
       "decade": {
         "nmi": 0.002468447345349458,
-        "null_p95": 0.0061037040124162474,
-        "p": 0.795
+        "null_p95": 0.0061162614097183205,
+        "p": 0.77
       },
       "profiles": {
         "0": {
@@ -1138,20 +1195,26 @@
         "7": 0.1431401179610082,
         "8": 0.14021573080483576
       },
-      "stability_ari_mean": 0.961149910328554,
-      "stability_ari_std": 0.03371736894482734,
+      "stability_ari_mean": 0.9554636715097611,
+      "stability_ari_std": 0.039403850689745716,
+      "stability_jaccard_mean": 0.9775434158544697,
+      "stability_jaccard_std": 0.019834399823192017,
+      "stability_jaccard_per_cluster": [
+        0.9797,
+        0.9754
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.004852868568986189,
-        "null_p95": 0.00921690223108895,
-        "p": 0.73
+        "null_p95": 0.009472122629620331,
+        "p": 0.75
       },
       "decade": {
         "nmi": 0.005965232087191908,
-        "null_p95": 0.005699514316687633,
-        "p": 0.04
+        "null_p95": 0.006102716884369884,
+        "p": 0.07
       },
       "profiles": {
         "0": {
@@ -1239,20 +1302,26 @@
         "7": 0.16677100710686274,
         "8": 0.14794980537384822
       },
-      "stability_ari_mean": 0.9529943659522321,
-      "stability_ari_std": 0.03897491843423882,
+      "stability_ari_mean": 0.9565734230835194,
+      "stability_ari_std": 0.036280604327308126,
+      "stability_jaccard_mean": 0.9779146658963012,
+      "stability_jaccard_std": 0.01844218446239496,
+      "stability_jaccard_per_cluster": [
+        0.9808,
+        0.975
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.004241969431952023,
-        "null_p95": 0.008481349632216596,
-        "p": 0.84
+        "null_p95": 0.008930333589226576,
+        "p": 0.835
       },
       "decade": {
         "nmi": 0.0035442697108537275,
-        "null_p95": 0.007217807541318032,
-        "p": 0.495
+        "null_p95": 0.006355342013124516,
+        "p": 0.465
       },
       "profiles": {
         "0": {
@@ -1340,20 +1409,26 @@
         "7": 0.14067878122608565,
         "8": 0.1400617092890665
       },
-      "stability_ari_mean": 0.9435384974122701,
-      "stability_ari_std": 0.042360342486415306,
+      "stability_ari_mean": 0.9328235347195628,
+      "stability_ari_std": 0.04759180358798422,
+      "stability_jaccard_mean": 0.9663888319241697,
+      "stability_jaccard_std": 0.02384960675586881,
+      "stability_jaccard_per_cluster": [
+        0.9661,
+        0.9667
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.00371515188283354,
-        "null_p95": 0.008690279919515197,
-        "p": 0.895
+        "null_p95": 0.008338413794351737,
+        "p": 0.92
       },
       "decade": {
         "nmi": 0.0018763376444299765,
-        "null_p95": 0.006388708150881557,
-        "p": 0.955
+        "null_p95": 0.0060649304031821505,
+        "p": 0.935
       },
       "profiles": {
         "0": {
@@ -1441,20 +1516,29 @@
         "7": 0.26993908501948244,
         "8": 0.2898921818734859
       },
-      "stability_ari_mean": 0.7137091750758955,
-      "stability_ari_std": 0.20325449901941584,
+      "stability_ari_mean": 0.786530352414297,
+      "stability_ari_std": 0.19751863388268764,
+      "stability_jaccard_mean": 0.7645003295110154,
+      "stability_jaccard_std": 0.21613454170230906,
+      "stability_jaccard_per_cluster": [
+        0.8283,
+        0.8829,
+        0.6662,
+        0.795,
+        0.6502
+      ],
       "hdbscan_n_clusters": 2,
       "hdbscan_noise_frac": 0.8151571164510166,
       "hdbscan_ari_vs_km": -0.09586395445144011,
       "genre": {
         "nmi": 0.017804936140162878,
-        "null_p95": 0.019159911593445697,
-        "p": 0.125
+        "null_p95": 0.019027588780107105,
+        "p": 0.105
       },
       "decade": {
         "nmi": 0.009467909652214898,
-        "null_p95": 0.013605100479175328,
-        "p": 0.55
+        "null_p95": 0.012878776171279804,
+        "p": 0.52
       },
       "profiles": {
         "0": {
@@ -1647,20 +1731,26 @@
         "7": 0.10907254038383125,
         "8": 0.09796032054904004
       },
-      "stability_ari_mean": 0.9693116119667191,
-      "stability_ari_std": 0.04879804979838202,
+      "stability_ari_mean": 0.9728406900649511,
+      "stability_ari_std": 0.03265987639733557,
+      "stability_jaccard_mean": 0.9859283339757677,
+      "stability_jaccard_std": 0.01697310811258793,
+      "stability_jaccard_per_cluster": [
+        0.9832,
+        0.9886
+      ],
       "hdbscan_n_clusters": 0,
       "hdbscan_noise_frac": 1.0,
       "hdbscan_ari_vs_km": 0.0,
       "genre": {
         "nmi": 0.0024960451837130956,
-        "null_p95": 0.00933272291470096,
-        "p": 0.995
+        "null_p95": 0.00863746541512365,
+        "p": 1.0
       },
       "decade": {
         "nmi": 0.0020589069564462964,
-        "null_p95": 0.006724131898617527,
-        "p": 0.9
+        "null_p95": 0.006518447275192815,
+        "p": 0.895
       },
       "profiles": {
         "0": {
@@ -1748,20 +1838,32 @@
         "7": 0.2810911530922472,
         "8": 0.28135153435241594
       },
-      "stability_ari_mean": 0.8075289589669614,
-      "stability_ari_std": 0.09375943972433529,
+      "stability_ari_mean": 0.7873948070452285,
+      "stability_ari_std": 0.11638424810539674,
+      "stability_jaccard_mean": 0.7719643628817449,
+      "stability_jaccard_std": 0.12254792901520027,
+      "stability_jaccard_per_cluster": [
+        0.9186,
+        0.87,
+        0.8292,
+        0.8796,
+        0.7949,
+        0.5384,
+        0.6168,
+        0.7283
+      ],
       "hdbscan_n_clusters": 2,
       "hdbscan_noise_frac": 0.7014787430683919,
       "hdbscan_ari_vs_km": 0.05249992527866945,
       "genre": {
         "nmi": 0.024001119607869662,
-        "null_p95": 0.025346041350033554,
-        "p": 0.125
+        "null_p95": 0.025528774808643517,
+        "p": 0.11
       },
       "decade": {
         "nmi": 0.019503173015155556,
-        "null_p95": 0.017732202697292653,
-        "p": 0.005
+        "null_p95": 0.017518710031101076,
+        "p": 0.015
       },
       "profiles": {
         "0": {
@@ -2046,5 +2148,843 @@
         }
       }
     }
-  ]
+  ],
+  "cross_modality_baseline": {
+    "modalities": [
+      "all",
+      "pacing",
+      "audio",
+      "story",
+      "dialogue",
+      "visual",
+      "speech"
+    ],
+    "ari_matrix": [
+      [
+        1.0,
+        0.001,
+        -0.0007,
+        0.0605,
+        0.0177,
+        0.6883,
+        0.0139
+      ],
+      [
+        0.001,
+        1.0,
+        -0.0002,
+        0.0131,
+        0.016,
+        -0.0009,
+        0.0343
+      ],
+      [
+        -0.0007,
+        -0.0002,
+        1.0,
+        -0.0005,
+        0.0063,
+        0.001,
+        0.0092
+      ],
+      [
+        0.0605,
+        0.0131,
+        -0.0005,
+        1.0,
+        0.0099,
+        0.021,
+        0.0075
+      ],
+      [
+        0.0177,
+        0.016,
+        0.0063,
+        0.0099,
+        1.0,
+        0.0038,
+        0.1664
+      ],
+      [
+        0.6883,
+        -0.0009,
+        0.001,
+        0.021,
+        0.0038,
+        1.0,
+        0.0029
+      ],
+      [
+        0.0139,
+        0.0343,
+        0.0092,
+        0.0075,
+        0.1664,
+        0.0029,
+        1.0
+      ]
+    ],
+    "nmi_matrix": [
+      [
+        1.0,
+        0.0043,
+        0.0,
+        0.046,
+        0.0308,
+        0.5742,
+        0.0199
+      ],
+      [
+        0.0043,
+        1.0,
+        0.0001,
+        0.0106,
+        0.0281,
+        0.0,
+        0.0384
+      ],
+      [
+        0.0,
+        0.0001,
+        1.0,
+        0.0003,
+        0.0046,
+        0.0004,
+        0.0101
+      ],
+      [
+        0.046,
+        0.0106,
+        0.0003,
+        1.0,
+        0.0154,
+        0.0163,
+        0.0097
+      ],
+      [
+        0.0308,
+        0.0281,
+        0.0046,
+        0.0154,
+        1.0,
+        0.0139,
+        0.1655
+      ],
+      [
+        0.5742,
+        0.0,
+        0.0004,
+        0.0163,
+        0.0139,
+        1.0,
+        0.0062
+      ],
+      [
+        0.0199,
+        0.0384,
+        0.0101,
+        0.0097,
+        0.1655,
+        0.0062,
+        1.0
+      ]
+    ],
+    "cramers_v_matrix": [
+      [
+        1.0,
+        0.0681,
+        0.0,
+        0.2464,
+        0.267,
+        0.8231,
+        0.2016
+      ],
+      [
+        0.0681,
+        1.0,
+        0.0,
+        0.1148,
+        0.2537,
+        0.0,
+        0.2853
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0737,
+        0.0,
+        0.1385
+      ],
+      [
+        0.2464,
+        0.1148,
+        0.0,
+        1.0,
+        0.1817,
+        0.1443,
+        0.1351
+      ],
+      [
+        0.267,
+        0.2537,
+        0.0737,
+        0.1817,
+        1.0,
+        0.1691,
+        0.3571
+      ],
+      [
+        0.8231,
+        0.0,
+        0.0,
+        0.1443,
+        0.1691,
+        1.0,
+        0.0994
+      ],
+      [
+        0.2016,
+        0.2853,
+        0.1385,
+        0.1351,
+        0.3571,
+        0.0994,
+        1.0
+      ]
+    ],
+    "pairs": {
+      "all_vs_pacing": {
+        "ari": 0.001,
+        "nmi": 0.0043,
+        "cramers_v": 0.0681,
+        "chi2_p": 0.0142
+      },
+      "all_vs_audio": {
+        "ari": -0.0007,
+        "nmi": 0.0,
+        "cramers_v": 0.0,
+        "chi2_p": 0.9576
+      },
+      "all_vs_story": {
+        "ari": 0.0605,
+        "nmi": 0.046,
+        "cramers_v": 0.2464,
+        "chi2_p": 0.0
+      },
+      "all_vs_dialogue": {
+        "ari": 0.0177,
+        "nmi": 0.0308,
+        "cramers_v": 0.267,
+        "chi2_p": 0.0
+      },
+      "all_vs_visual": {
+        "ari": 0.6883,
+        "nmi": 0.5742,
+        "cramers_v": 0.8231,
+        "chi2_p": 0.0
+      },
+      "all_vs_speech": {
+        "ari": 0.0139,
+        "nmi": 0.0199,
+        "cramers_v": 0.2016,
+        "chi2_p": 0.0
+      },
+      "pacing_vs_audio": {
+        "ari": -0.0002,
+        "nmi": 0.0001,
+        "cramers_v": 0.0,
+        "chi2_p": 0.7465
+      },
+      "pacing_vs_story": {
+        "ari": 0.0131,
+        "nmi": 0.0106,
+        "cramers_v": 0.1148,
+        "chi2_p": 0.0001
+      },
+      "pacing_vs_dialogue": {
+        "ari": 0.016,
+        "nmi": 0.0281,
+        "cramers_v": 0.2537,
+        "chi2_p": 0.0
+      },
+      "pacing_vs_visual": {
+        "ari": -0.0009,
+        "nmi": 0.0,
+        "cramers_v": 0.0,
+        "chi2_p": 1.0
+      },
+      "pacing_vs_speech": {
+        "ari": 0.0343,
+        "nmi": 0.0384,
+        "cramers_v": 0.2853,
+        "chi2_p": 0.0
+      },
+      "audio_vs_story": {
+        "ari": -0.0005,
+        "nmi": 0.0003,
+        "cramers_v": 0.0,
+        "chi2_p": 0.5579
+      },
+      "audio_vs_dialogue": {
+        "ari": 0.0063,
+        "nmi": 0.0046,
+        "cramers_v": 0.0737,
+        "chi2_p": 0.0752
+      },
+      "audio_vs_visual": {
+        "ari": 0.001,
+        "nmi": 0.0004,
+        "cramers_v": 0.0,
+        "chi2_p": 0.4827
+      },
+      "audio_vs_speech": {
+        "ari": 0.0092,
+        "nmi": 0.0101,
+        "cramers_v": 0.1385,
+        "chi2_p": 0.0001
+      },
+      "story_vs_dialogue": {
+        "ari": 0.0099,
+        "nmi": 0.0154,
+        "cramers_v": 0.1817,
+        "chi2_p": 0.0
+      },
+      "story_vs_visual": {
+        "ari": 0.021,
+        "nmi": 0.0163,
+        "cramers_v": 0.1443,
+        "chi2_p": 0.0
+      },
+      "story_vs_speech": {
+        "ari": 0.0075,
+        "nmi": 0.0097,
+        "cramers_v": 0.1351,
+        "chi2_p": 0.0001
+      },
+      "dialogue_vs_visual": {
+        "ari": 0.0038,
+        "nmi": 0.0139,
+        "cramers_v": 0.1691,
+        "chi2_p": 0.0
+      },
+      "dialogue_vs_speech": {
+        "ari": 0.1664,
+        "nmi": 0.1655,
+        "cramers_v": 0.3571,
+        "chi2_p": 0.0
+      },
+      "visual_vs_speech": {
+        "ari": 0.0029,
+        "nmi": 0.0062,
+        "cramers_v": 0.0994,
+        "chi2_p": 0.0054
+      }
+    }
+  },
+  "cross_modality_residual": {
+    "modalities": [
+      "all",
+      "pacing",
+      "audio",
+      "story",
+      "dialogue",
+      "visual",
+      "speech"
+    ],
+    "ari_matrix": [
+      [
+        1.0,
+        0.0141,
+        0.0086,
+        0.0127,
+        0.0009,
+        0.7967,
+        0.0001
+      ],
+      [
+        0.0141,
+        1.0,
+        0.0089,
+        0.0048,
+        0.001,
+        0.0005,
+        0.0158
+      ],
+      [
+        0.0086,
+        0.0089,
+        1.0,
+        -0.0009,
+        0.0075,
+        0.004,
+        0.0078
+      ],
+      [
+        0.0127,
+        0.0048,
+        -0.0009,
+        1.0,
+        0.0025,
+        0.008,
+        0.0033
+      ],
+      [
+        0.0009,
+        0.001,
+        0.0075,
+        0.0025,
+        1.0,
+        0.0016,
+        0.0619
+      ],
+      [
+        0.7967,
+        0.0005,
+        0.004,
+        0.008,
+        0.0016,
+        1.0,
+        -0.0
+      ],
+      [
+        0.0001,
+        0.0158,
+        0.0078,
+        0.0033,
+        0.0619,
+        -0.0,
+        1.0
+      ]
+    ],
+    "nmi_matrix": [
+      [
+        1.0,
+        0.0085,
+        0.0047,
+        0.0102,
+        0.0031,
+        0.6938,
+        0.0022
+      ],
+      [
+        0.0085,
+        1.0,
+        0.0055,
+        0.0042,
+        0.0039,
+        0.0004,
+        0.0235
+      ],
+      [
+        0.0047,
+        0.0055,
+        1.0,
+        0.0,
+        0.0048,
+        0.0019,
+        0.0116
+      ],
+      [
+        0.0102,
+        0.0042,
+        0.0,
+        1.0,
+        0.0056,
+        0.0068,
+        0.0065
+      ],
+      [
+        0.0031,
+        0.0039,
+        0.0048,
+        0.0056,
+        1.0,
+        0.0025,
+        0.069
+      ],
+      [
+        0.6938,
+        0.0004,
+        0.0019,
+        0.0068,
+        0.0025,
+        1.0,
+        0.0016
+      ],
+      [
+        0.0022,
+        0.0235,
+        0.0116,
+        0.0065,
+        0.069,
+        0.0016,
+        1.0
+      ]
+    ],
+    "cramers_v_matrix": [
+      [
+        1.0,
+        0.1017,
+        0.0717,
+        0.1125,
+        0.0515,
+        0.8876,
+        0.0
+      ],
+      [
+        0.1017,
+        1.0,
+        0.0791,
+        0.0677,
+        0.0666,
+        0.0,
+        0.2362
+      ],
+      [
+        0.0717,
+        0.0791,
+        1.0,
+        0.0,
+        0.0792,
+        0.039,
+        0.1565
+      ],
+      [
+        0.1125,
+        0.0677,
+        0.0,
+        1.0,
+        0.0899,
+        0.0893,
+        0.1051
+      ],
+      [
+        0.0515,
+        0.0666,
+        0.0792,
+        0.0899,
+        1.0,
+        0.0369,
+        0.2257
+      ],
+      [
+        0.8876,
+        0.0,
+        0.039,
+        0.0893,
+        0.0369,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.2362,
+        0.1565,
+        0.1051,
+        0.2257,
+        0.0,
+        1.0
+      ]
+    ],
+    "pairs": {
+      "all_vs_pacing": {
+        "ari": 0.0141,
+        "nmi": 0.0085,
+        "cramers_v": 0.1017,
+        "chi2_p": 0.0005
+      },
+      "all_vs_audio": {
+        "ari": 0.0086,
+        "nmi": 0.0047,
+        "cramers_v": 0.0717,
+        "chi2_p": 0.0105
+      },
+      "all_vs_story": {
+        "ari": 0.0127,
+        "nmi": 0.0102,
+        "cramers_v": 0.1125,
+        "chi2_p": 0.0001
+      },
+      "all_vs_dialogue": {
+        "ari": 0.0009,
+        "nmi": 0.0031,
+        "cramers_v": 0.0515,
+        "chi2_p": 0.1429
+      },
+      "all_vs_visual": {
+        "ari": 0.7967,
+        "nmi": 0.6938,
+        "cramers_v": 0.8876,
+        "chi2_p": 0.0
+      },
+      "all_vs_speech": {
+        "ari": 0.0001,
+        "nmi": 0.0022,
+        "cramers_v": 0.0,
+        "chi2_p": 0.4925
+      },
+      "pacing_vs_audio": {
+        "ari": 0.0089,
+        "nmi": 0.0055,
+        "cramers_v": 0.0791,
+        "chi2_p": 0.0053
+      },
+      "pacing_vs_story": {
+        "ari": 0.0048,
+        "nmi": 0.0042,
+        "cramers_v": 0.0677,
+        "chi2_p": 0.0147
+      },
+      "pacing_vs_dialogue": {
+        "ari": 0.001,
+        "nmi": 0.0039,
+        "cramers_v": 0.0666,
+        "chi2_p": 0.0665
+      },
+      "pacing_vs_visual": {
+        "ari": 0.0005,
+        "nmi": 0.0004,
+        "cramers_v": 0.0,
+        "chi2_p": 0.4776
+      },
+      "pacing_vs_speech": {
+        "ari": 0.0158,
+        "nmi": 0.0235,
+        "cramers_v": 0.2362,
+        "chi2_p": 0.0
+      },
+      "audio_vs_story": {
+        "ari": -0.0009,
+        "nmi": 0.0,
+        "cramers_v": 0.0,
+        "chi2_p": 0.8604
+      },
+      "audio_vs_dialogue": {
+        "ari": 0.0075,
+        "nmi": 0.0048,
+        "cramers_v": 0.0792,
+        "chi2_p": 0.0291
+      },
+      "audio_vs_visual": {
+        "ari": 0.004,
+        "nmi": 0.0019,
+        "cramers_v": 0.039,
+        "chi2_p": 0.1037
+      },
+      "audio_vs_speech": {
+        "ari": 0.0078,
+        "nmi": 0.0116,
+        "cramers_v": 0.1565,
+        "chi2_p": 0.0
+      },
+      "story_vs_dialogue": {
+        "ari": 0.0025,
+        "nmi": 0.0056,
+        "cramers_v": 0.0899,
+        "chi2_p": 0.0126
+      },
+      "story_vs_visual": {
+        "ari": 0.008,
+        "nmi": 0.0068,
+        "cramers_v": 0.0893,
+        "chi2_p": 0.0019
+      },
+      "story_vs_speech": {
+        "ari": 0.0033,
+        "nmi": 0.0065,
+        "cramers_v": 0.1051,
+        "chi2_p": 0.0083
+      },
+      "dialogue_vs_visual": {
+        "ari": 0.0016,
+        "nmi": 0.0025,
+        "cramers_v": 0.0369,
+        "chi2_p": 0.2416
+      },
+      "dialogue_vs_speech": {
+        "ari": 0.0619,
+        "nmi": 0.069,
+        "cramers_v": 0.2257,
+        "chi2_p": 0.0
+      },
+      "visual_vs_speech": {
+        "ari": -0.0,
+        "nmi": 0.0016,
+        "cramers_v": 0.0,
+        "chi2_p": 0.6837
+      }
+    }
+  },
+  "baseline_vs_residual": {
+    "all": {
+      "base_vs_res_ari": 0.3666,
+      "ari_null_p95": 0.0051,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.2754,
+      "nmi_null_p95": 0.0027,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0582,
+          "nmi_residual": 0.0029,
+          "nmi_drop": 0.0553,
+          "drop_null_p95": 0.0109,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.0149,
+          "nmi_residual": 0.0025,
+          "nmi_drop": 0.0124,
+          "drop_null_p95": 0.0057,
+          "drop_p": 0.0
+        }
+      }
+    },
+    "pacing": {
+      "base_vs_res_ari": 0.3491,
+      "ari_null_p95": 0.0033,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.2648,
+      "nmi_null_p95": 0.0025,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0275,
+          "nmi_residual": 0.0049,
+          "nmi_drop": 0.0227,
+          "drop_null_p95": 0.0084,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.1171,
+          "nmi_residual": 0.006,
+          "nmi_drop": 0.1111,
+          "drop_null_p95": 0.0168,
+          "drop_p": 0.0
+        }
+      }
+    },
+    "audio": {
+      "base_vs_res_ari": 0.8001,
+      "ari_null_p95": 0.0036,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.7016,
+      "nmi_null_p95": 0.0023,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0097,
+          "nmi_residual": 0.0042,
+          "nmi_drop": 0.0054,
+          "drop_null_p95": 0.0032,
+          "drop_p": 0.002
+        },
+        "decade": {
+          "nmi_baseline": 0.0075,
+          "nmi_residual": 0.0035,
+          "nmi_drop": 0.004,
+          "drop_null_p95": 0.0042,
+          "drop_p": 0.062
+        }
+      }
+    },
+    "story": {
+      "base_vs_res_ari": 0.5545,
+      "ari_null_p95": 0.0028,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.4494,
+      "nmi_null_p95": 0.0027,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0247,
+          "nmi_residual": 0.0037,
+          "nmi_drop": 0.021,
+          "drop_null_p95": 0.0081,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.0199,
+          "nmi_residual": 0.0019,
+          "nmi_drop": 0.018,
+          "drop_null_p95": 0.0083,
+          "drop_p": 0.0
+        }
+      }
+    },
+    "dialogue": {
+      "base_vs_res_ari": 0.4141,
+      "ari_null_p95": 0.0088,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.4865,
+      "nmi_null_p95": 0.0113,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0839,
+          "nmi_residual": 0.0178,
+          "nmi_drop": 0.0661,
+          "drop_null_p95": 0.0127,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.0302,
+          "nmi_residual": 0.0095,
+          "nmi_drop": 0.0207,
+          "drop_null_p95": 0.0066,
+          "drop_p": 0.0
+        }
+      }
+    },
+    "visual": {
+      "base_vs_res_ari": 0.5295,
+      "ari_null_p95": 0.0047,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.4169,
+      "nmi_null_p95": 0.0026,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.0432,
+          "nmi_residual": 0.0025,
+          "nmi_drop": 0.0407,
+          "drop_null_p95": 0.0062,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.0118,
+          "nmi_residual": 0.0021,
+          "nmi_drop": 0.0097,
+          "drop_null_p95": 0.0029,
+          "drop_p": 0.0
+        }
+      }
+    },
+    "speech": {
+      "base_vs_res_ari": 0.4289,
+      "ari_null_p95": 0.0026,
+      "ari_p": 0.0,
+      "base_vs_res_nmi": 0.5572,
+      "nmi_null_p95": 0.0104,
+      "nmi_p": 0.0,
+      "confound_reduction": {
+        "primary_genre": {
+          "nmi_baseline": 0.044,
+          "nmi_residual": 0.024,
+          "nmi_drop": 0.02,
+          "drop_null_p95": 0.0083,
+          "drop_p": 0.0
+        },
+        "decade": {
+          "nmi_baseline": 0.0307,
+          "nmi_residual": 0.0195,
+          "nmi_drop": 0.0112,
+          "drop_null_p95": 0.0071,
+          "drop_p": 0.0
+        }
+      }
+    }
+  }
 }

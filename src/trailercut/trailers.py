@@ -66,8 +66,9 @@ def fetch(imdb_id, youtube_id):
 
     opts = {
         "format": (
+            "bv*[height<=360][ext=mp4]/"
             "best[height<=360][ext=mp4]/"
-            "bv*[height<=360][ext=mp4]+ba[ext=m4a]/"
+            "bv*[height<=360]/"
             "best[height<=360]"
         ),
         "merge_output_format": "mp4",

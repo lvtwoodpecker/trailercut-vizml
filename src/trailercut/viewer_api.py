@@ -111,26 +111,26 @@ def prepare_trailer(imdb_id):
             )
 
             # 3a. Transcribe trailer audio -> cache/trailer_asr/{imdb_id}.json
-            set_job(imdb_id, "Transcribing trailer speech...")
-            subprocess.run(
-                [
-                    sys.executable, "-m", "trailercut.trailer_asr",
-                    "--ids", imdb_id,
-                ],
-                cwd=ROOT,
-                check=False,
-            )
+            # set_job(imdb_id, "Transcribing trailer speech...")
+            # subprocess.run(
+            #     [
+            #         sys.executable, "-m", "trailercut.trailer_asr",
+            #         "--ids", imdb_id,
+            #     ],
+            #     cwd=ROOT,
+            #     check=False,
+            # )
 
-            # 3b. Align transcript to subtitles -> features/dialogue_alignment/{imdb_id}.csv
-            set_job(imdb_id, "Aligning trailer dialogue...")
-            subprocess.run(
-                [
-                    sys.executable, "-m", "trailercut.dialogue_align",
-                    "--ids", imdb_id,
-                ],
-                cwd=ROOT,
-                check=False,
-            )
+            # # 3b. Align transcript to subtitles -> features/dialogue_alignment/{imdb_id}.csv
+            # set_job(imdb_id, "Aligning trailer dialogue...")
+            # subprocess.run(
+            #     [
+            #         sys.executable, "-m", "trailercut.dialogue_align",
+            #         "--ids", imdb_id,
+            #     ],
+            #     cwd=ROOT,
+            #     check=False,
+            # )
 
             # 4. Viewer export and colors
             set_job(imdb_id, "Generating film colors and preparing visualization...")

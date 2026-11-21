@@ -130,17 +130,17 @@ def curve(imdb_id):
         if c.get("stamp") == stamp:
             return c
     sh = pd.read_csv(shots_csv)
-    wav = CACHE / "trailer_audio" / f"{imdb_id}.wav"
+    # wav = CACHE / "trailer_audio" / f"{imdb_id}.wav"
 
-    if wav.exists():
-        try:
-            _, rms = audio(imdb_id, sh.t_end.max())
-        except Exception:
-            rms = np.zeros(100)
-    else:
-        rms = np.zeros(100)
-    c = dict(rms_db=np.round(rms, 2).tolist(),
-             cuts=np.histogram(sh.trailer_pos, bins=GRID, range=(0, 1))[0].tolist(), stamp=stamp)
+    # if wav.exists():
+    #     try:
+    #         _, rms = audio(imdb_id, sh.t_end.max())
+    #     except Exception:
+    #         rms = np.zeros(100)
+    # else:
+    #     rms = np.zeros(100)
+    # c = dict(rms_db=np.round(rms, 2).tolist(),
+    #          cuts=np.histogram(sh.trailer_pos, bins=GRID, range=(0, 1))[0].tolist(), stamp=stamp)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(c))
     return c
@@ -196,7 +196,7 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail, yt_ids, include_
         film["detail_features"] = feats
         film["detail"] = {int(i): [[r(f[c].values[i]), r(raw[c].values[i])] for c in feats] for i in sorted(pick)}
     out["film"] = film
-    out["speech"] = speech(imdb_id, runtime)
+    # out["speech"] = speech(imdb_id, runtime)
     return out
 
 
@@ -319,7 +319,7 @@ def main():
     if i not in films.imdb_id.values:
         raise ValueError(f"Unknown IMDb ID: {i}")
 
-    curves[i] = curve(i)
+    # curves[i] = curve(i)
 
     d = trailer_json(
         i, curves, films, preds, shap,

@@ -4,7 +4,7 @@
 Outputs:
   data/features/trailer_shots/{imdb_id}.csv
   data/cache/trailer_frames/{imdb_id}/shot_XXXX_img_{0,1,2}.jpg
-  data/cache/trailer_audio/{imdb_id}.wav
+#   data/cache/trailer_audio/{imdb_id}.wav
   data/cache/transnet/{imdb_id}_{video_bytes}.npy
 
 Examples:
@@ -31,7 +31,7 @@ from .paths import CACHE, FEATURES, TRAILERS
 
 SHOTS_DIR = FEATURES / "trailer_shots"
 FRAMES_DIR = CACHE / "trailer_frames"
-AUDIO_DIR = CACHE / "trailer_audio"
+# AUDIO_DIR = CACHE / "trailer_audio"
 PROBS_DIR = CACHE / "transnet"
 LOCKS_DIR = CACHE / "trailer_locks"
 
@@ -214,9 +214,9 @@ def expected_frame_paths(imdb_id, shots_df):
 def is_prepared(imdb_id, video_path=None):
     """Return True only when all expected preparation outputs are valid."""
     csv_path = SHOTS_DIR / f"{imdb_id}.csv"
-    audio_path = AUDIO_DIR / f"{imdb_id}.wav"
+    # audio_path = AUDIO_DIR / f"{imdb_id}.wav"
 
-    if not csv_path.is_file() or not validate_audio(audio_path):
+    if not csv_path.is_file():
         return False
 
     try:
@@ -304,7 +304,7 @@ def process(model, path):
         )
 
         extract_keyframes(path, df, FRAMES_DIR / imdb_id, fps)
-        extract_audio(path, AUDIO_DIR / f"{imdb_id}.wav")
+        # extract_audio(path, AUDIO_DIR / f"{imdb_id}.wav")
 
         SHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
