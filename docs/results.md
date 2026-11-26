@@ -3,6 +3,29 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-26: trailers over the decades
+
+**By decade** [`clusters.csv`; series in `rq1.json` `decades`, 95% intervals from resampling each
+decade's trailers]. 1960s on: earlier decades have 1 to 13 trailers. Median per trailer, except the
+fast-cut style (share of trailers in base pacing cluster 1).
+
+| decade | trailers | cuts/min | median shot (s) | in fast-cut style | shots from last quarter | trailer shots found in film |
+|---|---|---|---|---|---|---|
+| 1960s | 22 | 21.0 | 2.0 | 5% | 26% | 90% |
+| 1970s | 60 | 21.4 | 2.0 | 10% | 21% | 91% |
+| 1980s | 96 | 29.1 | 1.5 | 20% | 23% | 92% |
+| 1990s | 218 | 34.9 | 1.3 | 42% | 18% | 93% |
+| 2000s | 332 | 42.8 | 1.1 | 73% | 17% | 91% |
+| 2010s | 339 | 46.1 | 1.0 | 78% | 15% | 89% |
+
+Spearman with release year (all 1,082): cuts/min 0.53, median shot length -0.49, last-quarter share
+-0.19, loudness -0.09, speech share -0.09, keeps film order 0.09, match rate -0.15.
+
+Read: trailers cut about twice as fast as in the 1970s, and the fast-cut style went from 1 in 10
+trailers to 3 in 4. They take a bit less from the ending. Loudness, how much they talk and how much of
+the trailer comes from the film barely moved. This is also why decade lines up with the pacing
+clusters (decade NMI 0.117) and with almost nothing else.
+
 ## 2026-11-26: locked test set, story position's significance, trailer depth
 
 **Locked test** [`model_heldout.json`] 20% of films (217) set aside before any fit; each model trained

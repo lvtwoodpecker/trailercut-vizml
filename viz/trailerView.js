@@ -270,8 +270,9 @@ async function load(id) {
 
         drawAll();
 
-        cur = 0;
-        render();
+        // open on the shot the link asks for, else on the first shot that has a film match
+        if (t0 > 0) follow(t0);
+        else { cur = Math.max(0, D.shots.findIndex(s => s[2])); render(); }
         hideLoading();   // the charts are up; the player can keep loading on its own (YouTube is sometimes slow or blocked)
 
         // Initialize and load YouTube after drawAll() has built the tx/fx scales
@@ -633,8 +634,8 @@ function drawNow(h) {
     if (t !== null) {
         const s = D.shots[t];
         head = `<b>${j !== null ? `Film shot ${j + 1}` : `Unmatched trailer shot ${t + 1}`}</b>
-      <span>${fmtT(s[0])}–${fmtT(s[1])}</span>
-      <span class="tag">${j !== null ? "matched" : "no match"}</span>
+      <span>${fmtT(s[0]) === fmtT(s[1]) ? fmtT(s[0]) : `${fmtT(s[0])} to ${fmtT(s[1])}`}</span>
+      ${j !== null ? `<span class="tag">matched</span>` : ""}
       ${pos ? `<span class="pos">${pos}</span>` : ""}`;
     } else {
         const users = usersOf(j);
@@ -824,7 +825,7 @@ function drawTable() {
     const f = D.film;
     d3.select("#tbl tbody").selectAll("tr").data(D.shots).join("tr")
         .html((s, i) => `<td>${i + 1}</td><td>${fmtT(s[0])}</td><td>${fmtT(s[1])}</td><td>${s[2] ? "yes" : "no"}</td>` +
-            `<td>${s[3] >= 0 ? s[3] : "–"}</td><td>${s[3] >= 0 ? Math.round(100 * f.story_pos[s[3]]) + "%" : "–"}</td><td>${s[4] != null ? s[4].toFixed(2) : "–"}</td>`)
+            `<td>${s[3] >= 0 ? s[3] : ""}</td><td>${s[3] >= 0 ? Math.round(100 * f.story_pos[s[3]]) + "%" : ""}</td><td>${s[4] != null ? s[4].toFixed(2) : ""}</td>`)
         .on("click", (ev, s) => {
             preview = null;
             selectedFilm = s[3] >= 0 ? s[3] : null;
@@ -946,7 +947,7 @@ function drawOrder() {
     svg.selectAll("*").remove();
     const x = d3.scaleLinear([0, D.duration], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
     svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("y1", y(0)).attr("x2", x(D.duration)).attr("y2", y(1));
-    svg.append("text").attr("class", "lbl").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
+    svg.append("text").attr("class", "lbl").attr("x", x(D.duration)).attr("y", m.t - 6).attr("text-anchor", "end").text("in film order");   // above the plot, clear of the dots
     const pts = D.shots.map((s, i) => [s, i]).filter(d => d[0][3] >= 0);
     scatter(svg, pts, "dot", ([s]) => x((s[0] + s[1]) / 2), ([s]) => y(D.film.story_pos[s[3]]), {
         move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${frame("t", i)}${frame("f", s[3])}</div><div>Shot ${i + 1}</div>`); },

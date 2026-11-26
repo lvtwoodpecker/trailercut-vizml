@@ -224,7 +224,8 @@ function orientMaps(data) {
 const axisLabels = svg.append("g").attr("class", "axis-labels");
 
 function drawAxisLabels() {
-    const info = axisInfo[`${currentSpace}_${currentModality}`] || {};
+    // single-group maps only: on Everything one feature out of ~60 would oversell what the map shows
+    const info = currentModality === "all" ? {} : axisInfo[`${currentSpace}_${currentModality}`] || {};
     const left = margin.left, right = margin.left + width, top = margin.top, bottom = margin.top + height;
     const rows = [];
     if (info.x) {
@@ -246,15 +247,17 @@ function drawAxisLabels() {
         .text(r => `rank correlation with this axis: ${Math.abs(r.a.rho).toFixed(2)}`);
 }
 
-const baseClusterColors = ["#f43f5e", "#3b82f6"];
+// style colors: their own pair, apart from the site's more/less blue and red (--c1, --c2)
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const baseClusterColors = [cssVar("--c1") || "#199e70", cssVar("--c2") || "#8a63d2"];
 const colorScale = d3.scaleOrdinal()
     .domain([0, 1])
     .range(baseClusterColors);
 
 const modalityDocs = {
     all: {
-        title: "Overall Composite (All)",
-        desc: "Combines all features across modalities to capture overall trailer archetypes—and compares baseline vs. genre/decade-residualized structure.",
+        title: "Everything",
+        desc: "Combines all features across modalities to capture overall trailer archetypes, and compares baseline vs. genre/decade-residualized structure.",
         labels: {
             base: {
                 0: "Low-Action / Restrained",
@@ -267,7 +270,7 @@ const modalityDocs = {
         }
     },
     pacing: {
-        title: "Pacing & Edit Velocity",
+        title: "Pacing",
         desc: "Captures editing tempo from shot cut rate, shot counts, and pacing across segments.",
         labels: {
             base: {
@@ -281,7 +284,7 @@ const modalityDocs = {
         }
     },
     audio: {
-        title: "Audio & Dynamic Range",
+        title: "Sound",
         desc: "Captures overall loudness (RMS), quiet fraction, and dynamic range swings across the trailer audio track.",
         labels: {
             base: {
@@ -295,7 +298,7 @@ const modalityDocs = {
         }
     },
     story: {
-        title: "Story & Narrative Alignment",
+        title: "Story",
         desc: "Reflects where matched story moments fall across the film's narrative arc (early setup vs. later/final act).",
         labels: {
             base: {
@@ -309,7 +312,7 @@ const modalityDocs = {
         }
     },
     visual: {
-        title: "Visual Concept Scaling",
+        title: "Visuals",
         desc: "Captures visual concept activations across action, tension, and setting cues.",
         labels: {
             base: {
@@ -323,7 +326,7 @@ const modalityDocs = {
         }
     },
     dialogue: {
-        title: "Dialogue & Sentiment",
+        title: "Dialogue",
         desc: "Captures dialogue word density per shot alongside sentiment mean, negativity share, and emotional volatility.",
         labels: {
             base: {
@@ -346,7 +349,7 @@ const modalityDocs = {
         }
     },
     speech: {
-        title: "Speech Synchronization",
+        title: "Speech",
         desc: "Captures spoken word rate, speech share, script line matching, and shot-to-speech synchronization.",
         labels: {
             base: {
@@ -371,11 +374,11 @@ const modalityDocs = {
 };
 
 const detailModalities = [
-    { key: "all", label: "Overall Archetype" },
+    { key: "all", label: "Everything" },
     { key: "pacing", label: "Pacing" },
-    { key: "audio", label: "Audio" },
+    { key: "audio", label: "Sound" },
     { key: "story", label: "Story" },
-    { key: "visual", label: "Visual" },
+    { key: "visual", label: "Visuals" },
     { key: "speech", label: "Speech" },
     { key: "dialogue", label: "Dialogue" }
 ];
@@ -558,7 +561,7 @@ function renderPlot(animate = true) {
                 .on("mouseover", function (event, d) {
                     if (!filterPasses(d)) return;
                     tooltip
-                        .html(`<strong>${d.title}</strong><br/><span style="color: #94a3b8;">${d.primary_genre}</span>`)
+                        .html(`<strong>${d.title}</strong><br/><span style="color: var(--muted);">${d.primary_genre}</span>`)
                         .style("opacity", 1);
                     positionTooltip(event, svgWrapperNode);
                 })
@@ -705,7 +708,7 @@ function resetSelection() {
     applyFilters();
     syncClusterProfile();
 
-    d3.select("#detail-title").text("Select a trailer to begin...");
+    d3.select("#detail-title").text("Pick a trailer");
     d3.select("#detail-meta").text("");
     d3.select("#detail-clusters").selectAll("*").remove();
     d3.select("#imdb-link").style("display", "none");
@@ -718,12 +721,6 @@ function updateLegendAndDocs() {
     const doc = modalityDocs[currentModality] || modalityDocs.all;
     d3.select("#info-heading").text(doc.title);
     d3.select("#info-description").text(doc.desc);
-    // what an archetype is, and what the projection choice does
-    d3.select("#archetype-note").text(
-        "Archetypes are groups k-means finds in these features; each name describes its group's average trailer. " +
-        (currentSpace === "res"
-            ? "Residualized: genre and decade are regressed out first, so the groups show style that genre and era don't explain."
-            : "Baseline: raw features, so genre and decade still shape the groups."));
 
     let entries = [];
     let getItemColor = d => colorScale(d.key);
@@ -881,7 +878,7 @@ function selectTrailer(item) {
 
     d3.select("#trailer-view-link")
         .style("display", "block")
-        .attr("href", `/viz/trailerView.html?id=${encodeURIComponent(item.imdb_id)}`);
+        .attr("href", `trailerView.html?id=${encodeURIComponent(item.imdb_id)}`);
 
     if (item.youtube_id && item.youtube_id !== "" && item.youtube_id !== "undefined") {
         d3.select("#trailer-player")

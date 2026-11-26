@@ -95,6 +95,41 @@ def with_examples(rows, df, key, section):
     return rows
 
 
+# trailer-level series by decade (1960s on; earlier decades have too few trailers), median per decade
+# with a 95% interval from resampling that decade's trailers. A share uses the mean of a 0/1 column.
+DECADE_FROM = 1960
+DECADE_SERIES = [  # key, label, column, kind (median | share), unit (x: number, %: fraction)
+    ("cuts", "cuts per minute", "cuts_per_min", "median", "x"),
+    ("fast", "in the fast-cut style", "fast_style", "share", "%"),
+    ("ending", "shots from the film's last quarter", "final_act_share", "median", "%"),
+    ("found", "trailer shots found in the film", "match_rate", "median", "%"),
+]
+
+
+def decades(rng, boot=500):
+    df = pd.read_csv(FEATURES / "clusters.csv")
+    df["fast_style"] = (df.cluster_pacing == 1).astype(float)   # base pacing cluster 1: fast cuts
+    snd = FEATURES / "trailer_sound.csv"
+    if snd.exists():
+        df = df.merge(pd.read_csv(snd), on="imdb_id", how="left")
+    df["dec"] = df.year // 10 * 10
+    df = df[df.dec >= DECADE_FROM]
+    out = []
+    for key, label, col, kind, unit in DECADE_SERIES:
+        if col not in df:
+            continue
+        pts = []
+        for dec, g in df.groupby("dec"):
+            v = g[col].dropna().values
+            if len(v) < 10:
+                continue
+            f = np.mean if kind == "share" else np.median
+            draws = [f(rng.choice(v, len(v))) for _ in range(boot)]
+            pts.append(dict(dec=int(dec), v=float(f(v)), lo=float(np.percentile(draws, 2.5)), hi=float(np.percentile(draws, 97.5)), n=len(v)))
+        out.append(dict(key=key, label=label, unit=unit, pts=pts))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--boot", type=int, default=300)
@@ -162,7 +197,9 @@ def main():
         h = json.loads(ho.read_text())
         p = h["position_all_films"]["full_vs_without_position"]
         out["heldout"] = dict(test_films=h["locked_test"]["test_films"], full=h["locked_test"]["models"]["full"]["lift"],
-                              position_gain=p["lift_diff"], position_ci=p["ci"], position_p=p["t_test_p"])
+                              position_gain=p["lift_diff"], position_ci=p["ci"], position_p=p["t_test_p"],
+                              models=[dict(name=n, lift=h["locked_test"]["models"][n]["lift"])
+                                      for n in ["random", "position_only", "length_only", "clip_only", "readable", "full"]])
     # how deep into the film trailers reach: per trailer, its deepest matched shot and its 90th percentile
     # (the last 1% of the film is left out, as in the model: end credits can match a trailer's title cards)
     deep = []
@@ -175,6 +212,7 @@ def main():
     deep = np.array(deep)
     out["depth"] = dict(trailers=len(deep), median_deepest=float(np.median(deep[:, 0])),
                         reach_last_10=float((deep[:, 0] > 0.9).mean()), median_p90=float(np.median(deep[:, 1])))
+    out["decades"] = decades(rng)
     OUT.write_text(json.dumps(out, allow_nan=False))
     print("->", OUT)
 

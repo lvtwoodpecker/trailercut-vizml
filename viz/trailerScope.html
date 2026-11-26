@@ -20,6 +20,8 @@
             --ink: #0b0b0b;
             --ink-2: #52514e;
             --muted: #6f6d68;
+            --c1: #199e70;
+            --c2: #8a63d2;
             --grid: #e1e0d9;
             --axis: #c3c2b7;
             --border: rgba(11, 11, 11, 0.10);
@@ -169,23 +171,20 @@
         }
 
         label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 11px;
             color: var(--muted);
-            font-weight: 600;
         }
 
         select,
         input,
         button {
             font-family: inherit;
-            background: var(--page);
+            background: var(--surface);
             color: var(--ink);
             border: 1px solid var(--border);
             padding: 6px 10px;
             border-radius: 6px;
-            font-size: 0.875rem;
+            font-size: 13px;
             outline: none;
         }
 
@@ -220,7 +219,7 @@
 
         .info-box h3 {
             margin: 0 0 4px 0;
-            font-size: 0.875rem;
+            font-size: 15px;
             color: var(--ink);
             font-weight: 600;
         }
@@ -317,11 +316,8 @@
         }
 
         .axis-label {
-            fill: var(--ink-2);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            fill: var(--muted);
+            font-size: 12px;
         }
 
         .dot {
@@ -433,8 +429,8 @@
             margin-top: 6px;
             margin-right: 6px;
         }
-        .axis-label { fill: var(--ink-2); font-size: 12px; }
-        .archetype-note { font-size: 0.75rem; color: var(--muted); margin: 6px 0 10px; }
+        /* before a trailer is picked, the empty panel fills its column with a centered hint */
+        .workspace:not(.drawer-open) .detail-drawer { align-self: stretch; display: grid; place-items: center; }
   </style>
 </head>
 
@@ -443,7 +439,7 @@
         <header>
             <div class="header-left">
                 <h1>TrailerScope</h1>
-                <p class="lede">Multi-Modal Archetype Exploration &amp; Feature Analysis</p>
+                <p class="lede">1,082 trailers fall into a few styles that genre and decade barely predict</p>
             </div>
             <nav>
                 <a href="/">← Feature Findings</a>
@@ -452,62 +448,57 @@
 
         <div id="controls">
             <div class="control-group">
-                <label for="modality-select">Modality Space</label>
+                <label for="modality-select">Features</label>
                 <select id="modality-select">
-                    <option value="all">Overall Composite (All)</option>
-                    <option value="pacing">Pacing &amp; Edit Velocity</option>
-                    <option value="audio">Audio &amp; Dynamic Range</option>
-                    <option value="story">Story &amp; Narrative Alignment</option>
-                    <option value="dialogue">Dialogue &amp; Subtitles</option>
-                    <option value="visual">Visual Concept Scaling</option>
-                    <option value="speech">Speech Synchronization</option>
+                    <option value="all">Everything</option>
+                    <option value="pacing">Pacing</option>
+                    <option value="audio">Sound</option>
+                    <option value="story">Story</option>
+                    <option value="dialogue">Dialogue</option>
+                    <option value="visual">Visuals</option>
+                    <option value="speech">Speech</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="space-select">Space Projection</label>
+                <label for="space-select">Genre and decade</label>
                 <select id="space-select">
-                    <option value="res">Residualized (Bias Purged)</option>
-                    <option value="base">Baseline (Raw Features)</option>
+                    <option value="res">removed</option>
+                    <option value="base">kept</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="color-by-select">Color By</label>
+                <label for="color-by-select">Color</label>
                 <select id="color-by-select">
-                    <option value="cluster">Archetype Cluster</option>
-                    <option value="genre">Primary Genre</option>
+                    <option value="cluster">Style</option>
+                    <option value="genre">Genre</option>
                     <option value="decade">Decade</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="genre-select">Filter Genre</label>
+                <label for="genre-select">Genre</label>
                 <select id="genre-select">
-                    <option value="all">All Genres</option>
+                    <option value="all">All</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="search-input">Search Title</label>
-                <input type="text" id="search-input" placeholder="Search movie title...">
+                <label for="search-input">Search</label>
+                <input type="text" id="search-input" placeholder="Movie title">
             </div>
 
             <div class="control-group" style="margin-left: auto;">
                 <label>&nbsp;</label>
-                <button id="reset-btn" type="button">Reset View</button>
+                <button id="reset-btn" type="button">Reset</button>
             </div>
         </div>
 
         <div class="workspace">
             <div id="viz-container">
                 <div class="info-box">
-                    <h3 id="info-heading">Overall Composite (All)</h3>
-                    <p id="info-description">
-                        Combines all extracted features into a single UMAP projection to group trailers by overall
-                        structural marketing archetype.
-                    </p>
-                    <p id="archetype-note" class="archetype-note"></p>
+                    <h3 id="info-heading">Everything</h3>
                     <div id="legend-items" class="legend-items"></div>
                     <div id="cluster-profile" style="margin-top: 12px; font-size: 0.8125rem; color: var(--ink-2);">
                     </div>
@@ -521,7 +512,7 @@
             <div class="right-panel">
                 <div id="detail-drawer" class="detail-drawer">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                        <h2 id="detail-title">Select a trailer to begin...</h2>
+                        <h2 id="detail-title">Pick a trailer</h2>
                         <a id="imdb-link" href="#" target="_blank" rel="noopener noreferrer" class="imdb-link"
                             style="display: none;">
                             IMDb ↗
@@ -533,7 +524,7 @@
                     <div id="detail-content" class="detail-content">
                         <div id="detail-clusters" style="margin-top: 12px;"></div>
                         <a id="trailer-view-link" class="trailer-link" href="#" style="display: none;">
-                            Open TrailerView →
+                            Open in Trailer View →
                         </a>
 
                         <div id="trailer-player-container" style="margin-top: 16px; display: none;">

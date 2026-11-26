@@ -95,7 +95,7 @@ def main():
     assert "<!-- site-config -->" in page
     (out / "trailerView.html").write_text(page.replace("<!-- site-config -->", config))
     # the Trailer View used to be the home page: send its old links (/?id=...) on
-    hop = '<script>if (new URLSearchParams(location.search).get("id")) location.replace("trailerView.html" + location.search);</script>'
+    hop = '<script>if (new URLSearchParams(location.search).get("id")) location.replace("/trailerView.html" + location.search);</script>'
     (out / "index.html").write_text((VIZ / "index.html").read_text().replace("<head>", "<head>\n  " + hop, 1))
     for f in ["trailerView.js", "trailerScope.html", "trailerScope.js", "ytmedia.js"]:
         shutil.copy(VIZ / f, out / f)
