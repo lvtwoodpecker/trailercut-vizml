@@ -359,6 +359,39 @@
       line-height: 1.4;
     }
 
+
+    .reason { margin: 0 0 6px; font-size: 13px; }
+    .reason b { font-weight: 600; }
+    .cdot { fill: var(--muted); }
+    .cdot.me { fill: var(--matched); stroke: var(--surface); stroke-width: 2; }
+    /* this trailer among all of them: scatter left, its numbers right */
+    .cmp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    @media (min-width: 1000px) { .cmp { grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr); align-items: start; } }
+    .cmp-stats { margin: 0; display: grid; gap: 14px; }
+    .cmp-stats div { display: grid; gap: 1px; }
+    .cmp-stats dt { font-size: 12px; color: var(--ink-2); }
+    .cmp-stats dd { margin: 0; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .cmp-stats .dist { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .cmp-stats .dist rect { fill: var(--axis); }
+    .cmp-stats .dist line { stroke: var(--matched); stroke-width: 2; }
+    .cmp-stats .pair { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 2px 28px; }
+    .cmp-stats .pair small { font-size: 12px; color: var(--ink-2); font-weight: 400; margin-right: 6px; }
+    .cdot { fill: var(--muted); }
+    .cdot.me { fill: var(--matched); stroke: var(--surface); stroke-width: 2; }
+    details.tbl { margin-top: 6px; font-size: 12px; }
+    details.tbl summary { cursor: pointer; color: var(--ink-2); }
+    summary:focus-visible { outline: 2px solid var(--matched); outline-offset: 2px; }
+    .tbl-wrap { max-height: 260px; overflow: auto; margin-top: 6px; border-top: 1px solid var(--grid); }
+    .tbl table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    .tbl th { position: sticky; top: 0; background: var(--surface); text-align: right; font-weight: 600; color: var(--ink-2); padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+    .tbl td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); color: var(--ink); }
+    .tbl tbody tr { cursor: pointer; }
+    .tbl tbody tr:hover, .tbl tbody tr:focus-visible { background: var(--grid); outline: none; }
+    #tbl tr.cur td { background: var(--grid); font-weight: 600; }
+    #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; max-width: 380px; z-index: 10; }
+    #tip .pair { display: flex; gap: 4px; margin-bottom: 4px; }
+    #tip img { width: 180px; border-radius: 4px; display: block; }
     /* Model explanations */
     .why-h {
       font-size: 12px;
@@ -794,6 +827,9 @@
         <h2>Trailer order vs film order</h2><svg id="order"></svg>
       </section>
     </div>
+    <section class="card"><h2>Compared with all trailers</h2>
+      <div class="cmp"><svg id="cmp" role="img" aria-label="Every trailer by how closely it follows film order and how far into the film it draws from"></svg>
+        <dl class="cmp-stats" id="cmp-stats"></dl></div></section>
   </main>
 
   <!-- On-demand trailer preparation overlay -->

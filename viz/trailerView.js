@@ -12,6 +12,7 @@ let preview = null;              // hover while paused: {trailer?, film?}
 let focusFilm = null;            // a clicked film shot that isn't in the trailer
 let selectedFilm = null;
 let expanded = null;             // feature group opened in the "why" bars
+let ALL = [];                    // every trailer's order numbers (data/index.json), for the comparison panel
 let allGroups = false;           // the "why" bars show the top 3 groups unless opened
 const API = location.origin;   // the server that serves this page
 
@@ -40,6 +41,11 @@ function hideLoading() {
 
 let filmTitles = new Map();
 
+const FEAT_LABEL = { story_pos: "position in film", act: "act", synopsis_pos: "position in the plot summary",
+  dlg_words: "words spoken", dlg_rate: "words per second", dlg_has: "has dialogue", dlg_sentiment: "dialogue tone",
+  scale_ecu: "extreme close-up", scale_cu: "close-up", scale_ms: "medium shot", scale_fs: "full shot", scale_ls: "long shot",
+  scale_width: "shot width", shot_len: "shot length (s)", visual_change: "visual change" };
+const featLabel = n => FEAT_LABEL[n] || n.replace(/^c_/, "").replace(/_/g, " ");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const pad4 = i => String(i).padStart(4, "0");
@@ -105,6 +111,8 @@ async function init() {
     await loadClusters();
 
     const index = await d3.json("/api/films");
+    // every trailer's order numbers for the comparison panel; absent when the page data is built one film at a time
+    try { ALL = ((await d3.json("data/index.json")) || []).filter(d => d.order != null); } catch (e) { ALL = []; }
     index.sort((a, b) => d3.ascending(a.title, b.title));
 
     const input = document.getElementById("search");
@@ -648,6 +656,7 @@ function drawNow(h) {
           <span>What moved the model's score, vs the average shot</span>
           <span>blue: toward the trailer · red: away</span>
         </div>
+        <p class="reason" id="reason"></p>
         <svg id="shap"></svg>
       </div>
     </div>
@@ -659,6 +668,37 @@ function drawNow(h) {
 
 // the reasons chart is sized to the panel; redraw it whenever the panel's width settles or changes
 let shapFor = null, panelW = 0;
+
+// the top reason in words, with the shot's own value where we have it
+const UP = "Picked for", DOWN = "Passed over for";
+function reasonText(i, g, v) {
+  const f = D.film, det = f.detail[i], val = n => det ? det[f.detail_features.indexOf(n)][0] : null;
+  const top = n => {   // the group's strongest named feature for this shot
+    if (!det) return null;
+    return f.detail_features.map((x, k) => ({ x, k })).filter(d => groupOf(d.x) === n)
+      .sort((a, b) => Math.abs(det[b.k][1]) - Math.abs(det[a.k][1]))[0];
+  };
+  const p = f.story_pos[i], pct = Math.round(100 * p);
+  const where = p < 0.2 ? "early" : p > 0.8 ? "late" : p < 0.4 ? "first half" : p > 0.6 ? "second half" : "the middle";
+  const lens = f.shot_len.filter(x => x != null).sort(d3.ascending), med = d3.quantileSorted(lens, 0.5);
+  let what;
+  if (g === "position") what = `<b>its place in the film</b>: ${where} (${pct}% in)`;
+  else if (g === "editing") {
+    const t = top("editing");
+    if (t && t.x === "visual_change") what = `<b>its movement</b>: ${val("visual_change") > 0.15 ? "a lot of change within the shot" : "little change within the shot"}`;
+    else what = `<b>its length</b>: ${d3.format(".1f")(f.shot_len[i])} s (${f.shot_len[i] > med ? "longer" : "shorter"} than the film's typical ${d3.format(".1f")(med)} s)`;
+  } else if (g === "scale") {
+    const s = ["scale_ecu", "scale_cu", "scale_ms", "scale_fs", "scale_ls"], name = { scale_ecu: "an extreme close-up", scale_cu: "a close-up", scale_ms: "a medium shot", scale_fs: "a full shot", scale_ls: "a long shot" };
+    what = det ? `<b>its framing</b>: ${name[s.reduce((a, b) => val(a) >= val(b) ? a : b)]}` : `<b>its framing</b>`;
+  } else if (g === "content") {
+    const t = top("content");
+    what = t ? `<b>what's in it</b>: ${featLabel(t.x)}` : `<b>what's in it</b>`;
+  } else if (g === "dialogue") {
+    what = det ? (val("dlg_has") > 0 ? `<b>its dialogue</b>: ${Math.round(val("dlg_words"))} words` : `<b>its dialogue</b>: none`) : `<b>its dialogue</b>`;
+  } else what = v >= 0 ? `<b>its overall look</b>: close to typical trailer shots` : `<b>its overall look</b>: unlike typical trailer shots`;
+  return `${v >= 0 ? UP : DOWN} ${what}`;
+}
+
 new ResizeObserver(([e]) => {
     const w = Math.round(e.contentRect.width);
     if (w !== panelW) { panelW = w; if (D) drawShap(shapFor); }
@@ -693,6 +733,8 @@ function drawShap(i) {
     // only the top reason is reliable across retrained models (76% vs 55% for the top-3 set, shap_stability.json):
     // it gets the weight, the rest read as secondary
     const top = rows[0];
+    const g0 = f.shap_groups.map((gk, kk) => ({ gk, v: f.shap[i][kk] })).sort((a, b) => Math.abs(b.v) - Math.abs(a.v))[0];
+    d3.select("#reason").html(reasonText(i, g0.gk, g0.v));   // the chart's top row, in words
     g.append("text").attr("y", 14).style("font-weight", r => r === top ? 600 : 400)
         .style("fill", r => r === top ? null : "var(--ink-2)")
         .text(r => r.group ? `${r.key === expanded ? "▾" : r.key === "clip" || !detail ? " " : "▸"} ${r.label}` : r.label);
@@ -721,7 +763,57 @@ function groupOf(n) {
     return "editing";
 }
 
-function drawAll() { drawMain(); drawOrder(); drawTable(); render(); }
+function drawAll() { drawMain(); drawOrder(); drawCompare(); drawTable(); render(); }
+
+// where this trailer sits among all 1,082: how closely it follows film order (x) and how far into the
+// film it draws from on average (y, as in the order chart above); click a dot to open that trailer
+function drawCompare() {
+  const me = ALL.find(d => d.id === D.id), host = document.getElementById("cmp").parentNode;
+  const card = document.getElementById("cmp").closest(".card");
+  card.style.display = me ? "" : "none";
+  if (!me) return;
+  const w = Math.max(280, (innerWidth >= 1000 ? host.clientWidth * 1.6 / 2.6 - 8 : host.clientWidth)), H = 300;
+  const m = { l: 44, r: 12, t: 24, b: 36 };
+  const svg = d3.select("#cmp").attr("width", w).attr("height", H).attr("viewBox", `0 0 ${w} ${H}`);
+  svg.selectAll("*").remove();
+  const x = d3.scaleLinear([-1, 1], [m.l, w - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
+  svg.append("line").attr("class", "diag").attr("x1", x(0)).attr("x2", x(0)).attr("y1", m.t).attr("y2", H - m.b);
+  svg.append("text").attr("class", "lbl-2").attr("x", x(0) + 4).attr("y", m.t + 10).text("no order");
+  svg.append("text").attr("class", "lbl-2").attr("x", w - m.r).attr("y", m.t + 10).attr("text-anchor", "end").text("in film order");
+  svg.append("text").attr("class", "lbl-2").attr("x", m.l + 4).attr("y", m.t + 10).text("backwards");
+  svg.append("g").selectAll("circle").data(ALL.filter(d => d.id !== me.id)).join("circle").attr("class", "cdot")
+    .attr("cx", d => x(d.order)).attr("cy", d => y(d.mean_pos)).attr("r", 2.5)
+    .style("cursor", "pointer")
+    .on("pointermove", (ev, d) => showTip(ev, `<div>${esc(d.title)}</div>`)).on("pointerleave", hideTip)
+    .on("click", (ev, d) => { hideTip(); load(d.id); });
+  svg.append("circle").attr("class", "cdot me").attr("cx", x(me.order)).attr("cy", y(me.mean_pos)).attr("r", 6);
+  axes(svg, x, y, w, H, m, d3.format(".1f"), "follows film order", "");
+  svg.append("text").attr("class", "lbl-2").attr("x", 4).attr("y", 10).text("average position in the film");
+  // its numbers, each as a percentile among all trailers
+  const ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+  const pct = (k, v) => `${ord(Math.round(100 * d3.mean(ALL, d => d[k] < v)))} percentile`;
+  const rows = [
+    ["Follows film order (rank correlation)", d3.format(".2f")(me.order), pct("order", me.order)],
+    ["Average position in the film", `${Math.round(100 * me.mean_pos)}%`, pct("mean_pos", me.mean_pos)],
+  ];
+  // a quiet histogram of all trailers per number, this one marked, the percentile beside it
+  const keys = ["order", "mean_pos", "first", "last"], dom = { order: [-1, 1], mean_pos: [0, 1], first: [0, 1], last: [0, 1] };
+  const hist = (k, W2 = 140) => {
+    const H2 = 18, x2 = d3.scaleLinear(dom[k], [0, W2]);
+    const bins = d3.bin().domain(dom[k]).thresholds(28)(ALL.map(d => d[k]));
+    const y2 = d3.scaleLinear([0, d3.max(bins, b => b.length)], [0, H2 - 2]);
+    return `<svg width="${W2}" height="${H2}" aria-hidden="true">` +
+      bins.map(b => `<rect x="${x2(b.x0) + 0.5}" width="${Math.max(0, x2(b.x1) - x2(b.x0) - 1)}" y="${H2 - y2(b.length)}" height="${y2(b.length)}"></rect>`).join("") +
+      `<line x1="${x2(me[k])}" x2="${x2(me[k])}" y1="0" y2="${H2}"></line></svg>`;
+  };
+  // first and last quarter share one row, side by side
+  const ends = ["first", "last"].map(k => `<div><dd><small>${k}</small>${Math.round(100 * me[k])}%</dd>` +
+    `<div class="dist">${hist(k, 96)}<span>${pct(k, me[k])}</span></div></div>`).join("");
+  d3.select("#cmp-stats").html(rows.map(([k, v, s], n) =>
+    `<div><dt>${k}</dt><dd>${v}</dd><div class="dist">${hist(keys[n])}<span>${s}</span></div></div>`).join("") +
+    `<div><dt>Shots from the film's first and last quarter</dt><div class="pair">${ends}</div></div>`);
+}
+
 
 // the same shots as a table (the accessible twin of the timeline); a row click seeks there
 function drawTable() {
