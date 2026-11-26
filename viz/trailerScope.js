@@ -118,6 +118,134 @@ const zoomBehavior = d3.zoom()
 
 zoomSurface.call(zoomBehavior);
 
+// Axis labels: UMAP axes mean nothing by themselves, but in most views one feature runs almost straight
+// along one of them. Each view is rotated (UMAP's rotation and flip are arbitrary) so x follows the
+// feature it lines up with best, then an axis gets an arrow label only when a feature's rank correlation
+// with it is at least AXIS_MIN_RHO. ?rotate=0 keeps the raw layout.
+const AXIS_MIN_RHO = 0.6;
+const ROTATE = new URLSearchParams(location.search).get("rotate") !== "0";
+const CONCEPTS = ["explosion", "gun", "fight", "chase", "running", "kiss", "crying", "scream", "laugh", "crowd",
+    "night", "day_outdoor", "creature", "space", "water", "city", "interior", "text_card", "logo", "blood"];
+const FEATURE_GROUPS = {
+    pacing: ["n_shots", "duration", "cuts_per_min", "shot_len_median", "shot_len_cv", "pace_q1", "pace_q2", "pace_q3", "pace_q4", "pace_accel"],
+    audio: ["rms_mean_db", "rms_dynamic_range", "quiet_frac", "onset_rate", "centroid_mean", "rms_q1", "rms_q2", "rms_q3", "rms_q4"],
+    story: ["match_rate", "story_mean", "story_median", "story_max", "story_std", "first_act_share", "final_act_share", "order_corr"],
+    dialogue: ["dlg_words_per_shot", "dlg_sentiment_mean", "dlg_sentiment_std", "dlg_neg_share"],
+    visual: ["scale_width_mean", ...CONCEPTS.map(c => `c_${c}_mean`)],
+    speech: ["speech_share", "words_per_min", "lines_found", "sync_rate"]
+};
+FEATURE_GROUPS.all = Object.values(FEATURE_GROUPS).flat();
+// what "more of this feature" looks like, in plain words
+const AXIS_TEXT = {
+    n_shots: "more shots", duration: "longer trailer", cuts_per_min: "faster cutting", shot_len_median: "longer shots",
+    shot_len_cv: "more uneven cutting", pace_q1: "faster opening", pace_q2: "faster 2nd quarter", pace_q3: "faster 3rd quarter",
+    pace_q4: "faster finish", pace_accel: "speeds up toward the end",
+    rms_mean_db: "louder", rms_dynamic_range: "bigger loud/quiet swings", quiet_frac: "more quiet moments",
+    onset_rate: "more hits and beats", centroid_mean: "brighter sound", rms_q1: "louder opening", rms_q2: "louder 2nd quarter",
+    rms_q3: "louder 3rd quarter", rms_q4: "louder finish",
+    match_rate: "more film footage", story_mean: "later in the film", story_median: "later in the film",
+    story_max: "reaches deeper into the film", story_std: "spread across the film", first_act_share: "more first act",
+    final_act_share: "more final act", order_corr: "keeps the film's order",
+    dlg_words_per_shot: "more words per shot", dlg_sentiment_mean: "more upbeat lines", dlg_sentiment_std: "more mixed-mood lines",
+    dlg_neg_share: "more negative lines",
+    scale_width_mean: "wider shots", speech_share: "more talking", words_per_min: "faster talk", lines_found: "more film lines",
+    sync_rate: "lines play over their own scene",
+    c_day_outdoor_mean: "more daytime outdoors", c_night_mean: "more night scenes", c_text_card_mean: "more title cards",
+    c_space_mean: "more outer space", c_kiss_mean: "more kissing", c_crying_mean: "more crying", c_scream_mean: "more screaming",
+    c_laugh_mean: "more laughing", c_running_mean: "more running", c_interior_mean: "more interiors", c_city_mean: "more city"
+};
+const axisText = f => AXIS_TEXT[f] ?? `more ${f.replace(/^c_|_mean$/g, "").replace(/_/g, " ")}${f.startsWith("c_") ? "s" : ""}`;
+const axisInfo = {};   // "space_modality" -> {x, y}: {feature, rho} or null
+
+function ranks(v) {
+    // average ranks over the finite values; NaN stays NaN
+    const idx = v.map((x, i) => i).filter(i => Number.isFinite(v[i])).sort((a, b) => v[a] - v[b]);
+    const r = new Array(v.length).fill(NaN);
+    for (let i = 0; i < idx.length;) {
+        let j = i;
+        while (j + 1 < idx.length && v[idx[j + 1]] === v[idx[i]]) j++;
+        for (let k = i; k <= j; k++) r[idx[k]] = (i + j) / 2;
+        i = j + 1;
+    }
+    return r;
+}
+
+function pearson(a, b) {
+    let n = 0, sa = 0, sb = 0;
+    for (let i = 0; i < a.length; i++) if (Number.isFinite(a[i]) && Number.isFinite(b[i])) { n++; sa += a[i]; sb += b[i]; }
+    if (n < 10) return 0;
+    const ma = sa / n, mb = sb / n;
+    let ab = 0, aa = 0, bb = 0;
+    for (let i = 0; i < a.length; i++) if (Number.isFinite(a[i]) && Number.isFinite(b[i])) {
+        const da = a[i] - ma, db = b[i] - mb; ab += da * db; aa += da * da; bb += db * db;
+    }
+    return aa && bb ? ab / Math.sqrt(aa * bb) : 0;
+}
+
+// the feature that best follows this coordinate (Spearman), as {feature, rho}
+function bestFeature(coord, featRanks) {
+    const rc = ranks(coord);
+    let best = { feature: null, rho: 0 };
+    for (const [f, rf] of featRanks) {
+        const rho = pearson(rc, rf);
+        if (Math.abs(rho) > Math.abs(best.rho)) best = { feature: f, rho };
+    }
+    return best;
+}
+
+function orientMaps(data) {
+    const allRanks = new Map(FEATURE_GROUPS.all.filter(f => f in data[0]).map(f => [f, ranks(data.map(d => +d[f]))]));
+    for (const m of Object.keys(FEATURE_GROUPS)) {
+        const featRanks = [...allRanks].filter(([f]) => FEATURE_GROUPS[m].includes(f));
+        for (const sp of ["base", "res"]) {
+            const kx = `umap_${sp}_${m}_x`, ky = `umap_${sp}_${m}_y`;
+            if (!data.every(d => Number.isFinite(d[kx]) && Number.isFinite(d[ky]))) continue;
+            let x = data.map(d => d[kx]), y = data.map(d => d[ky]);
+            if (ROTATE) {
+                // try every angle (2 degree steps), keep the one whose x axis follows a feature most closely
+                let bestA = 0, bestRho = 0;
+                for (let deg = 0; deg < 180; deg += 2) {
+                    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+                    const rho = bestFeature(x.map((xi, i) => xi * c + y[i] * s), featRanks).rho;
+                    if (Math.abs(rho) > Math.abs(bestRho)) { bestA = a; bestRho = rho; }
+                }
+                const c = Math.cos(bestA), s = Math.sin(bestA);
+                const sx = Math.sign(bestRho) || 1;   // flip so the feature grows to the right
+                [x, y] = [x.map((xi, i) => sx * (xi * c + y[i] * s)), y.map((yi, i) => sx * (-x[i] * s + yi * c))];
+                if (bestFeature(y, featRanks).rho < 0) y = y.map(v => -v);   // and grows upward
+                data.forEach((d, i) => { d[kx] = x[i]; d[ky] = y[i]; });
+            }
+            const keep = b => Math.abs(b.rho) >= AXIS_MIN_RHO ? b : null;
+            axisInfo[`${sp}_${m}`] = { x: keep(bestFeature(x, featRanks)), y: keep(bestFeature(y, featRanks)) };
+        }
+    }
+}
+
+const axisLabels = svg.append("g").attr("class", "axis-labels");
+
+function drawAxisLabels() {
+    const info = axisInfo[`${currentSpace}_${currentModality}`] || {};
+    const left = margin.left, right = margin.left + width, top = margin.top, bottom = margin.top + height;
+    const rows = [];
+    if (info.x) {
+        const up = info.x.rho > 0;   // the feature grows to the right
+        rows.push({ key: "x", a: info.x, text: up ? `${axisText(info.x.feature)} →` : `← ${axisText(info.x.feature)}`,
+            transform: `translate(${up ? right : left},${bottom + 20})`, anchor: up ? "end" : "start" });
+    }
+    if (info.y) {
+        const up = info.y.rho > 0;   // the feature grows upward
+        rows.push({ key: "y", a: info.y, text: up ? `${axisText(info.y.feature)} →` : `← ${axisText(info.y.feature)}`,
+            transform: `translate(${left - 12},${up ? top : bottom}) rotate(-90)`, anchor: up ? "end" : "start" });
+    }
+    axisLabels.selectAll("text").data(rows, r => r.key).join("text")
+        .attr("class", "axis-label")
+        .attr("transform", r => r.transform)
+        .attr("text-anchor", r => r.anchor)
+        .text(r => r.text)
+        .selectAll("title").data(r => [r]).join("title")
+        .text(r => `rank correlation with this axis: ${Math.abs(r.a.rho).toFixed(2)}`);
+}
+
 const baseClusterColors = ["#f43f5e", "#3b82f6"];
 const colorScale = d3.scaleOrdinal()
     .domain([0, 1])
@@ -256,6 +384,7 @@ const csvPaths = ["/data/features/clusters.csv", "data/features/clusters.csv"];
 
 loadClustersCsv(csvPaths).then(data => {
     globalData = parseData(data);
+    orientMaps(globalData);
     populateGenreDropdown();
     renderPlot(false);
     setupEventListeners();
@@ -456,6 +585,7 @@ function renderPlot(animate = true) {
     updateSelectionHighlight();
     applyFilters();
     updateLegendAndDocs();
+    drawAxisLabels();
 }
 
 function getLegendKey(d) {
