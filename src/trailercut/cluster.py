@@ -14,7 +14,8 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 import json
 
 import matplotlib
-matplotlib.use("TkAgg")
+import os
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 import umap
 
