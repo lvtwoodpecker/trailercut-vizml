@@ -14,11 +14,6 @@ svg.append("rect")
         resetSelection();
     });
 
-// UMAP axes have no units: say what the layout means instead of ticking them
-svg.append("text").attr("class", "axis-note")
-    .attr("x", margin.left).attr("y", height + margin.top + margin.bottom - 8)
-    .text("Similarity map (UMAP): nearby trailers have similar features. The axes have no units.");
-
 const plotArea = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
