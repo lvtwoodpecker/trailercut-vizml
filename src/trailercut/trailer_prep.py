@@ -97,6 +97,13 @@ def process(model, path):
     if csv_out.exists() and (AUDIO_DIR / f"{imdb_id}.wav").exists():
         return
     fps, _, _ = probe(path)
+    if csv_out.exists():
+        # the shot list is curated (CLIP split pass, labels index it): never re-cut, only refill what's missing
+        df = pd.read_csv(csv_out)
+        if not all((FRAMES_DIR / imdb_id / f"shot_{s:04d}_img_{k}.jpg").exists() for s in df.shot_idx for k in range(3)):
+            extract_keyframes(path, df, FRAMES_DIR / imdb_id, fps)
+        extract_audio(path, AUDIO_DIR / f"{imdb_id}.wav")
+        return
     scenes, n = detect_shots(model, path)
     df = pd.DataFrame(scenes, columns=["frame_start", "frame_end"])
     df.insert(0, "shot_idx", np.arange(len(df)))

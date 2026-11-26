@@ -40,9 +40,48 @@ class YTMedia extends EventTarget {
 
   async load(videoId, t0 = 0) {
     await this.ready;
-    this._paused = true; this._hold = false; this._t = t0; this._id = videoId;
-    this._started = false; this._target = this._startAt = t0 || null;
-    this.p.cueVideoById({ videoId });
+    this._paused = true; this._t = t0; this._id = videoId;
+    this._started = false; this._target = t0 || null;
+
+    if (t0 > 0) {
+      const wasMuted = this.muted;
+      this.muted = true;
+      this._hold = false;
+      this._startAt = null;
+      this.p.loadVideoById({ videoId, startSeconds: t0 });
+
+      await new Promise(res => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          clearInterval(poll);
+          this._hold = false;
+          this._paused = true;
+          this.p.pauseVideo();
+          this.p.seekTo(t0, true);
+          this._target = t0;
+          this.muted = wasMuted;
+          this._emit("pause");
+          res();
+        };
+
+        const poll = setInterval(() => {
+          if (!this._started || !this.p.getCurrentTime) return;
+          const now = this.p.getCurrentTime();
+          // Wait until YouTube actually jumps to t0 AND plays ~0.15s so the frame paints
+          if (now >= t0 + 0.12 && now < t0 + 3) {
+            finish();
+          }
+        }, 50);
+
+        setTimeout(finish, 3000);
+      });
+    } else {
+      this._hold = false;
+      this._startAt = null;
+      this.p.cueVideoById({ videoId });
+    }
   }
 
   get currentTime() {

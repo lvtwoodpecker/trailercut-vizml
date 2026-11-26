@@ -152,6 +152,7 @@ def speech(imdb_id, runtime):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--detail", type=int, default=60, help="top-ranked film shots per film with feature detail")
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films; their index.json entries are replaced")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     curves = {}  # computed here (cached per trailer), so the views don't depend on the RQ2 feature step
@@ -169,7 +170,7 @@ def main():
     tf = FEATURES / "trailers.parquet"
     order = (pd.read_parquet(tf, columns=["imdb_id", "order_corr", "story_mean", "first_act_share", "final_act_share"])
              .set_index("imdb_id") if tf.exists() else pd.DataFrame())
-    for i in tqdm(sorted(films.imdb_id.unique())):
+    for i in tqdm(sorted(set(films.imdb_id) & set(a.ids)) if a.ids else sorted(films.imdb_id.unique())):
         curves[i] = curve(i)
         d = trailer_json(i, curves, films, preds, shap, a.detail)
         d["yt"] = yt.get(i)   # the page plays the trailer from YouTube (the video we downloaded)
@@ -180,6 +181,10 @@ def main():
                           shots=len(matched), match_rate=r(np.mean(matched)),
                           **({} if o is None else dict(order=r(o.order_corr), mean_pos=r(o.story_mean),
                                                        first=r(o.first_act_share), last=r(o.final_act_share)))))
+    if a.ids and (OUT / "index.json").exists():   # keep every other film's entry
+        done = {d["id"] for d in index}
+        index = sorted([d for d in json.loads((OUT / "index.json").read_text()) if d["id"] not in done] + index,
+                       key=lambda d: d["id"])
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))
     print(len(index), "trailers ->", OUT)
 

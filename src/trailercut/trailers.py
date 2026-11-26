@@ -55,19 +55,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films; refetched if the video file is missing")
     a = ap.parse_args()
 
     TRAILERS.mkdir(parents=True, exist_ok=True)
     # the links in use (MovieNet's or a replacement); new films get theirs through `swap` first
     rows = [r for r in csv.DictReader(open(STATUS))] if STATUS.exists() else \
            [r for r in csv.DictReader(open(IDS)) if r["youtube_id"]]
+    if a.ids:
+        rows = [r for r in rows if r["imdb_id"] in a.ids]
     if a.limit:
         rows = rows[: a.limit]
 
     done = {}
     if STATUS.exists():
         done = {r["imdb_id"]: r for r in csv.DictReader(open(STATUS))}
-    todo = [r for r in rows if done.get(r["imdb_id"], {}).get("status") != "ok"]
+    todo = [r for r in rows if done.get(r["imdb_id"], {}).get("status") != "ok"
+            or (a.ids and not any(TRAILERS.glob(f"{r['imdb_id']}.*")))]
 
     with ThreadPoolExecutor(a.workers) as ex:
         futs = [ex.submit(fetch, r["imdb_id"], r["youtube_id"]) for r in todo]

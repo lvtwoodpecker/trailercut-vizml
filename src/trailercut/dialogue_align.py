@@ -74,8 +74,12 @@ def align_film(imdb_id):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films")
+    a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    ids = sorted(p.stem for p in ASR.glob("*.json"))
+    ids = sorted(p.stem for p in ASR.glob("*.json") if not a.ids or p.stem in a.ids)
     stats = []
     for i in tqdm(ids):
         df, lang = align_film(i)

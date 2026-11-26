@@ -40,13 +40,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="small")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--ids", nargs="*", default=None, help="only these films")
     a = ap.parse_args()
     from faster_whisper import WhisperModel
     cuda = torch.cuda.is_available()
     model = WhisperModel(a.model, device="cuda" if cuda else "cpu", compute_type="float16" if cuda else "int8")
     out = OUT if a.model == "small" else CACHE / f"trailer_asr_{a.model}"
     out.mkdir(parents=True, exist_ok=True)
-    todo = [p for p in sorted(AUDIO.glob("*.wav")) if not (out / f"{p.stem}.json").exists()]
+    todo = [p for p in sorted(AUDIO.glob("*.wav")) if not (out / f"{p.stem}.json").exists()
+            and (not a.ids or p.stem in a.ids)]
     if a.limit:
         todo = todo[: a.limit]
     for p in tqdm(todo):
