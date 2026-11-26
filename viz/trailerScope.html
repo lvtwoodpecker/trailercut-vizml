@@ -433,7 +433,9 @@
             margin-top: 6px;
             margin-right: 6px;
         }
-    </style>
+        .archetype-note { font-size: 0.75rem; color: var(--muted); margin: 6px 0 10px; }
+    .axis-note { fill: var(--muted); font-size: 11px; }
+  </style>
 </head>
 
 <body>
@@ -505,6 +507,7 @@
                         Combines all extracted features into a single UMAP projection to group trailers by overall
                         structural marketing archetype.
                     </p>
+                    <p id="archetype-note" class="archetype-note"></p>
                     <div id="legend-items" class="legend-items"></div>
                     <div id="cluster-profile" style="margin-top: 12px; font-size: 0.8125rem; color: var(--ink-2);">
                     </div>

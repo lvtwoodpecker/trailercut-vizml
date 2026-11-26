@@ -492,8 +492,27 @@ def plot_rq2_diagnostics(full_report, save_path=FIGURES / "rq2_stability_and_per
     print(f"Saved diagnostic figure -> {save_path}")
 
 
+def keep_numbering(labels, ids, prev, col):
+    """Renumber clusters to match the previous clusters.csv, so names written for cluster 0, 1, ... stay on
+    the same groups after a rerun: each new cluster takes the number of the old one it overlaps most."""
+    if prev is None or col not in prev:
+        return labels
+    old = pd.Series(ids).map(prev[col])
+    ok = old.notna().values & (labels >= 0)
+    if not ok.any():
+        return labels
+    ct = pd.crosstab(labels[ok], old[ok].astype(int))
+    r, c = linear_sum_assignment(-ct.values)
+    m = {ct.index[i]: ct.columns[j] for i, j in zip(r, c)}
+    spare = iter(range(max(ct.columns.max(), labels.max()) + 1, 10 ** 6))
+    m.update({k: next(spare) for k in np.unique(labels) if k >= 0 and k not in m})
+    return np.array([m.get(k, k) for k in labels])
+
+
 def main():
     df = pd.read_parquet(FEATURES / "trailers.parquet")
+    prev_path = FEATURES / "clusters.csv"
+    prev = pd.read_csv(prev_path).set_index("imdb_id") if prev_path.exists() else None
 
     # Standardize column types
     df["decade"] = pd.to_numeric(df["decade"], errors="coerce").astype("Int64")
@@ -515,6 +534,7 @@ def main():
     for name, cols in [("all", all_cols), *GROUPS.items()]:
         X_base = prep(df, cols)
         labels, r = analyze(df, cols, name)
+        labels = keep_numbering(np.asarray(labels), df.imdb_id.values, prev, f"cluster_{name}")
         out[f"cluster_{name}"] = labels
         r["profiles"] = cluster_profiles(df, X_base, cols, labels)
         report_baseline.append(r)
@@ -541,6 +561,7 @@ def main():
         X_res = residualize_features(X_base, df)
 
         labels, r = analyze(df, X_res, name)
+        labels = keep_numbering(np.asarray(labels), df.imdb_id.values, prev, f"cluster_res_{name}")
         out[f"cluster_res_{name}"] = labels
         r["profiles"] = cluster_profiles(df, X_res, cols, labels)
         report_residual.append(r)

@@ -3,6 +3,25 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-26: locked test set, story position's significance, trailer depth
+
+**Locked test** [`model_heldout.json`] 20% of films (217) set aside before any fit; each model trained
+once on the other 865. Lift: full 2.86x, without position 2.77x, readable 2.68x, CLIP only 2.46x, length
+only 1.73x, position only 1.40x, random 1.04x. Cross-validated full is 2.75x, so no sign of overfitting.
+PARAMS were tuned on folds that include these films, a small leak.
+
+**Story position** (paired by film, precision at trailer length): with vs without position, all 1,082
+films out-of-fold: +0.05x lift (95% CI 0.01 to 0.09), better on 461 films, worse on 385, t-test p 0.012,
+Wilcoxon p 0.008. Locked test: +0.10x (CI 0.01 to 0.18), p 0.025. Position alone vs random: +0.34x,
+p < 1e-27. Read: position predicts on its own and adds a small, real gain on top of everything else.
+
+**Trailer depth** [`rq1.json` `depth`, last 1% of the film left out for credits]: 83% of trailers use a
+shot from the film's last 10% (median deepest shot 95% in), but 90% of a typical trailer's shots come
+from before 82%.
+
+**RQ2 clusters** rerun on the current trailers table (no unknown decades); cluster numbers now kept
+across reruns (`keep_numbering`), so the names on TrailerScope stay on the same groups.
+
 ## 2026-11-12: other backbones with the blank filter off, and a VLM as same-shot verifier
 
 **Backbones** [`backbone_trial_{tag}_blank2.0.json`, cluster] The blank cutoff (0.9) was tuned on B/32, so

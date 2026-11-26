@@ -14,6 +14,11 @@ svg.append("rect")
         resetSelection();
     });
 
+// UMAP axes have no units: say what the layout means instead of ticking them
+svg.append("text").attr("class", "axis-note")
+    .attr("x", margin.left).attr("y", height + margin.top + margin.bottom - 8)
+    .text("Similarity map (UMAP): nearby trailers have similar features. The axes have no units.");
+
 const plotArea = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -588,6 +593,12 @@ function updateLegendAndDocs() {
     const doc = modalityDocs[currentModality] || modalityDocs.all;
     d3.select("#info-heading").text(doc.title);
     d3.select("#info-description").text(doc.desc);
+    // what an archetype is, and what the projection choice does
+    d3.select("#archetype-note").text(
+        "Archetypes are groups k-means finds in these features; each name describes its group's average trailer. " +
+        (currentSpace === "res"
+            ? "Residualized: genre and decade are regressed out first, so the groups show style that genre and era don't explain."
+            : "Baseline: raw features, so genre and decade still shape the groups."));
 
     let entries = [];
     let getItemColor = d => colorScale(d.key);

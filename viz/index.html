@@ -384,11 +384,13 @@
         <h2>Can a model pick the trailer's shots?</h2>
         <p class="sub">Model picks vs random picks, per film.</p>
         <svg id="models"></svg>
+        <p class="sub" id="heldout-sub"></p>
       </div>
 
       <div class="card">
         <h2>Where in the film do trailers take their shots from?</h2>
         <p class="sub" id="story-sub"></p>
+        <p class="sub" id="depth-sub"></p>
         <svg id="story"></svg>
       </div>
     </div>
@@ -607,8 +609,12 @@
       d3.select("#lede").text(`How often each kind of shot makes the trailer, vs the average shot, across ${D.n_films} films.`);
       const draw = () => {
         if (D.models) models(D.models, D.best_model);
+        if (D.heldout) d3.select("#heldout-sub").text(`On ${D.heldout.test_films} films kept out of training: ${D.heldout.full.toFixed(2)}x. ` +
+          `Story position adds ${D.heldout.position_gain.toFixed(2)}x on top of the rest (95% CI ${D.heldout.position_ci[0].toFixed(2)} to ${D.heldout.position_ci[1].toFixed(2)}, p = ${D.heldout.position_p.toFixed(3)}).`);
         ebm(D.ebm, D.ebm_lift);
         story(D.story);
+        if (D.depth) d3.select("#depth-sub").text(`How deep: ${Math.round(100 * D.depth.reach_last_10)}% of trailers use a shot from the film's last 10%, ` +
+          `but 90% of a typical trailer's shots come from before ${Math.round(100 * D.depth.median_p90)}% in.`);
         for (const k of ["scale", "length", "distinct", "dialogue"]) { dotPlot(k, D[k]); sub(k + "-sub", D[k]); }
         if (D.dialogue_films) { const el = d3.select("#dialogue-sub"); el.text(`${el.text()} ${D.dialogue_films} films with subtitles.`); }
         dotPlot("content", D.content, 120);

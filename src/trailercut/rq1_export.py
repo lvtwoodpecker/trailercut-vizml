@@ -157,6 +157,24 @@ def main():
             out["ebm"].append(cur)
         out["ebm_lift"] = e["metrics"]["lift"]
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    ho = FEATURES / "model_heldout.json"
+    if ho.exists():   # the locked test (films never trained on) and story position's paired test
+        h = json.loads(ho.read_text())
+        p = h["position_all_films"]["full_vs_without_position"]
+        out["heldout"] = dict(test_films=h["locked_test"]["test_films"], full=h["locked_test"]["models"]["full"]["lift"],
+                              position_gain=p["lift_diff"], position_ci=p["ci"], position_p=p["t_test_p"])
+    # how deep into the film trailers reach: per trailer, its deepest matched shot and its 90th percentile
+    # (the last 1% of the film is left out, as in the model: end credits can match a trailer's title cards)
+    deep = []
+    for p in sorted((FEATURES / "alignment").glob("*.csv")):
+        al = pd.read_csv(p, usecols=["matched", "film_story_pos"])
+        s = al.film_story_pos[al.matched].dropna()
+        s = s[s <= 0.99]
+        if len(s) >= 5:
+            deep.append((s.max(), s.quantile(0.9)))
+    deep = np.array(deep)
+    out["depth"] = dict(trailers=len(deep), median_deepest=float(np.median(deep[:, 0])),
+                        reach_last_10=float((deep[:, 0] > 0.9).mean()), median_p90=float(np.median(deep[:, 1])))
     OUT.write_text(json.dumps(out, allow_nan=False))
     print("->", OUT)
 
