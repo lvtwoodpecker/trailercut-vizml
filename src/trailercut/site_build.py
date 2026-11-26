@@ -5,10 +5,13 @@ The public build swaps both: the Trailer View plays each trailer through YouTube
 as our download, so our shot times line up), and the frames come from one WebP thumbnail sheet per
 trailer (every trailer shot) and per film (every film shot), about 2,200 files in all.
 
-  site/index.html, rq1.html, rq2/...   the pages (index.html gets the public config)
+  site/index.html                      the landing page (RQ1); an old ?id= link goes on to the trailer view
+  site/trailerScope.html, .js          RQ2
+  site/trailerView.html, .js           one trailer (gets the public config: no server, frames from sheets)
   site/data/{id}.json                  per-trailer data + `yt` (YouTube id) + `sheets` (where each frame is)
   site/data/index.json, rq1.json       as in viz/data/
-  site/rq2/data/features/clusters.csv  RQ2's table
+  site/data/features/clusters.csv      RQ2's table
+  site/_redirects                      the old page names (rq1.html, rq2/overview.html) to the new ones
   site/thumbs/{id}_t.webp, {id}_f.webp thumbnail sheets (or upload them elsewhere and pass --frames-base)
 
 Needs viz/data/ (viewer_export, rq1_export), trailer frames and film keyframes. Sheets already built are
@@ -87,15 +90,21 @@ def main():
     (out / "data").mkdir(parents=True, exist_ok=True)
     thumbs.mkdir(exist_ok=True)
 
-    page = (VIZ / "index.html").read_text()
+    page = (VIZ / "trailerView.html").read_text()
     config = f'<script>window.SITE = {json.dumps(dict(mode="public", frames=a.frames_base))};</script>'
     assert "<!-- site-config -->" in page
-    (out / "index.html").write_text(page.replace("<!-- site-config -->", config))
-    shutil.copy(VIZ / "ytmedia.js", out / "ytmedia.js")
-    shutil.copy(VIZ / "rq1.html", out / "rq1.html")
-    shutil.copytree(VIZ / "rq2", out / "rq2", dirs_exist_ok=True)
-    (out / "rq2" / "data" / "features").mkdir(parents=True, exist_ok=True)
-    shutil.copy(FEATURES / "clusters.csv", out / "rq2" / "data" / "features" / "clusters.csv")
+    (out / "trailerView.html").write_text(page.replace("<!-- site-config -->", config))
+    # the Trailer View used to be the home page: send its old links (/?id=...) on
+    hop = '<script>if (new URLSearchParams(location.search).get("id")) location.replace("trailerView.html" + location.search);</script>'
+    (out / "index.html").write_text((VIZ / "index.html").read_text().replace("<head>", "<head>\n  " + hop, 1))
+    for f in ["trailerView.js", "trailerScope.html", "trailerScope.js", "ytmedia.js"]:
+        shutil.copy(VIZ / f, out / f)
+    for old in ["rq1.html", "rq2"]:   # pages from before the redesign
+        p = out / old
+        shutil.rmtree(p) if p.is_dir() else p.unlink(missing_ok=True)
+    (out / "_redirects").write_text("/rq1.html / 301\n/rq1 / 301\n/rq2/overview.html /trailerScope.html 301\n/rq2/overview /trailerScope 301\n")
+    (out / "data" / "features").mkdir(parents=True, exist_ok=True)
+    shutil.copy(FEATURES / "clusters.csv", out / "data" / "features" / "clusters.csv")
     for f in ["index.json", "rq1.json"]:
         shutil.copy(VIZ / "data" / f, out / "data" / f)
 

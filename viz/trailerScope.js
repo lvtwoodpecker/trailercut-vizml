@@ -712,7 +712,7 @@ function selectTrailer(item) {
     applyFilters();
 
     d3.select("#detail-title").text(item.title.replace(/\s*\(\d{4}\)$/, ""));
-    d3.select("#detail-meta").text(`${item.year} • ${item.primary_genre}`);
+    d3.select("#detail-meta").text(`${item.year}, ${item.primary_genre}`);
 
     const rowsData = detailModalities.map(m => {
         const cluster = getClusterValue(item, m.key, currentSpace);

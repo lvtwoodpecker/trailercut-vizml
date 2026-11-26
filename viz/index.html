@@ -459,7 +459,7 @@
     const nfmt = r => r.n != null ? d3.format(",")(r.n) : "–";
     const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
     // examples: shots of this kind that made a trailer, linked to that moment in the Trailer View
-    const exLinks = ex => (ex || []).map(e => `<a href="trailerView.html?id=${encodeURIComponent(e.id)}&t=${e.t}">${esc(e.film)} · ${fmtT(e.t)}</a>`).join(" · ");
+    const exLinks = ex => (ex || []).map(e => `<a href="trailerView.html?id=${encodeURIComponent(e.id)}&t=${e.t}">${esc(e.film)} at ${fmtT(e.t)}</a>`).join(", ");
     const exCol = ["examples", r => exLinks(r.ex) || "–", true];
     function showEx(id, label, ex) {
       const card = document.getElementById(id).closest(".card");

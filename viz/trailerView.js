@@ -49,6 +49,18 @@ const featLabel = n => FEAT_LABEL[n] || n.replace(/^c_/, "").replace(/_/g, " ");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const pad4 = i => String(i).padStart(4, "0");
+// the public site (window.SITE, set by site_build) has no server: page data are files and frames come
+// from one thumbnail sheet per trailer and per film
+const SITE = window.SITE || null;
+function frame(kind, i) {
+    if (!SITE) return img(kind === "t" ? tImg(i) : fImg(i));
+    const s = D.sheets && D.sheets[kind];
+    if (!s || i < 0 || i >= s.cols * s.rows) return `<div class="empty">no frame</div>`;
+    const c = i % s.cols, r = Math.floor(i / s.cols);
+    const pos = `${s.cols > 1 ? 100 * c / (s.cols - 1) : 0}% ${s.rows > 1 ? 100 * r / (s.rows - 1) : 0}%`;
+    return `<div class="sprite-box"><div class="sprite" style="aspect-ratio:${s.w}/${s.h};` +
+        `background-image:url('${SITE.frames}${s.file}');background-size:${s.cols * 100}% ${s.rows * 100}%;background-position:${pos}"></div></div>`;
+}
 const tImg = (i, k = 1) =>
     `${API}/api/trailer-frame/${D.id}/${i}/${k}`;
 
@@ -110,7 +122,8 @@ const hideTip = () => tip.style("display", "none");
 async function init() {
     await loadClusters();
 
-    const index = await d3.json("/api/films");
+    const index = SITE ? (await d3.json("data/index.json")).map(d => ({ id: d.id, title: d.title }))
+        : await d3.json("/api/films");
     // every trailer's order numbers for the comparison panel; absent when the page data is built one film at a time
     try { ALL = ((await d3.json("data/index.json")) || []).filter(d => d.order != null); } catch (e) { ALL = []; }
     index.sort((a, b) => d3.ascending(a.title, b.title));
@@ -173,6 +186,7 @@ function getYoutubeId(id) {
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function ensureViewerData(id) {
+    if (SITE) return d3.json(`data/${id}.json`);   // every trailer is prepared ahead on the public site
     const response = await fetch(`${API}/api/trailer/${id}`);
 
     if (!response.ok) {
@@ -247,10 +261,10 @@ async function load(id) {
         d3.select("#title").text(D.title.replace(/\s*\(\d{4}\)$/, ""));
 
         d3.select("#meta").text(
-            `${D.year} · ` +
-            `${(D.genres || []).slice(0, 2).join(", ")} · ` +
+            `${D.year}, ` +
+            `${(D.genres || []).slice(0, 2).join(", ")}. ` +
             `${D.shots.length} trailer shots, ` +
-            `${Math.round(100 * nMatched / D.shots.length)}% matched · ` +
+            `${Math.round(100 * nMatched / D.shots.length)}% matched, ` +
             `${nUsed}/${D.film.n} film shots used`
         );
 
@@ -258,9 +272,10 @@ async function load(id) {
 
         cur = 0;
         render();
+        hideLoading();   // the charts are up; the player can keep loading on its own (YouTube is sometimes slow or blocked)
 
         // Initialize and load YouTube after drawAll() has built the tx/fx scales
-        const youtubeId = getYoutubeId(id);
+        const youtubeId = getYoutubeId(id) || D.yt;
 
         if (youtubeId) {
             await loadYouTubeVideo(youtubeId, t0);
@@ -623,28 +638,17 @@ function drawNow(h) {
       ${pos ? `<span class="pos">${pos}</span>` : ""}`;
     } else {
         const users = usersOf(j);
-        head = `<b>Source film · Shot ${j + 1}</b>
+        head = `<b>Film shot ${j + 1}</b>
       <span class="tag">${users.length ? "in the trailer" : "not in the trailer"}</span>
       ${pos ? `<span class="pos">${pos}</span>` : ""}`;
     }
 
     // Only show the film frame. The trailer is already visible in the player.
     const frames = j !== null
-        ? `<figure>${img(fImg(j))}</figure>`
-        : `<div class="empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="2" y="4" width="20" height="16" rx="2.5"></rect>
-              <line x1="7" y1="4" x2="7" y2="20"></line>
-              <line x1="17" y1="4" x2="17" y2="20"></line>
-              <line x1="2" y1="9" x2="7" y2="9"></line>
-              <line x1="2" y1="15" x2="7" y2="15"></line>
-              <line x1="17" y1="9" x2="22" y2="9"></line>
-              <line x1="17" y1="15" x2="22" y2="15"></line>
-              <line x1="9.5" y1="9.5" x2="14.5" y2="14.5"></line>
-              <line x1="14.5" y1="9.5" x2="9.5" y2="14.5"></line>
-            </svg>
-            <div class="empty-title">No corresponding film shot</div>
-            <div class="empty-sub">This segment appears only in the trailer—such as a rating card, studio bumper, title graphic, or alternate cut.</div>
+        ? `<figure>${frame("f", j)}</figure>`
+        : `<div class="trailer-only" role="img" aria-label="Trailer only, not in the film">
+            <div class="static" aria-hidden="true"></div>
+            <div class="to-text"><b>Trailer only</b><span>not in the film</span></div>
           </div>`;
 
     box.html(`
@@ -654,7 +658,7 @@ function drawNow(h) {
       <div class="why">
         <div class="why-h">
           <span>What moved the model's score, vs the average shot</span>
-          <span>blue: toward the trailer · red: away</span>
+          <span>blue: toward the trailer, red: away</span>
         </div>
         <p class="reason" id="reason"></p>
         <svg id="shap"></svg>
@@ -906,7 +910,7 @@ function drawMain() {
     svg.append("g").selectAll("rect").data(shots).join("rect").attr("class", "hit")
         .attr("x", i => fx(f.start[i])).attr("width", i => Math.max(4, fx(f.end[i]) - fx(f.start[i])))
         .attr("y", Y.used[0]).attr("height", Y.barcode[1] - Y.used[0]).attr("fill", "transparent")
-        .on("pointermove", (ev, i) => { hover({ film: i }); showTip(ev, img(fImg(i)) + `<div>Film shot ${i} · ${Math.round(100 * f.story_pos[i])}%</div>`); })
+        .on("pointermove", (ev, i) => { hover({ film: i }); showTip(ev, frame("f", i) + `<div>Film shot ${i}, ${Math.round(100 * f.story_pos[i])}% in</div>`); })
         .on("pointerleave", unhover)
         .on("click", (ev, i) => {
             const users = usersOf(i);
@@ -945,7 +949,7 @@ function drawOrder() {
     svg.append("text").attr("class", "lbl").attr("x", x(D.duration) - 4).attr("y", y(1) + 14).attr("text-anchor", "end").text("in film order");
     const pts = D.shots.map((s, i) => [s, i]).filter(d => d[0][3] >= 0);
     scatter(svg, pts, "dot", ([s]) => x((s[0] + s[1]) / 2), ([s]) => y(D.film.story_pos[s[3]]), {
-        move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${img(tImg(i))}${img(fImg(s[3]))}</div><div>Shot ${i + 1}</div>`); },
+        move: (ev, [s, i]) => { hover({ trailer: i, film: s[3] }); showTip(ev, `<div class="pair">${frame("t", i)}${frame("f", s[3])}</div><div>Shot ${i + 1}</div>`); },
         leave: unhover,
         click: (ev, [s]) => { preview = null; hideTip(); seek(s[0] + 0.01); },
     });

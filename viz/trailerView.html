@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <!-- site-config -->
 
   <style>
     :root {
@@ -392,6 +393,24 @@
       border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; max-width: 380px; z-index: 10; }
     #tip .pair { display: flex; gap: 4px; margin-bottom: 4px; }
     #tip img { width: 180px; border-radius: 4px; display: block; }
+
+    /* public site: frames are cells of a thumbnail sheet */
+    .sprite-box { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; background: var(--grid); }
+    #now .sprite-box { width: 100%; }
+    #tip .sprite-box { width: 180px; }
+    .sprite { position: absolute; top: 0; left: 50%; height: 100%; transform: translateX(-50%); background-repeat: no-repeat; }
+    /* a trailer shot with no film shot: a few seconds of static */
+    .trailer-only { position: relative; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; background: #111;
+      display: grid; place-items: center; }
+    .trailer-only .static { position: absolute; inset: -50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.35'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.22; animation: snow 0.4s steps(5) infinite; }
+    @keyframes snow { 0% { transform: translate(0, 0); } 25% { transform: translate(-7%, 4%); }
+      50% { transform: translate(5%, -6%); } 75% { transform: translate(-3%, -2%); } 100% { transform: translate(6%, 5%); } }
+    @media (prefers-reduced-motion: reduce) { .trailer-only .static { animation: none; } }
+    .trailer-only .to-text { position: relative; text-align: center; display: grid; gap: 2px; }
+    .trailer-only b { font-size: 15px; letter-spacing: 0.02em; color: var(--ink); }
+    .trailer-only span { font-size: 12px; color: var(--muted); }
+    .lbl-2 { fill: var(--muted); font-size: 11px; }
     /* Model explanations */
     .why-h {
       font-size: 12px;
