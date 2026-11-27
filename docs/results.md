@@ -3,6 +3,30 @@
 Numbers as of each run, newest first. Source files in brackets. Old entries stay, so we can see how
 numbers moved as the data and methods changed.
 
+## 2026-11-26: the label-free ruler (ruler.py, HPC)
+
+Accuracy of each backbone's top-1 film shot, with 95% film-bootstrap intervals. 71 labels from the
+swapped trailer (tt0430357) dropped.
+
+| ruler | B/32 | L/14 | H/14 | DINOv2 |
+|---|---|---|---|---|
+| hand labels, exact (554 shots) | **0.942** (0.921 to 0.959) | 0.729 | 0.699 | 0.715 |
+| synthetic same shot, exact | 0.726 (0.696 to 0.765) | 0.740 | 0.756 | **0.777** (0.749 to 0.811) |
+| synthetic, within 3 shots | 0.818 | 0.828 | 0.841 | **0.864** |
+| dialogue-implied time, within 5 s | 0.432 (0.287 to 0.602) | 0.500 | 0.485 | 0.508 |
+| dialogue-implied time, within 30 s | 0.545 | 0.576 | 0.583 | 0.598 |
+
+On 38 of the 554 labels the other three backbones agree on a different shot than the label, and in
+29 of those B/32 matches the label (`ruler_consensus.csv`).
+
+Read: the hand labels were made from B/32's top 5, and they are the only ruler where B/32 leads (by
+0.2). On the two rulers that don't depend on any backbone, B/32 is last or tied: DINOv2 is ahead on
+the synthetic test (0.777 vs 0.726, intervals barely overlap) and the dialogue ruler can't separate
+them (intervals 0.3 wide). So B/32's lead in the backbone trial is mostly how the labels were made,
+not a better matcher; no backbone clearly wins. The proposal's target (0.9 recovering an edited film
+shot) is missed by all four: 0.78 at best exactly, 0.86 within 3 shots. B/32 stays (switching means
+a full rerun); the 38 consensus disagreements are the place to look for label errors.
+
 ## 2026-11-26: trailers over the decades
 
 **By decade** [`clusters.csv`; series in `rq1.json` `decades`, 95% intervals from resampling each

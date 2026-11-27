@@ -33,6 +33,8 @@ dependencies = [
 hpc = ["static-ffmpeg"]
 # trailer sound tags (trailer_sound.py, AST on AudioSet)
 sound = ["transformers>=4.49"]
+# audio+visual emotion judge (av_judge.py, Qwen2.5-Omni), GPU only
+judge = ["transformers>=4.52", "accelerate", "qwen-omni-utils[decord]", "soundfile"]
 # vision-language model trial (vlm_rerank.py), GPU only
 vlm = ["transformers>=4.49", "accelerate"]
 

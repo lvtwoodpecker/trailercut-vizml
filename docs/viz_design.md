@@ -236,6 +236,14 @@ the panel's full width below them.
 **Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 at 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
 
+**Sound and dialogue chart.** One strip on the trailer's own time, under the shot links, for the
+proposal's case-study task of relating a change in volume to a shift in dialogue tone: music per 10 s
+(shade = probability), a mood word only where a mood stands out (above its 90th percentile over all
+windows, runs merged into one word), the loudness curve on this trailer's own range (so its rises
+show), and each spoken line as a bar, up and blue when upbeat, down and red when negative (VADER on
+the transcribed line; the page's more/less colors). It shares the playhead and click-to-seek with the
+links above, so a swell in the music and a turn in the lines read against the same moment.
+
 ### Landing page (`viz/index.html`, `rq1_export.py`; was `viz/rq1.html`)
 
 **One page across all films**, linked from the Trailer View header. The Trailer View answers "what did

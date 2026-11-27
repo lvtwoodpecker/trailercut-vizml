@@ -323,7 +323,8 @@ trailer from YouTube.
 | key | meaning |
 |---|---|
 | `id`, `title`, `year`, `genres`, `duration` | ids; `duration` = end of the last trailer shot (s) |
-| `speech` | one list per transcript segment: `[t_start, t_end, matched (0/1), film position of the matched line (0 to 1) or null, text, words as [start, end, word]]`; empty without a transcript |
+| `speech` | one list per transcript segment: `[t_start, t_end, matched (0/1), film position of the matched line (0 to 1) or null, text, words as [start, end, word], VADER sentiment of the line (-1 to 1)]`; empty without a transcript |
+| `sound` | `win` (10 s), `music` (Music probability per window), `mood` (per window: the mood above its 90th percentile over all windows, the most so if several, else null); from `cache/trailer_sound/`, null without it |
 | `curves` | `rms_db`, `cuts` as in `trailer_curves.json`, computed by `viewer_export` (cached in `cache/curves/`) |
 | `shots` | one list per trailer shot: `[t_start, t_end, matched (0/1), film_shot or -1, score, blank (0/1)]` |
 | `shot_colors` | average color (`#rrggbb`) of each trailer shot's middle keyframe |

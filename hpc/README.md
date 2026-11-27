@@ -203,3 +203,16 @@ sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-7B-Instruct,VLM_FRAMES=3 --account=<ac
 sbatch --export=VLM_MODEL=Qwen/Qwen2.5-VL-32B-Instruct,VLM_FRAMES=3 --constraint=h200 --account=<account> hpc/vlm_pair.sbatch
 ```
 
+
+## Audio+visual emotion judge (Qwen2.5-Omni)
+
+`hpc/av_judge.sbatch` rates every trailer's 30 s pieces for 8 emotions from picture and sound together
+(`trailercut.av_judge`). Needs the trailers on scratch (step 2). Pilot first, then the full array:
+
+```bash
+sbatch --export=NONE,JUDGE_LIMIT=5 --array=0 --account=<account> hpc/av_judge.sbatch    # 5 trailers
+sbatch --export=NONE --array=0-3 --account=<account> hpc/av_judge.sbatch                  # all, 4 GPUs
+sbatch --export=NONE,JUDGE_MODE=video,JUDGE_LIMIT=50 --array=0-3 --account=<account> hpc/av_judge.sbatch  # picture only
+```
+
+Copy `data/cache/av_judge/` and `data/features/av_judge_*.csv` back down when done.

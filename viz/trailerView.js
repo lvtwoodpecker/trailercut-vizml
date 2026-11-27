@@ -550,6 +550,7 @@ function follow(t) {
     d3.select("#playhead")
         .attr("x1", tx(t))
         .attr("x2", tx(t));
+    d3.select("#snd-playhead").attr("x1", tx(t)).attr("x2", tx(t));
 
     // Update the clock
     if (ytMedia) {
@@ -768,7 +769,7 @@ function groupOf(n) {
     return "editing";
 }
 
-function drawAll() { drawMain(); drawOrder(); drawCompare(); drawTable(); render(); }
+function drawAll() { drawMain(); drawSound(); drawOrder(); drawCompare(); drawTable(); render(); }
 
 // where this trailer sits among all 1,082: how closely it follows film order (x) and how far into the
 // film it draws from on average (y, as in the order chart above); click a dot to open that trailer
@@ -836,6 +837,55 @@ function drawTable() {
 }
 
 // ---- timeline: trailer on top (the scrubber), film below, links between ----
+// sound over the trailer's own time: music mood (where one stands out), music, loudness, and each
+// spoken line as a bar, up and blue when upbeat, down and red when negative (VADER)
+function drawSound() {
+    const sp = D.speech || [], snd = D.sound, rms = D.curves && D.curves.rms_db;
+    d3.select("#snd-card").style("display", snd || sp.length || rms ? null : "none");
+    if (!snd && !sp.length && !rms) return;
+    const Ys = { mood: 12, music: [20, 30], loud: [38, 92], line: 124, lineH: 22 }, H = Ys.line + Ys.lineH + 28;
+    const svg = d3.select("#snd").attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
+    svg.selectAll("*").remove();
+    const label = (y, txt) => svg.append("text").attr("class", "lbl").attr("x", PAD.l - 8).attr("y", y + 4).attr("text-anchor", "end").text(txt);
+    if (snd) {
+        const win = snd.music.map((m, k) => ({ t0: k * snd.win, t1: Math.min(D.duration, (k + 1) * snd.win), m, mood: snd.mood[k] }));
+        label((Ys.music[0] + Ys.music[1]) / 2, "music");
+        svg.append("g").selectAll("rect").data(win).join("rect").attr("x", w => tx(w.t0)).attr("width", w => Math.max(0, tx(w.t1) - tx(w.t0) - 1))
+            .attr("y", Ys.music[0]).attr("height", Ys.music[1] - Ys.music[0]).attr("fill", "var(--ink-2)").attr("opacity", w => 0.08 + 0.7 * w.m);
+        // one word per run of windows with the same mood
+        const runs = [];
+        win.forEach(w => { const last = runs[runs.length - 1]; if (w.mood && last && last.mood === w.mood && last.t1 === w.t0) last.t1 = w.t1; else if (w.mood) runs.push({ ...w }); });
+        svg.append("g").selectAll("text").data(runs).join("text").attr("class", "lbl-2").attr("x", r => (tx(r.t0) + tx(r.t1)) / 2).attr("y", Ys.mood)
+            .attr("text-anchor", "middle").text(r => r.mood);
+        svg.append("g").selectAll("rect").data(win).join("rect").attr("class", "hit").attr("x", w => tx(w.t0)).attr("width", w => tx(w.t1) - tx(w.t0))
+            .attr("y", 0).attr("height", Ys.music[1]).attr("fill", "transparent")
+            .on("pointermove", (ev, w) => showTip(ev, `${fmtT(w.t0)} to ${fmtT(w.t1)}<br>music ${Math.round(100 * w.m)}%${w.mood ? `, ${w.mood}` : ""}`))
+            .on("pointerleave", hideTip).on("click", (ev, w) => seek(w.t0 + 0.01));
+    }
+    if (rms) {
+        label((Ys.loud[0] + Ys.loud[1]) / 2, "loudness");
+        // this trailer's own range (silence at the ends left out), so its rises and drops show
+        const live = rms.filter(v => v > -60), lo = d3.quantile([...live].sort(d3.ascending), 0.02) ?? -40;
+        const y = d3.scaleLinear([lo - 2, d3.max(live) ?? 0], [Ys.loud[1], Ys.loud[0]]).clamp(true), t = k => k / (rms.length - 1) * D.duration;
+        svg.append("path").attr("fill", "var(--grid)").attr("stroke", "var(--ink-2)").attr("stroke-width", 1.2)
+            .attr("d", d3.area().x((_, k) => tx(t(k))).y0(Ys.loud[1]).y1(v => y(v)).curve(d3.curveMonotoneX)(rms));
+    }
+    label(Ys.line, "lines");
+    svg.append("line").attr("class", "gridline").attr("x1", PAD.l).attr("x2", W - PAD.r).attr("y1", Ys.line).attr("y2", Ys.line);
+    const tone = v => v == null || Math.abs(v) < 0.05 ? "neutral" : v > 0 ? "upbeat" : "negative";
+    svg.append("g").selectAll("rect").data(sp).join("rect")
+        .attr("x", s => tx(s[0])).attr("width", s => Math.max(2, tx(s[1]) - tx(s[0]) - 1))
+        .attr("y", s => (s[6] || 0) > 0 ? Ys.line - Math.max(2, Ys.lineH * s[6]) : Ys.line)
+        .attr("height", s => Math.max(2, Ys.lineH * Math.abs(s[6] || 0)))
+        .attr("fill", s => ({ upbeat: "var(--pos)", negative: "var(--neg)", neutral: "var(--muted)" })[tone(s[6])])
+        .on("pointermove", (ev, s) => showTip(ev, `<b>${tone(s[6])}</b> ${fmtT(s[0])}<br>${String(s[4]).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}`))
+        .on("pointerleave", hideTip).on("click", (ev, s) => seek(s[0] + 0.01));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Ys.line + Ys.lineH + 4})`)
+        .call(d3.axisBottom(tx).ticks(Math.round(W / 110)).tickFormat(fmtT).tickSizeOuter(0));
+    svg.append("line").attr("id", "snd-playhead").attr("class", "playhead").attr("y1", 0).attr("y2", Ys.line + Ys.lineH)
+        .attr("x1", tx(0)).attr("x2", tx(0)).style("pointer-events", "none");
+}
+
 function drawMain() {
     W = Math.max(560, document.getElementById("main-wrap").clientWidth);
     const f = D.film;

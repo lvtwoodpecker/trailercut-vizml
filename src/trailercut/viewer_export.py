@@ -9,6 +9,9 @@ Each film and trailer shot also gets the average color of its middle keyframe, s
 the film as a "movie barcode" (cached in cache/shot_colors/, ~1 ms per keyframe).
 Loudness and cut curves are computed here too (cached in cache/curves/, recomputed when the trailer's
 shot table changes), so the views don't need the RQ2 step (trailer_features).
+Each speech segment carries its VADER sentiment, and each trailer its sound per 10 s window
+(trailer_sound's cache): music probability and the window's mood when one stands out (above that
+mood's 90th percentile over every window of every trailer), for the Trailer View's sound chart.
 
 Outputs (gitignored, rebuilt in seconds)
   viz/data/index.json        one entry per trailer: id, title, year, genre, shots, match rate
@@ -100,6 +103,9 @@ def shap_groups(shap):
     return out[GROUP_ORDER], cols
 
 
+MOOD_CUT = {}
+
+
 def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
     al = pd.read_csv(FEATURES / "alignment" / f"{imdb_id}.csv")
     m = mn.meta(imdb_id)
@@ -134,18 +140,44 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
         film["detail"] = {int(i): [[r(f[c].values[i]), r(raw[c].values[i])] for c in feats] for i in sorted(pick)}
     out["film"] = film
     out["speech"] = speech(imdb_id, runtime)
+    out["sound"] = sound(imdb_id, MOOD_CUT)
     return out
+
+
+def mood_cutoffs():
+    """90th percentile of each mood tag over every 10 s window of every trailer."""
+    from .trailer_sound import MOODS, OUT as SOUND, TAGS
+    w = [np.array(json.loads(p.read_text()).get("windows") or np.zeros((0, len(TAGS)))) for p in SOUND.glob("*.json")]
+    w = np.concatenate([x for x in w if len(x)])
+    return {t: float(np.percentile(w[:, TAGS.index(t)], 90)) for t in MOODS}
+
+
+def sound(imdb_id, cut):
+    """{win: seconds per window, music: [probability], mood: [mood name or null]}, or None."""
+    from .trailer_sound import OUT as SOUND, TAGS, WIN
+    p = SOUND / f"{imdb_id}.json"
+    w = json.loads(p.read_text()).get("windows") if p.exists() else None
+    if not w:
+        return None
+    mood = []
+    for row in w:
+        ratio = {t: row[TAGS.index(t)] / c for t, c in cut.items() if c > 0}
+        best = max(ratio, key=ratio.get)
+        mood.append(best.removesuffix(" music").lower() if ratio[best] >= 1 else None)
+    return dict(win=WIN, music=[r(x[0], 2) for x in w], mood=mood)
 
 
 def speech(imdb_id, runtime):
     """[t_start, t_end, matched, film position of the matched line (0 to 1) or null, text,
-    words as [start, end, word]] per segment."""
+    words as [start, end, word], VADER sentiment of the line] per segment."""
+    from .film_features import VADER
     csv, asr = FEATURES / "dialogue_alignment" / f"{imdb_id}.csv", CACHE / "trailer_asr" / f"{imdb_id}.json"
     if not csv.exists() or not asr.exists():
         return []
     segs = json.loads(asr.read_text())["segments"]
     return [[r(d.t_start, 2), r(d.t_end, 2), int(d.matched), r(d.film_t_start / runtime, 4) if d.matched else None,
-             segs[d.seg_idx]["text"], [[w["start"], w["end"], w["word"]] for w in segs[d.seg_idx]["words"]]]
+             segs[d.seg_idx]["text"], [[w["start"], w["end"], w["word"]] for w in segs[d.seg_idx]["words"]],
+             r(VADER.polarity_scores(segs[d.seg_idx]["text"])["compound"])]
             for d in pd.read_csv(csv).itertuples()]
 
 
@@ -155,6 +187,8 @@ def main():
     ap.add_argument("--ids", nargs="*", default=None, help="only these films; their index.json entries are replaced")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
+    global MOOD_CUT
+    MOOD_CUT = mood_cutoffs()
     curves = {}  # computed here (cached per trailer), so the views don't depend on the RQ2 feature step
     films = pd.read_parquet(FEATURES / "film_shots.parquet")
     preds, shap = load_model_outputs()
