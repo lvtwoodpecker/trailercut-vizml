@@ -103,6 +103,11 @@ DECADE_SERIES = [  # key, label, column, kind (median | share), unit (x: number,
     ("fast", "in the fast-cut style", "fast_style", "share", "%"),
     ("ending", "shots from the film's last quarter", "final_act_share", "median", "%"),
     ("found", "trailer shots found in the film", "match_rate", "median", "%"),
+    # sound (trailer_sound.py)
+    ("music", "time with music", "music_share", "median", "%"),
+    ("dark", "dark music (scary or angry)", "dark_mood", "share", "%"),
+    ("boom", "has booms or whooshes", "boom_whoosh", "share", "%"),
+    ("orchestra", "has clear orchestra", "orchestra_clear", "share", "%"),
 ]
 
 
@@ -112,6 +117,8 @@ def decades(rng, boot=500):
     snd = FEATURES / "trailer_sound.csv"
     if snd.exists():
         df = df.merge(pd.read_csv(snd), on="imdb_id", how="left")
+        for c in ["dark_mood", "boom_whoosh", "orchestra_clear"]:
+            df[c] = df[c].astype(float)
     df["dec"] = df.year // 10 * 10
     df = df[df.dec >= DECADE_FROM]
     out = []

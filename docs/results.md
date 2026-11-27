@@ -26,6 +26,44 @@ trailers to 3 in 4. They take a bit less from the ending. Loudness, how much the
 the trailer comes from the film barely moved. This is also why decade lines up with the pacing
 clusters (decade NMI 0.117) and with almost nothing else.
 
+**Sound and mood** [`trailer_sound.csv`, `trailer_sound.py`]: AST (AudioSet-trained tagger) on every
+10 s of each trailer's audio, all 1,082 trailers.
+
+Check against genre first (median tag level, genre vs the rest, Mann-Whitney): horror 4.1x on scary
+music, drama 4.0x on sad, romance 2.6x on tender, comedy 2.8x on funny and 2.5x on happy, action 5.2x
+on explosions (all p < 1e-11). "Exciting music" does not separate action (1.06x, p 1.0), so it is left
+out of the mood.
+
+| decade | time with music | dark music (scary or angry) | has booms or whooshes | has clear orchestra |
+|---|---|---|---|---|
+| 1960s | 61% | 14% | 0% | 14% |
+| 1970s | 43% | 17% | 0% | 15% |
+| 1980s | 50% | 28% | 9% | 6% |
+| 1990s | 64% | 32% | 10% | 3% |
+| 2000s | 67% | 57% | 19% | 1% |
+| 2010s | 73% | 57% | 22% | 0% |
+
+Mood = the AudioSet mood tag a trailer ranks highest on (percentile among all trailers). Booms or
+whooshes: any window above 0.3; clear orchestra: any window above 0.2. Spearman with year on the raw
+levels: orchestra -0.41, whoosh 0.39, boom 0.30, electronic music 0.26, scary music 0.21, music 0.22.
+
+Not just genre mix: share with dark music, 1960s to 80s vs 2010s, within action 32% to 90%, crime 28%
+to 82%, drama 20% to 43%; comedy stays light (11% to 2%). Orchestra falls within drama alone too.
+
+Sound and picture agree (Spearman per trailer, music mood vs CLIP concept): scary music with
+explosions 0.45, night 0.42, creatures 0.39, screams 0.38; happy music against creatures -0.47,
+explosions -0.49, and with laughing 0.31 and upbeat dialogue 0.35. Explosion heard vs seen 0.49,
+gunshot vs gun 0.32. Sad music barely tracks crying (0.11): sadness is the one mood the picture
+doesn't carry.
+
+Cuts on the sound: cuts land on an audio onset (within 70 ms) at the rate shifted cuts do (lift 0.98
+median; 0.86 in the 1960s to 1.0 in the 2010s). With onsets this dense (speech, effects), this measure
+finds no cut-to-sound sync; a beat tracker on music-only stretches would be the next try.
+
+Read: trailers got darker and more electronic. Orchestral scores faded out, the boom and whoosh of the
+modern trailer arrived in the 2000s, and the share with a dark musical mood went from about 1 in 7 to
+more than half, inside genres as well as across them.
+
 ## 2026-11-26: locked test set, story position's significance, trailer depth
 
 **Locked test** [`model_heldout.json`] 20% of films (217) set aside before any fit; each model trained

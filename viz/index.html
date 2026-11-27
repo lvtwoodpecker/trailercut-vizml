@@ -275,6 +275,10 @@
       }
     }
 
+    /* decades: picture on the first row, sound on the second */
+    #decades { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 900px) { #decades { grid-template-columns: repeat(2, 1fr); } }
+
     .ebm-grid h3 {
       font-size: 13px;
       font-weight: 600;
@@ -427,7 +431,7 @@
     </div>
     <div class="card" id="decades-sec">
       <h2>Over the decades</h2>
-      <p class="sub">Median trailer per decade, with a 95% interval. <a href="trailerScope.html">Trailer styles →</a></p>
+      <p class="sub">Per decade, with a 95% interval. <a href="trailerScope.html">Trailer styles →</a></p>
       <div id="decades" class="ebm-grid"></div>
     </div>
     <p class="note" id="foot"></p>
