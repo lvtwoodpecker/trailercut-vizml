@@ -337,6 +337,30 @@ worse than CLIP alone (top pick right 71% vs 93%, best F1 0.71 vs 0.88), a CLIP 
 (0.74), and SSCD as an accept/reject gate gave no F1 gain. With only 3 keyframes per film shot,
 stricter visual matching doesn't help.
 
+## Trailer sound (`trailer_sound.py`)
+
+**AST trained on AudioSet, not a prompt-based audio-text model.** Each 10 s window of the trailer audio
+gets AudioSet class probabilities from AST (`MIT/ast-finetuned-audioset-10-10-0.4593`); we keep 21
+tags (music, speech, the 7 mood classes, orchestra, electronic, booms, whooshes, explosions, ...).
+These classes were trained on human labels, mood included ("Scary music" is what raters heard), so
+we don't have to trust how a text prompt like "dark music" lands. We checked them against genre before
+using them: horror is 4.1x on scary music, drama 4.0x on sad, comedy 2.8x on funny, action 5.2x on
+explosions. What we give up: only AudioSet's own classes, no free-form descriptions.
+
+**Mood = the mood tag the trailer ranks highest on, as a percentile.** The tags' raw levels differ a lot
+(some mood classes fire far more than others), so a raw argmax would give nearly every trailer the same
+mood. Ranking each tag across trailers first asks "which mood is this trailer unusually high on".
+"Exciting music" is left out: it does not separate action trailers from the rest (1.06x, p 1.0).
+`boom_whoosh` (any window above 0.3) and `orchestra_clear` (above 0.2) are presence flags, since a
+single boom matters more than the average level. The cutoffs were picked by looking at the share of
+trailers per decade at 0.2, 0.3 and 0.5: at 0.5 almost nothing fires, so each tag uses the highest
+cutoff that still fires in a readable share of trailers (0.3 for booms and whooshes, 0.2 for orchestra).
+
+**Cuts on the sound.** A cut counts as on a hit with an audio onset (librosa) within 70 ms, compared
+with the same cuts shifted by random offsets, so the lift is 1 when cuts ignore the sound. It came out
+at 0.98 (median): with onsets this dense (speech, effects) the measure can't see sync. Kept as a
+negative result; a beat tracker on music-only stretches is the next thing to try.
+
 ## Readable features
 
 **Zero-shot concepts instead of raw embedding dimensions** (`concepts.py`). Shot scale uses MovieNet's
@@ -421,6 +445,13 @@ The lift denominator is the films' mean positive rate, not the rate pooled over 
 averaged per film, so the base has to be too, or random scores 1.18x (short films have high positive
 rates and count once each). Changed 2026-11-06; older logged lifts use the pooled rate.
 
+**Locked test set** (`model_heldout.py`). `model.py` scores every film out of fold, but its settings
+were picked by `model_tune` on those same folds. So 20% of films (grouped by film) are set aside before
+anything is fit; each model trains once on the rest and is scored once on them. The landing page charts
+these lifts. The leak left is that `PARAMS` were still tuned on all films (9 settings, small spread).
+Story position's gain is tested paired by film (t-test, Wilcoxon, film-bootstrap interval on the lift
+difference), since a lift gap alone doesn't say whether it holds across films.
+
 ## RQ2 clustering (`cluster.py`)
 
 **Features per trailer in 6 groups:** pacing, audio, story sampling, dialogue, visual, speech (from
@@ -434,6 +465,11 @@ HDBSCAN as a check on whether density-based structure exists at all.
 
 **Genre/era with a baseline:** NMI with primary genre and decade, compared against the 95th percentile
 of NMI with shuffled labels. Without the null, any NMI looks like agreement.
+
+**Cluster numbers stay put across reruns** (`keep_numbering`). k-means numbers its clusters
+arbitrarily, and TrailerScope names them by number ("cluster 1 = fast cuts"), so a rerun could swap
+the names onto the wrong groups. Each new labeling is matched to the previous `clusters.csv` with a
+Hungarian assignment on the films they share; new clusters beyond the old count get fresh numbers.
 
 **Current read** (threshold 0.535): clusters are stable (ARI 0.79 to 0.94) but weakly separated
 (silhouette 0.10 to 0.31). Genre NMI beats the null for all, story, dialogue, visual and (barely)

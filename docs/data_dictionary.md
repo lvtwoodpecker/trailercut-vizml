@@ -131,6 +131,18 @@ lines), `median_speech_share`, `median_words_per_min`, `sync_seconds` (30), `lab
 (`labeled_shots_under_found_line`, `line_within_sync_of_labeled_shot`: share of those where the line's
 film time is within 30 s of the labeled source shot).
 
+**`trailer_sound.csv`** (C, `trailer_sound`): one row per trailer. AST (AudioSet tagger) probabilities per
+10 s window of the trailer audio. `imdb_id`, `music_share` (share of windows with Music above 0.5), then
+the mean probability over windows of each kept AudioSet tag: `music`, `speech`, `silence`,
+`exciting_music`, `scary_music`, `sad_music`, `happy_music`, `tender_music`, `angry_music`,
+`funny_music`, `orchestra`, `choir`, `electronic_music`, `rock_music`, `hip_hop_music`, `pop_music`,
+`drum`, `explosion`, `gunshot`, `whoosh`, `boom`. `cut_on_hit` (share of cuts with an audio onset
+within 70 ms), `cut_on_hit_lift` (over the rate for the same cuts shifted by random offsets; 1 = no
+sync; empty under 5 cuts or onsets), `boom_whoosh` (any window with Boom or Whoosh above 0.3),
+`orchestra_clear` (any window with Orchestra above 0.2), `mood` (`scary`, `angry`, `sad`, `tender`,
+`happy` or `funny`: the mood tag with the trailer's highest percentile among all trailers),
+`dark_mood` (mood is scary or angry).
+
 **`alignment_diagnostics.json`** (C, `align_diagnostics`): `threshold` (cutoff in use), `labels` (per
 hand-label kind `right shot`, `wrong shot`, `same scene, other shot`, `not in film`: `n`,
 `median_score`, `above_cutoff` share), `language` (per trailer group `English`, `other language`,
@@ -206,6 +218,14 @@ re-alignment at 0.535.
 `readable` lift at k0 from `model_eval.json`), `curves` (per readable feature, from a fit on all films:
 `x` bin edges, `score` per bin in log-odds, `importance` = mean absolute score).
 
+**`model_heldout.json`** (C, `model_heldout`): `locked_test` (`train_films`, `test_films`,
+`test_shots`, `models`: per model `random`, `position_only`, `length_only`, `clip_only`, `readable`,
+`full`, `full_minus_position`, the `model_report` metrics plus `lift`, each trained once on 80% of
+films and scored on the other 20%). `position_all_films` (out-of-fold scores) and
+`position_locked_test`, each with `full_vs_without_position` and `position_only_vs_random`, paired by
+film: `films`, `lift_a`, `lift_b`, `lift_diff`, `ci` (95%, films resampled), `films_better`,
+`films_worse`, `films_tied`, `t_test_p`, `wilcoxon_p`.
+
 **`model_shap.parquet`** (G): `imdb_id`, `shot_idx`, one out-of-fold SHAP column per readable
 feature, `clip` (sum over the CLIP PCs), `bias`. Values are in log-odds; a row sums to the full
 model's log-odds for that shot.
@@ -241,8 +261,10 @@ matched shots, 5+ paired lines, or 10+ used shots for `model`) and two lists of 
 `youtube_id`, k-means label `cluster_<group>` for `all`, `pacing`, `audio`, `story`, `dialogue`,
 `visual`, `speech`, the same after regressing out genre and decade as `cluster_res_<group>`, and
 `umap_x_base`, `umap_y_base`, `umap_x_res`, `umap_y_res` (UMAP of all features, before and after).
-For k = 2, cluster numbers follow the previous `clusters.csv` on the films both share, since the RQ2
-page names cluster 0 and 1.
+It also carries every `trailers.parquet` feature column and a UMAP per group, `umap_base_<group>_x/y`
+and `umap_res_<group>_x/y`. Cluster numbers follow the previous `clusters.csv` (`keep_numbering`: each
+new cluster takes the number of the old one it shares the most films with, a Hungarian match), since
+TrailerScope names clusters by number.
 
 **`cluster_report.json`** (C): `{baseline, residual}`, each a list with one object per feature set
 (`all` first, then the 6 groups). Keys: `modality`, `n_features`, `best_k`, `silhouette` (k-means
@@ -313,7 +335,7 @@ trailer from YouTube.
 | `film.shap_groups`, `film.shap` | group order and per film shot SHAP summed per group (`position`, `dialogue`, `scale`, `content`, `editing`, `clip`) |
 | `film.detail_features`, `film.detail` | readable feature names, and for in-trailer shots plus the top `--detail` (default 60) by `full` score, `[value, SHAP]` per feature, keyed by shot index |
 
-**`rq1.json`** (from `rq1_export`, read by `viz/rq1.html`): `n_shots`, `n_films`, `positive_rate`
+**`rq1.json`** (from `rq1_export`, read by the landing page `viz/index.html`): `n_shots`, `n_films`, `positive_rate`
 (edge shots excluded), then lift tables `story` (20 bins of story position, `level` = bin center),
 `scale` (dominant scale class), `length` and `distinct` (within-film quintiles of `rel_shot_len`,
 `rel_distinct`), `dialogue` (has / no dialogue), `content` (per concept, shots in the film's top 10%
@@ -321,7 +343,16 @@ for it). Each row: `level`, `lift` (pick rate over the overall pick rate), `lo`,
 films resampled, 300 draws by default), `n` (shots). `models`: `name`, `lift` from `model_eval.json`
 `k0`. Only if `model_ebm.json` exists: `ebm`, the 6 EBM curves with the highest importance, each `name`
 (readable label), `x` (bin edges), `y` (odds multiplier, exp of the score), cut to the feature's 1st to
-99th percentile; `ebm_lift` (the EBM's lift).
+99th percentile; `ebm_lift` (the EBM's lift). Only if `model_heldout.json` exists: `heldout`
+(`test_films`, `full` lift, `position_gain`, `position_ci`, `position_p` from the all-films paired
+test, `models`: `name`, `lift` on the locked test; the page charts these instead of `models`).
+`depth` (`trailers` with 5+ matched shots, `median_deepest` and `median_p90` story position of a
+trailer's deepest and 90th percentile shot, `reach_last_10`: share with a shot past 90%; last 1% of
+the film left out). `decades`: one series per trailer measure, `key`, `label`, `unit` (`x` number,
+`%` share), `pts` per decade from the 1960s with 10+ trailers (`dec`, `v` median, or mean of a 0/1
+column, `lo`, `hi` 95% from resampling that decade's trailers, `n`). Series: cuts per minute,
+fast-cut style (base pacing cluster 1), last-quarter share, match rate, and from `trailer_sound.csv`
+when present music share, dark mood, booms or whooshes, clear orchestra.
 
 ## Caches (G, under `$TRAILERCUT_DATA/cache/`)
 
@@ -333,6 +364,8 @@ TransNetV2's per-frame cut probability, float32; read by `resplit`), `trailer_au
 `replaced/{id}/` (a trailer's old files while `recover --ids` or `swap apply` replaces it, plus `_paths.json`; written once, removed after a restore),
 `yt_meta/{youtube_id}.json` (`trailer_audit`: `title`, `channel`, `duration`, `height`; failed
 requests aren't cached),
+`trailer_sound/{id}.json` (`trailer_sound`: `windows`, per 10 s window the probability of each kept
+tag; `cut_on_hit`, `cut_on_hit_lift`; or `error` for an unreadable WAV),
 `concept_text_<tag>.npy`, `blank_emb_<tag>.npy`, `alignment_null_<tag>.npy`,
 `shot_colors/{id}.json` (`film`, `trailer`: lists of `#rrggbb` per shot, from `viewer_export`; reused
 while the shot counts match), `curves/{id}.json` (`viewer_export`: `rms_db`, `cuts` as in

@@ -1,6 +1,6 @@
 # Viz design system
 
-The rules both D3 pages (`viz/index.html`, `viz/rq1.html`) and the static figures (`figures/*.png`)
+The rules the D3 pages (landing page `viz/index.html`, `viz/trailerScope.html`, `viz/trailerView.html`) and the static figures (`figures/*.png`)
 follow, the lessons that led to them, and each page's own design decisions (at the end). Method and
 pipeline decisions stay in [design.md](design.md).
 
@@ -23,7 +23,9 @@ from `src/trailercut/style.py`. Never write a hex in a chart; use a token.
 | `--unmatched` | `#d6d5ce` | `#383835` | neutral fills (loudness area); never a "no data" mark |
 
 Data-driven colors are the one exception: the trailer strip and the film barcode fill each shot with
-its frame's average color.
+its frame's average color. TrailerScope adds `--c1` (`#199e70`) and `--c2` (`#8a63d2`) for its two
+styles (clusters): a style is an identity, not a direction, so it must not wear the site's
+more/less blue and red.
 
 ## Color roles
 
@@ -153,7 +155,7 @@ its frame's average color.
 
 ## Page decisions
 
-### Trailer View (`viz/index.html`, `viewer_export.py`)
+### Trailer View (`viz/trailerView.html`, `trailerView.js`, `viewer_export.py`)
 
 **One JSON per trailer.** The page loads only the trailer it shows plus a small index for the picker.
 Named-feature detail (value + SHAP per feature) is only exported for in-trailer shots and the top 60 by
@@ -196,7 +198,10 @@ screen.
 **Video and "now" panel side by side, above the timeline.** The panel shows the current trailer frame
 next to the film frame it matched and the "why this shot" bars, so judging a match needs no extra
 click. Keyboard: space or `k` play/pause, left/right step one shot, Home to the start, `c` captions,
-`m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked.
+`m` sound, Esc. `?t=` opens a trailer at a moment, so a case can be linked. The page opens on that
+shot, or else on the first shot with a film match, as soon as the charts are drawn, before YouTube
+loads: the shot panel has something to show right away, and a timed link from the landing page
+lands on its shot even when the player is slow or blocked.
 
 **Thumbnails are local only.** Frame images load from the viewer's own `data/movienet/frames/` and
 `data/cache/trailer_frames/`. Frames are copyrighted, so they are never committed, exported into
@@ -231,7 +236,7 @@ the panel's full width below them.
 **Terse labels, no act labels** (also on the RQ1 page): "Keyframe 249", "Shot 7 at 0:39", short
 subtitles, no setup/middle/ending marks. The design language is to label things, not explain them; explanations live in these docs.
 
-### RQ1 page (`viz/rq1.html`, `rq1_export.py`)
+### Landing page (`viz/index.html`, `rq1_export.py`; was `viz/rq1.html`)
 
 **One page across all films**, linked from the Trailer View header. The Trailer View answers "what did
 this trailer take"; this page answers "what kind of shot gets picked" over the whole corpus.
@@ -254,10 +259,11 @@ films keeps one film from carrying a result.
 below 1x whose interval excludes 1x, or says there is no clear difference. Text can't drift from the
 numbers after a rerun.
 
-**Model lift bars** reuse `model_eval.json` (exact-shot lift) so the page shows how far the features
-get together, next to the single-feature lifts. The EBM sits in the same chart as its own bar, so its
-gap to LightGBM is visible instead of described. Random is the grey baseline; the axis runs to 1.1× the
-best model.
+**Model lift bars come from the locked test** (`model_heldout.json`, films no model trained on) when
+it exists, else from `model_eval.json`'s out-of-fold exact-shot lift. The held-out lift is the honest
+one, so it is the one charted. Model names are plain words ("where in the film", "shot length", "look
+of the shot", "tagged features", "everything"), same reason as raw names in the Lessons. Random is the
+faded baseline bar; the axis runs to at least 4x.
 
 **Effect of each feature: EBM curves** (from `model_ebm.json`). The lifts above look at one feature at
 a time; the EBM curves show each feature's effect with the others held fixed. The page shows the 6
@@ -266,6 +272,14 @@ lift bars), its range taken from the data so no curve is clipped, cut to the fea
 a flat step to its own end. Concept features are raw CLIP similarities, which mean nothing as numbers,
 so their x axis reads only "low" and "high". The
 section is hidden when `model_ebm.json` doesn't exist.
+Each curve is blue where it is above 1x and red below, the page's more/less colors, so a reader
+doesn't have to check the axis to see which side a stretch is on.
+
+**Over the decades.** Small multiples, one per trailer measure, decades on x from the 1960s (earlier
+decades have 1 to 13 trailers), each a median (or share) with a 95% band from resampling that
+decade's trailers. Picture measures on the first row, sound (`trailer_sound.csv`) on the second.
+Lines are neutral ink: time is not a more/less direction, so blue and red would mislead. It links to
+TrailerScope, since decade is what the pacing styles follow.
 
 **YouTube is the video source; the public site adds frame sheets** (`ytmedia.js`, `site_build.py`).
 The Trailer View plays each trailer through YouTube's player, locally and on the public site: it is the
@@ -293,3 +307,27 @@ with a quiet histogram of all trailers, a blue tick for this one and its percent
 percentile"); the first and last quarter share one row. Percentiles, not "more than 87% of trailers",
 and "average position in the film", not "draws from", after a read-through found both hard to parse.
 
+
+### TrailerScope (`viz/trailerScope.html`, `trailerScope.js`, `clusters.csv`)
+
+**Plain words in the controls.** "Features" (Everything, Pacing, Sound, Story, Dialogue, Visuals,
+Speech), "Genre and decade: removed / kept" for the residual vs base map, "Color: Style / Genre /
+Decade", sentence-case labels. The old copy ("Modality Space", "Residualized (Bias Purged)",
+"Archetype Cluster") stopped readers who don't know the method. The lede states the finding instead
+of the page's purpose.
+
+**Styles get their own colors** (`--c1` green, `--c2` violet), not the blue and red the other pages
+use for more/less, so a style never reads as "better" or "worse".
+
+**Maps turned to their strongest feature, labeled only when it holds.** UMAP's rotation and flip are
+arbitrary, and its axes mean nothing by themselves. On load each map is rotated (2 degree steps) so x
+follows the group feature it lines up with best, flipped so that feature grows right, and y flipped to
+grow upward. An axis gets an arrow label in plain words ("faster cutting →") only when that feature's
+rank correlation with it is at least 0.6; the hover shows the value. Single-group maps only: on
+Everything, naming one of ~60 features would oversell what the map shows. `?rotate=0` keeps the raw
+layout. The earlier fixed note ("axes have no units") was dropped for these labels.
+
+**Relative links between pages.** TrailerScope and the Trailer View linked each other by
+`/viz/...` paths, which only exist when serving the repo root; on the public site the pages sit at the
+root. Links are now relative (`trailerView.html`, `trailerScope.html`), and the home page's old-link
+redirect (`/?id=...`) goes to `/trailerView.html` by absolute path so it can't loop.

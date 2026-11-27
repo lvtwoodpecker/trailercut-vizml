@@ -42,14 +42,16 @@ Its `trailers.csv` has one row per film with only the trailer link in use: `imdb
 | `data/features/model_report.json` | RQ1 metrics per model (baselines, readable, full, ablations) and SHAP summaries; per-shot predictions and SHAP (`model_preds.parquet`, `model_shap.parquet`) are not committed |
 | `data/features/model_eval.json` | RQ1 scores with a ±k film shot tolerance (k = 0, 1, 3, 5), from the saved predictions |
 | `data/features/model_tune.json` | RQ1 model variants (extra feature groups, ranker, LightGBM settings) on the same folds |
+| `data/features/model_heldout.json` | RQ1 models on a locked 20% of films never trained on, and story position's paired test |
 | `data/features/model_ebm.json` | glass-box EBM on the readable features: metrics and one curve per feature |
 | `data/features/case_studies.json` | trailers at the extremes of order, ending share, sound sync and model hits |
 | `data/features/alignment_diagnostics.json` | match scores by hand label, match rate by trailer language, likely missed cuts |
 | `data/features/alignment_threshold.json`, `alignment_eval.json`, `align_tune.json` | match threshold and impostor null stats; alignment scored against the hand labels; raw vs smoothed matching against the labels |
+| `data/features/trailer_sound.csv` | per trailer AudioSet sound tags (music, mood, booms, orchestra) and cuts vs audio onsets (`trailer_sound`, needs the `sound` extra) |
 | `data/features/trailers.parquet` | RQ2 table: one row per trailer |
 | `data/features/clusters.csv`, `cluster_report.json` | cluster labels, stability, genre/decade association |
 | `labels/` | hand-labeling sample, gold labels for alignment, and `label_trailers.csv` (which trailer each labeled film had); the generated pages (`label_tool.html`, `swap_review.html`, `audit_review.html`, `split_review.html`) and their images (`labels/img/`, `labels/swap_img/`, `labels/split_img/`) are not committed |
-| `viz/index.html`, `viz/rq1.html` | the D3 Trailer View and the RQ1 page (what gets picked across all films); their data (`viz/data/`) is generated and not committed |
+| `viz/index.html`, `viz/trailerScope.html`, `viz/trailerView.html` | the D3 pages: landing page (what gets picked across all films, over the decades), TrailerScope (trailer styles) and the Trailer View; their data (`viz/data/`) is generated and not committed |
 
 ## Setup
 
@@ -171,8 +173,8 @@ left/right shot, shift+left/right 5 s, Home, `c` captions, `m` sound, Esc. `?t=4
 python -m trailercut.viewer_export   # writes viz/data/
 ```
 Then serve the repo root with any static server, e.g. `python -m http.server [port]`, and open
-`/viz/` (add `?id=<imdb_id>` for a film). `python -m trailercut.rq1_export` writes the data for
-`/viz/rq1.html`, the across-films page linked from the Trailer View header.
+`/viz/` (the landing page; `/viz/trailerView.html?id=<imdb_id>` for a film, `/viz/trailerScope.html` for
+trailer styles). `python -m trailercut.rq1_export` writes the landing page's data.
 Frame thumbnails load from your local `data/movienet/frames/` (loose JPEGs) and
 `data/cache/trailer_frames/`, and the video from `data/trailers/`, so they only show on a machine that
 has the data. Nothing copyrighted is committed or hosted. Trailers are AV1, VP9 or H.264 in MP4: use

@@ -39,7 +39,7 @@ MovieNet (HF mirror)                    YouTube
                   model_ebm (opt-in)    cluster, case_studies (rq2, opt-in)
                            │
             viewer_export: per-trailer JSON for viz/ (Trailer View)
-            rq1_export: lifts across all films for viz/rq1.html
+            rq1_export: lifts, held-out test, decades for viz/index.html
 ```
 
 ## Steps (`run_all.sh`)
@@ -69,7 +69,7 @@ MovieNet (HF mirror)                    YouTube
 | rq2 (opt-in) | `trailercut.cluster` | trailer table | `clusters.csv`, `cluster_report.json`, `figures/clusters_all_umap.png` | ~1 min |
 | rq2 (opt-in) | `trailercut.case_studies` | `trailers.parquet`, `av_sync.csv`, `model_preds.parquet` | `case_studies.json` | seconds |
 | viz | `trailercut.viewer_export` | alignment, trailer shots, `cache/trailer_audio/`, `film_shots.parquet`, model preds/SHAP if present, keyframes, dialogue alignment and transcripts if present | `viz/data/index.json`, `viz/data/{id}.json`, `cache/shot_colors/{id}.json`, `cache/curves/{id}.json` | seconds once colors and curves are cached; first color pass ~1 ms per keyframe |
-| viz | `trailercut.rq1_export` | film shot table, film embeddings, `model_eval.json`, `model_tune.json` and `model_ebm.json` if present | `viz/data/rq1.json` | under a minute |
+| viz | `trailercut.rq1_export` | film shot table, film embeddings, alignment, `clusters.csv`, `model_eval.json`; `model_tune.json`, `model_ebm.json`, `model_heldout.json` and `trailer_sound.csv` if present | `viz/data/rq1.json` (the landing page's data) | under a minute |
 | site (opt-in) | `trailercut.site_build [--frames-base URL]` | `viz/`, `viz/data/`, `clusters.csv`, `trailer_status.csv`, trailer frames, film keyframes | `site/` (gitignored): the public website; trailers play from YouTube, frames from one WebP sheet per trailer and per film (~2.5 GB) | ~15 min, 8 workers |
 | ebm (opt-in) | `trailercut.model_ebm` (`--plot-only` redraws from the JSON) | film shot table, film embeddings, `model_eval.json` | `model_ebm.json`, `figures/ebm_shapes.png` | ~30 min |
 
@@ -115,6 +115,8 @@ restored.
 | step | command | reads | writes |
 |---|---|---|---|
 | re-split | `trailercut.resplit` | `alignment_diagnostics.json` (`cuts.film_floor_1pct`), trailer shot tables, trailer embeddings and videos, TransNetV2 cut probabilities from `cache/transnet/` (computed and cached when missing; fill it first with `trailer_prep --probs-only`, 4 workers, which is about 4x faster), `labels/label_trailers.csv` | rewritten `trailer_shots/{id}.csv` and `cache/trailer_frames/{id}/`, trailer embedding removed, `resplit_log.csv` (appended per trailer; logged trailers are skipped on rerun) |
+| locked test | `trailercut.model_heldout [--test 0.2] [--boot 2000]` | film shot table, film embeddings, `model_preds.parquet` | `model_heldout.json` | not timed |
+| trailer sound | `trailercut.trailer_sound [--ids ...]` (needs `pip install -e ".[sound]"`) | `cache/trailer_audio/`, trailer shot tables | `cache/trailer_sound/{id}.json` (per trailer; a rerun resumes), `trailer_sound.csv` | not timed |
 | release | `trailercut.release [--push USER/NAME [--public]]` | status, film list, YouTube metadata cache and candidate logs, alignment, dialogue alignment, `av_sync.csv`, `labels/gold_*.json`, `alignment_eval.json`, `alignment_diagnostics.json` (card numbers) | `data/release/` (gitignored): see `data_dictionary.md`; then `check()`; `--push` uploads it to a Hugging Face dataset repo (private unless `--public`; uses the cached Hugging Face login) |
 
 After `resplit`, run `python -m trailercut.embed trailer` (it re-embeds the trailers whose embedding was
@@ -158,10 +160,11 @@ Features, figures and labels always live in the repo checkout, not under `TRAILE
 | film shot features | `run_all.sh rq1 viz`, then `ebm` (the RQ1 page shows its curves) |
 | trailer features | `run_all.sh rq2` |
 | transcripts or dialogue matching | `run_all.sh audio viz`, plus `rq2` (delete `cache/trailer_asr/{id}.json` to re-transcribe) |
-| model | `run_all.sh rq1 viz`, plus `rq2` (`case_studies` reads the predictions), `ebm` if the readable features changed |
+| model | `run_all.sh rq1`, `model_heldout`, then `viz`, plus `rq2` (`case_studies` reads the predictions), `ebm` if the readable features changed |
+| trailer audio (swap, re-split) | delete that trailer's `cache/trailer_sound/{id}.json`, then `trailer_sound` and `rq1_export` |
 | tolerance eval only | `model_eval` (reuses saved predictions, no retraining) |
 | EBM figure only | `model_ebm --plot-only` (reads `model_ebm.json`, no retraining) |
-| the Trailer View or RQ1 page only | nothing; reload `viz/index.html` or `viz/rq1.html` |
+| a page in `viz/` only | nothing; reload it |
 
 "`align` onward" includes `viewer_export` and `rq1_export`. The `rq2` stage is opt-in: add it to any rebuild that should refresh the RQ2 outputs.
 
