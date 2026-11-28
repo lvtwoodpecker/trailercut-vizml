@@ -429,9 +429,14 @@
             margin-top: 6px;
             margin-right: 6px;
         }
+
         /* before a trailer is picked, the empty panel fills its column with a centered hint */
-        .workspace:not(.drawer-open) .detail-drawer { align-self: stretch; display: grid; place-items: center; }
-  </style>
+        .workspace:not(.drawer-open) .detail-drawer {
+            align-self: stretch;
+            display: grid;
+            place-items: center;
+        }
+    </style>
 </head>
 
 <body>
@@ -450,7 +455,7 @@
             <div class="control-group">
                 <label for="modality-select">Features</label>
                 <select id="modality-select">
-                    <option value="all">Everything</option>
+                    <option value="all">All</option>
                     <option value="pacing">Pacing</option>
                     <option value="audio">Sound</option>
                     <option value="story">Story</option>
@@ -461,10 +466,10 @@
             </div>
 
             <div class="control-group">
-                <label for="space-select">Genre and decade</label>
+                <label for="space-select">Genre and Decade</label>
                 <select id="space-select">
-                    <option value="res">removed</option>
-                    <option value="base">kept</option>
+                    <option value="res">Removed</option>
+                    <option value="base">Kept</option>
                 </select>
             </div>
 

@@ -79,8 +79,12 @@ def curve(imdb_id):
         if c.get("stamp") == stamp:
             return c
     sh = pd.read_csv(shots_csv)
-    _, rms = audio(imdb_id, sh.t_end.max())
-    c = dict(rms_db=np.round(rms, 2).tolist(),
+    try:
+        _, rms = audio(imdb_id, sh.t_end.max())
+        rms_list = np.round(rms, 2).tolist()
+    except Exception:
+        rms_list = []
+    c = dict(rms_db=rms_list,
              cuts=np.histogram(sh.trailer_pos, bins=GRID, range=(0, 1))[0].tolist(), stamp=stamp)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(c))
@@ -147,6 +151,8 @@ def trailer_json(imdb_id, curves, films, preds, shap, n_detail):
 def mood_cutoffs():
     """90th percentile of each mood tag over every 10 s window of every trailer."""
     from .trailer_sound import MOODS, OUT as SOUND, TAGS
+    if not SOUND.exists():
+        return {t: 0.0 for t in MOODS}
     w = [np.array(json.loads(p.read_text()).get("windows") or np.zeros((0, len(TAGS)))) for p in SOUND.glob("*.json")]
     w = np.concatenate([x for x in w if len(x)])
     return {t: float(np.percentile(w[:, TAGS.index(t)], 90)) for t in MOODS}
